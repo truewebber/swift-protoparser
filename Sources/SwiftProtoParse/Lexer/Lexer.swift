@@ -1,180 +1,247 @@
 import Foundation
 
+/// The Lexer class tokenizes the input .proto file content into a sequence of tokens.
 public class Lexer {
 	private let input: String
 	private var currentIndex: String.Index
+	private var line: Int
+	private var column: Int
+	
 	private var currentChar: Character? {
-		currentIndex < input.endIndex ? input[currentIndex] : nil
+		return currentIndex < input.endIndex ? input[currentIndex] : nil
 	}
-	private var line: Int = 1
-	private var column: Int = 1
-
-	private let keywords: Set<String> = [
-		"syntax", "import", "weak", "public", "package", "option",
-		"message", "enum", "service", "rpc", "returns", "stream",
-		"oneof", "map", "repeated", "reserved", "extensions", "to",
-		"max", "true", "false"
-	]
-
+	
+	/// Initializes the Lexer with the input string.
+	/// - Parameter input: The content of the .proto file as a string.
 	public init(input: String) {
 		self.input = input
 		self.currentIndex = input.startIndex
+		self.line = 1
+		self.column = 1
 	}
-
-	public func nextToken() -> Token {
-		skipWhitespaceAndComments()
-
-		guard let char = currentChar else {
-			return .endOfFile
+	
+	/// Tokenizes the input string and returns an array of tokens.
+	public func tokenize() throws -> [Token] {
+		var tokens = [Token]()
+		while let _ = currentChar {
+			// Skip whitespace and comments
+			skipWhitespaceAndComments()
+			if isAtEnd() { break }
+			
+			// Scan next token
+			if let token = try scanToken() {
+				tokens.append(token)
+			}
 		}
-
-		// Identifiers or keywords
-		if isAlpha(char) || char == "_" {
-			return readIdentifierOrKeyword()
-		}
-
-		// Numbers
-		if isDigit(char) || (char == "-" && peekNextChar().map(isDigit) == true) {
-			return readNumber()
-		}
-
-		// String Literals
-		if char == "\"" || char == "'" {
-			return readStringLiteral()
-		}
-
-		// Symbols
-		if isSymbol(char) {
-			let symbolString = String(char)
+		tokens.append(Token(type: .eof, lexeme: "", line: line, column: column))
+		return tokens
+	}
+	
+	/// Scans and returns the next token from the input.
+	private func scanToken() throws -> Token? {
+		guard let char = currentChar else { return nil }
+		
+		let startLine = line
+		let startColumn = column
+		
+		if isLetter(char) || char == "_" {
+			return scanIdentifierOrKeyword(startLine: startLine, startColumn: startColumn)
+		} else if isDigit(char) || (char == "-" && nextIsDigit()) {
+			return scanNumericLiteral(startLine: startLine, startColumn: startColumn)
+		} else if char == "\"" || char == "'" {
+			return try scanStringLiteral(startLine: startLine, startColumn: startColumn)
+		} else if isSymbol(char) {
+			return scanSymbol(startLine: startLine, startColumn: startColumn)
+		} else {
+			// Unknown character
 			advance()
-			return .symbol(symbolString)
+			let lexeme = String(char)
+			return Token(type: .unknown(lexeme), lexeme: lexeme, line: startLine, column: startColumn)
 		}
-
-		// Unknown character
-		let unknownChar = String(char)
-		advance()
-		return .unknown(unknownChar)
 	}
-
-	// MARK: - Helper Methods
-
-	private func advance() {
-		if currentChar == "\n" {
+	
+	/// Advances the current index and updates the line and column numbers.
+	@discardableResult
+	private func advance() -> Character? {
+		guard currentIndex < input.endIndex else { return nil }
+		let char = input[currentIndex]
+		currentIndex = input.index(after: currentIndex)
+		if char == "\n" {
 			line += 1
 			column = 1
 		} else {
 			column += 1
 		}
-		currentIndex = input.index(after: currentIndex)
+		return char
 	}
-
-	private func peekNextChar() -> Character? {
+	
+	/// Peeks at the next character without advancing the current index.
+	private func peek() -> Character? {
 		let nextIndex = input.index(after: currentIndex)
 		return nextIndex < input.endIndex ? input[nextIndex] : nil
 	}
-
+	
+	/// Checks if the current character and the next character start a comment.
+	private func isCommentStart() -> Bool {
+		if let char = currentChar {
+			if char == "/" {
+				if let nextChar = peek() {
+					return nextChar == "/" || nextChar == "*"
+				}
+			}
+		}
+		return false
+	}
+	
+	/// Skips over whitespace characters.
 	private func skipWhitespaceAndComments() {
 		while let char = currentChar {
-			if char.isWhitespace {
+			if isWhitespace(char) || isNewline(char) {
 				advance()
-			} else if char == "/" {
-				if peekNextChar() == "/" {
-					skipSingleLineComment()
-				} else if peekNextChar() == "*" {
-					skipMultiLineComment()
-				} else {
-					break
-				}
+			} else if isCommentStart() {
+				skipComment()
 			} else {
 				break
 			}
 		}
 	}
-
-	private func skipSingleLineComment() {
-		while let char = currentChar, char != "\n" {
-			advance()
-		}
-	}
-
-	private func skipMultiLineComment() {
-		advance() // Skip '/'
-		advance() // Skip '*'
-		while let char = currentChar {
-			if char == "*" && peekNextChar() == "/" {
-				advance() // Skip '*'
-				advance() // Skip '/'
-				break
+	
+	/// Skips over comments (both single-line and multi-line).
+	private func skipComment() {
+		guard let char = currentChar else { return }
+		advance() // Consume '/'
+		
+		if char == "/" && currentChar == "/" {
+			// Single-line comment
+			while let char = currentChar, !isNewline(char) {
+				advance()
 			}
-			advance()
-		}
-	}
-
-	private func readIdentifierOrKeyword() -> Token {
-		var identifier = ""
-		while let char = currentChar, isAlphaNumeric(char) || char == "_" {
-			identifier.append(char)
-			advance()
-		}
-		if keywords.contains(identifier) {
-			if identifier == "true" || identifier == "false" {
-				return .booleanLiteral(identifier == "true")
+		} else if char == "/" && currentChar == "*" {
+			// Multi-line comment
+			advance() // Consume '*'
+			while let char = currentChar {
+				if char == "*" && peek() == "/" {
+					advance() // Consume '*'
+					advance() // Consume '/'
+					break
+				} else {
+					advance()
+				}
 			}
-			return .keyword(identifier)
 		}
-		return .identifier(identifier)
 	}
-
-	private func readNumber() -> Token {
-		var number = ""
+	
+	/// Scans an identifier or keyword.
+	private func scanIdentifierOrKeyword(startLine: Int, startColumn: Int) -> Token {
+		var lexeme = ""
+		while let char = currentChar, isLetterOrDigit(char) || char == "_" || char == "." {
+			lexeme.append(char)
+			advance()
+		}
+		
+		if isKeyword(lexeme) {
+			return Token(type: .keyword(lexeme), lexeme: lexeme, line: startLine, column: startColumn)
+		} else if lexeme == "true" || lexeme == "false" {
+			return Token(type: .booleanLiteral(lexeme == "true"), lexeme: lexeme, line: startLine, column: startColumn)
+		} else {
+			return Token(type: .identifier(lexeme), lexeme: lexeme, line: startLine, column: startColumn)
+		}
+	}
+	
+	/// Scans a numeric literal.
+	private func scanNumericLiteral(startLine: Int, startColumn: Int) -> Token {
+		var lexeme = ""
 		if currentChar == "-" {
-			number.append("-")
+			lexeme.append("-")
 			advance()
 		}
-		while let char = currentChar, isDigit(char) || char == "." {
-			number.append(char)
+		while let char = currentChar, isDigit(char) || char == "." || char == "e" || char == "E" || char == "+" || char == "-" {
+			lexeme.append(char)
 			advance()
 		}
-		return .numericLiteral(number)
+		return Token(type: .numericLiteral(lexeme), lexeme: lexeme, line: startLine, column: startColumn)
 	}
-
-	private func readStringLiteral() -> Token {
-		let quoteChar = currentChar!
+	
+	/// Scans a string literal.
+	private func scanStringLiteral(startLine: Int, startColumn: Int) throws -> Token {
+		guard let quoteChar = currentChar else { return nil }
+		var lexeme = ""
+		lexeme.append(quoteChar)
 		advance()
-		var stringContent = ""
+		
 		while let char = currentChar {
 			if char == quoteChar {
+				lexeme.append(char)
 				advance()
 				break
 			} else if char == "\\" {
+				// Handle escape sequences
+				lexeme.append(char)
 				advance()
-				if let escapedChar = currentChar {
-					stringContent.append(escapedChar)
+				if let nextChar = currentChar {
+					lexeme.append(nextChar)
 					advance()
 				}
 			} else {
-				stringContent.append(char)
+				lexeme.append(char)
 				advance()
 			}
 		}
-		return .stringLiteral(stringContent)
+		
+		return Token(type: .stringLiteral(lexeme), lexeme: lexeme, line: startLine, column: startColumn)
 	}
-
-	private func isAlpha(_ char: Character) -> Bool {
-		char.isLetter
+	
+	/// Scans a symbol token.
+	private func scanSymbol(startLine: Int, startColumn: Int) -> Token {
+		guard let char = currentChar else { return nil }
+		let lexeme = String(char)
+		advance()
+		return Token(type: .symbol(lexeme), lexeme: lexeme, line: startLine, column: startColumn)
 	}
-
+	
+	/// Helper functions to identify character types.
+	private func isWhitespace(_ char: Character) -> Bool {
+		return char == " " || char == "\t" || char == "\r"
+	}
+	
+	private func isNewline(_ char: Character) -> Bool {
+		return char == "\n"
+	}
+	
+	private func isLetter(_ char: Character) -> Bool {
+		return char.isLetter
+	}
+	
 	private func isDigit(_ char: Character) -> Bool {
-		char.isNumber
+		return char.isNumber
 	}
-
-	private func isAlphaNumeric(_ char: Character) -> Bool {
-		isAlpha(char) || isDigit(char)
+	
+	private func isLetterOrDigit(_ char: Character) -> Bool {
+		return char.isLetter || char.isNumber
 	}
-
+	
 	private func isSymbol(_ char: Character) -> Bool {
-		let symbols: Set<Character> = ["{", "}", "=", ";", "[", "]", "(", ")", ",", ".", ":", "<", ">", "/"]
+		let symbols = "{}[]()<>;=,.:"
 		return symbols.contains(char)
+	}
+	
+	private func isKeyword(_ lexeme: String) -> Bool {
+		let keywords = [
+			"syntax", "import", "package", "option", "message", "enum", "service", "rpc",
+			"map", "oneof", "repeated", "returns", "stream", "reserved", "extend", "true", "false"
+		]
+		return keywords.contains(lexeme)
+	}
+	
+	private func nextIsDigit() -> Bool {
+		if let nextChar = peek() {
+			return isDigit(nextChar)
+		}
+		return false
+	}
+	
+	private func isAtEnd() -> Bool {
+		return currentIndex >= input.endIndex
 	}
 }
 
