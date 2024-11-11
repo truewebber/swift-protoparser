@@ -36,7 +36,7 @@ public struct FieldDescriptorProto {
 }
 
 /// Represents field types.
-public enum FieldType {
+public enum FieldType: Equatable {
 	case int32
 	case int64
 	case uint32
