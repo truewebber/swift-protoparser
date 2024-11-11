@@ -27,7 +27,7 @@ public class Lexer {
 			// Skip whitespace and comments
 			skipWhitespaceAndComments()
 			if isAtEnd() { break }
-			
+
 			// Scan next token
 			if let token = try scanToken() {
 				tokens.append(token)
@@ -40,10 +40,10 @@ public class Lexer {
 	/// Scans and returns the next token from the input.
 	private func scanToken() throws -> Token? {
 		guard let char = currentChar else { return nil }
-		
+
 		let startLine = line
 		let startColumn = column
-		
+
 		if isLetter(char) || char == "_" {
 			return scanIdentifierOrKeyword(startLine: startLine, startColumn: startColumn)
 		} else if isDigit(char) || (char == "-" && nextIsDigit()) {
@@ -163,7 +163,7 @@ public class Lexer {
 	}
 	
 	/// Scans a string literal.
-	private func scanStringLiteral(startLine: Int, startColumn: Int) throws -> Token {
+	private func scanStringLiteral(startLine: Int, startColumn: Int) throws -> Token? {
 		guard let quoteChar = currentChar else { return nil }
 		var lexeme = ""
 		lexeme.append(quoteChar)
@@ -173,7 +173,8 @@ public class Lexer {
 			if char == quoteChar {
 				lexeme.append(char)
 				advance()
-				break
+				let token = Token(type: .stringLiteral(lexeme), lexeme: lexeme, line: startLine, column: startColumn)
+				return token
 			} else if char == "\\" {
 				// Handle escape sequences
 				lexeme.append(char)
@@ -181,6 +182,14 @@ public class Lexer {
 				if let nextChar = currentChar {
 					lexeme.append(nextChar)
 					advance()
+				} else {
+					// Handle the case where the escape character is at the end of input
+					// You can throw an error or return nil
+					throw LexicalError(
+						message: "Unterminated string literal at end of input.",
+						line: line,
+						column: column
+					)
 				}
 			} else {
 				lexeme.append(char)
@@ -188,15 +197,21 @@ public class Lexer {
 			}
 		}
 		
-		return Token(type: .stringLiteral(lexeme), lexeme: lexeme, line: startLine, column: startColumn)
+		// If we reach here, the string literal was not terminated
+		throw LexicalError(
+			message: "Unterminated string literal.",
+			line: startLine,
+			column: startColumn
+		)
 	}
 	
 	/// Scans a symbol token.
-	private func scanSymbol(startLine: Int, startColumn: Int) -> Token {
+	private func scanSymbol(startLine: Int, startColumn: Int) -> Token? {
 		guard let char = currentChar else { return nil }
 		let lexeme = String(char)
 		advance()
-		return Token(type: .symbol(lexeme), lexeme: lexeme, line: startLine, column: startColumn)
+		let token = Token(type: .symbol(lexeme), lexeme: lexeme, line: startLine, column: startColumn)
+		return token
 	}
 	
 	/// Helper functions to identify character types.

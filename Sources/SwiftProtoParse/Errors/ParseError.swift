@@ -20,3 +20,13 @@ public struct SemanticError: ParseError {
     public let line: Int
     public let column: Int
 }
+
+public struct SemanticErrorCollection: Error {
+	public let errors: [SemanticError]
+}
+
+public struct LexicalError: ParseError {
+	public let message: String
+	public let line: Int
+	public let column: Int
+}

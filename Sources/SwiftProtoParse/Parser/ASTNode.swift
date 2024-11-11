@@ -11,7 +11,7 @@ public struct ProtoFile: ASTNode {
 	public let syntax: Syntax?
 	public let imports: [ImportStatement]
 	public let package: PackageStatement?
-	public let options: [OptionStatement]
+	public let options: [ASTOption]
 	public let definitions: [TopLevelDefinition]
 	public let startLine: Int
 	public let startColumn: Int
@@ -45,20 +45,22 @@ public struct PackageStatement: ASTNode {
 }
 
 /// Represents an option statement.
-public struct OptionStatement: ASTNode {
+public struct ASTOption: ASTNode {
 	public let name: String
-	public let value: OptionValue
+	public let value: ASTOptionValue
 	public let startLine: Int
 	public let startColumn: Int
 }
 
-/// Represents the value of an option.
-public enum OptionValue {
+///// Represents the value of an option.
+public enum ASTOptionValue {
 	case string(String)
 	case number(String)
 	case boolean(Bool)
-	case aggregate([OptionStatement])
+	case aggregate([ASTOption])
 }
+
+// Update any references from ASTOption to ASTOption
 
 /// Represents top-level definitions.
 public enum TopLevelDefinition: ASTNode {
@@ -104,7 +106,7 @@ public enum MessageElement {
 	case enumType(EnumDeclaration)
 	case message(MessageDeclaration)
 	case oneof(OneofDeclaration)
-	case option(OptionStatement)
+	case option(ASTOption)
 	case reserved(ReservedStatement)
 	// ... other elements
 }
@@ -115,7 +117,7 @@ public struct FieldDeclaration: ASTNode {
 	public let type: String
 	public let name: String
 	public let number: Int
-	public let options: [OptionStatement]
+	public let options: [ASTOption]
 	public let startLine: Int
 	public let startColumn: Int
 }
@@ -137,7 +139,7 @@ public struct EnumDeclaration: ASTNode {
 /// Represents elements within an enum.
 public enum EnumElement {
 	case value(EnumValue)
-	case option(OptionStatement)
+	case option(ASTOption)
 	case reserved(ReservedStatement)
 }
 
@@ -145,7 +147,7 @@ public enum EnumElement {
 public struct EnumValue: ASTNode {
 	public let name: String
 	public let number: Int
-	public let options: [OptionStatement]
+	public let options: [ASTOption]
 	public let startLine: Int
 	public let startColumn: Int
 }
@@ -161,7 +163,7 @@ public struct ServiceDeclaration: ASTNode {
 /// Represents elements within a service.
 public enum ServiceElement {
 	case rpc(RPCMethod)
-	case option(OptionStatement)
+	case option(ASTOption)
 }
 
 /// Represents an RPC method.
@@ -171,7 +173,7 @@ public struct RPCMethod: ASTNode {
 	public let outputType: String
 	public let isClientStreaming: Bool
 	public let isServerStreaming: Bool
-	public let options: [OptionStatement]
+	public let options: [ASTOption]
 	public let startLine: Int
 	public let startColumn: Int
 }

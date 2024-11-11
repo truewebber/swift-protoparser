@@ -100,3 +100,10 @@ public struct Option {
 	public let value: OptionValue
 }
 
+/// Represents the value of an option in descriptors.
+public enum OptionValue {
+	case string(String)
+	case number(String)
+	case boolean(Bool)
+	case aggregate([Option]) // Uses [Option]
+}

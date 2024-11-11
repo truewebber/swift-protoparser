@@ -2,8 +2,8 @@ import Foundation
 
 /// The SemanticAnalyzer class validates the AST for semantic correctness.
 public class SemanticAnalyzer {
-	private let ast: ProtoFile
-	private var symbolTable = SymbolTable()
+	public let ast: ProtoFile
+	public var symbolTable = SymbolTable()
 	private var errors: [SemanticError] = []
 	
 	/// Initializes the SemanticAnalyzer with the AST.
@@ -13,6 +13,7 @@ public class SemanticAnalyzer {
 	}
 	
 	/// Performs semantic analysis on the AST.
+	/// - Throws: `SemanticErrorCollection` if semantic errors are found.
 	public func analyze() throws {
 		try analyzeSyntax(ast.syntax)
 		try analyzePackage(ast.package)
@@ -25,39 +26,47 @@ public class SemanticAnalyzer {
 		}
 	}
 	
+	// MARK: - Analysis Methods
+	
 	private func analyzeSyntax(_ syntax: Syntax?) throws {
 		guard let syntax = syntax else {
-			throw SemanticError(
+			errors.append(SemanticError(
 				message: "Missing syntax declaration. 'syntax = \"proto3\";' is required.",
 				line: 1,
 				column: 1
-			)
+			))
+			return
 		}
 		if syntax.version != "proto3" {
-			throw SemanticError(
+			errors.append(SemanticError(
 				message: "Unsupported syntax version: \(syntax.version). Only 'proto3' is supported.",
 				line: syntax.startLine,
 				column: syntax.startColumn
-			)
+			))
 		}
 	}
 	
 	private func analyzePackage(_ package: PackageStatement?) throws {
-		// Validate package name if needed
+		// Package name validation if needed
 	}
 	
 	private func analyzeImports(_ imports: [ImportStatement]) throws {
 		for importStmt in imports {
 			// Resolve import paths and handle public/weak modifiers
-			// Detect circular dependencies
+			// Detect circular dependencies if necessary
 		}
 	}
 	
-	private func analyzeOptions(_ options: [OptionStatement]) throws {
+	private func analyzeOptions(_ options: [ASTOption]) throws {
 		for option in options {
-			// Validate standard and custom options
-			// Check option scopes and values
+			try analyzeOption(option)
 		}
+	}
+	
+	private func analyzeOption(_ option: ASTOption) throws {
+		// Validate standard and custom options
+		// Check option scopes and values
+		// For simplicity, we'll assume all options are valid
 	}
 	
 	private func analyzeDefinitions(_ definitions: [TopLevelDefinition]) throws {
@@ -74,114 +83,300 @@ public class SemanticAnalyzer {
 	}
 	
 	private func analyzeMessage(_ message: MessageDeclaration) throws {
+		// Check for duplicate message names
+		if symbolTable.contains(symbol: message.name) {
+			errors.append(SemanticError(
+				message: "Duplicate message name: '\(message.name)'.",
+				line: message.startLine,
+				column: message.startColumn
+			))
+		} else {
+			symbolTable.define(symbol: .message(name: message.name, declaration: message))
+		}
+		
 		symbolTable.enterScope()
 		defer { symbolTable.exitScope() }
 		
-		try symbolTable.define(symbol: .message(name: message.name))
+		var fieldNumbers = Set<Int>()
+		var fieldNames = Set<String>()
 		
 		for element in message.body {
 			switch element {
 			case .field(let field):
-				try analyzeField(field)
+				try analyzeField(field, fieldNumbers: &fieldNumbers, fieldNames: &fieldNames)
 			case .message(let nestedMessage):
 				try analyzeMessage(nestedMessage)
 			case .enumType(let enumType):
 				try analyzeEnum(enumType)
 			case .oneof(let oneof):
-				try analyzeOneof(oneof)
+				try analyzeOneof(oneof, fieldNumbers: &fieldNumbers, fieldNames: &fieldNames)
 			case .option(let option):
-				// Analyze option
-				break
+				try analyzeOption(option)
 			case .reserved(let reserved):
-				// Analyze reserved
+				// Handle reserved fields if necessary
 				break
 			}
 		}
 	}
 	
-	private func analyzeField(_ field: FieldDeclaration) throws {
+	private func analyzeField(_ field: FieldDeclaration, fieldNumbers: inout Set<Int>, fieldNames: inout Set<String>) throws {
+		// Check for duplicate field numbers
+		if fieldNumbers.contains(field.number) {
+			errors.append(SemanticError(
+				message: "Duplicate field number \(field.number) in message.",
+				line: field.startLine,
+				column: field.startColumn
+			))
+		} else {
+			fieldNumbers.insert(field.number)
+		}
+		
+		// Check for duplicate field names
+		if fieldNames.contains(field.name) {
+			errors.append(SemanticError(
+				message: "Duplicate field name '\(field.name)' in message.",
+				line: field.startLine,
+				column: field.startColumn
+			))
+		} else {
+			fieldNames.insert(field.name)
+		}
+		
 		// Validate field type
-		// Check for duplicate field numbers and names
-		// Validate field options
+		try validateFieldType(field.type, line: field.startLine, column: field.startColumn)
+		
+		// Validate field options if any
+		for option in field.options {
+			try analyzeOption(option)
+		}
 	}
 	
 	private func analyzeEnum(_ enumType: EnumDeclaration) throws {
+		// Check for duplicate enum names
+		if symbolTable.contains(symbol: enumType.name) {
+			errors.append(SemanticError(
+				message: "Duplicate enum name: '\(enumType.name)'.",
+				line: enumType.startLine,
+				column: enumType.startColumn
+			))
+		} else {
+			symbolTable.define(symbol: .enumType(name: enumType.name, declaration: enumType))
+		}
+		
 		symbolTable.enterScope()
 		defer { symbolTable.exitScope() }
 		
-		try symbolTable.define(symbol: .enumType(name: enumType.name))
+		var valueNumbers = Set<Int>()
+		var valueNames = Set<String>()
 		
 		for element in enumType.body {
 			switch element {
 			case .value(let value):
-				try analyzeEnumValue(value)
+				// Check for duplicate value numbers
+				if valueNumbers.contains(value.number) {
+					errors.append(SemanticError(
+						message: "Duplicate enum value number \(value.number) in enum '\(enumType.name)'.",
+						line: value.startLine,
+						column: value.startColumn
+					))
+				} else {
+					valueNumbers.insert(value.number)
+				}
+				
+				// Check for duplicate value names
+				if valueNames.contains(value.name) {
+					errors.append(SemanticError(
+						message: "Duplicate enum value name '\(value.name)' in enum '\(enumType.name)'.",
+						line: value.startLine,
+						column: value.startColumn
+					))
+				} else {
+					valueNames.insert(value.name)
+				}
+				
+				// Validate enum value options if any
+				for option in value.options {
+					try analyzeOption(option)
+				}
 			case .option(let option):
-				// Analyze option
-				break
+				try analyzeOption(option)
 			case .reserved(let reserved):
-				// Analyze reserved
+				// Handle reserved values if necessary
 				break
 			}
 		}
-	}
-	
-	private func analyzeEnumValue(_ value: EnumValue) throws {
-		// Check for duplicate enum values
-		// Validate enum value options
+		
+		// Ensure first enum value has number 0
+		if !valueNumbers.contains(0) {
+			errors.append(SemanticError(
+				message: "The first enum value in '\(enumType.name)' must have the number zero (0).",
+				line: enumType.startLine,
+				column: enumType.startColumn
+			))
+		}
 	}
 	
 	private func analyzeService(_ service: ServiceDeclaration) throws {
+		// Check for duplicate service names
+		if symbolTable.contains(symbol: service.name) {
+			errors.append(SemanticError(
+				message: "Duplicate service name: '\(service.name)'.",
+				line: service.startLine,
+				column: service.startColumn
+			))
+		} else {
+			symbolTable.define(symbol: .service(name: service.name, declaration: service))
+		}
+		
 		symbolTable.enterScope()
 		defer { symbolTable.exitScope() }
 		
-		try symbolTable.define(symbol: .service(name: service.name))
+		var methodNames = Set<String>()
 		
 		for element in service.body {
 			switch element {
 			case .rpc(let rpcMethod):
-				try analyzeRPCMethod(rpcMethod)
+				// Check for duplicate method names
+				if methodNames.contains(rpcMethod.name) {
+					errors.append(SemanticError(
+						message: "Duplicate method name '\(rpcMethod.name)' in service '\(service.name)'.",
+						line: rpcMethod.startLine,
+						column: rpcMethod.startColumn
+					))
+				} else {
+					methodNames.insert(rpcMethod.name)
+				}
+				
+				// Validate input and output types
+				try validateTypeName(rpcMethod.inputType, line: rpcMethod.startLine, column: rpcMethod.startColumn)
+				try validateTypeName(rpcMethod.outputType, line: rpcMethod.startLine, column: rpcMethod.startColumn)
+				
+				// Validate method options if any
+				for option in rpcMethod.options {
+					try analyzeOption(option)
+				}
 			case .option(let option):
-				// Analyze option
-				break
+				try analyzeOption(option)
 			}
 		}
 	}
 	
-	private func analyzeRPCMethod(_ rpcMethod: RPCMethod) throws {
-		// Validate input and output types
-		// Check streaming modifiers
-		// Validate method options
+	private func analyzeOneof(_ oneof: OneofDeclaration, fieldNumbers: inout Set<Int>, fieldNames: inout Set<String>) throws {
+		// Check for duplicate oneof names
+		if symbolTable.contains(symbol: oneof.name) {
+			errors.append(SemanticError(
+				message: "Duplicate oneof name: '\(oneof.name)'.",
+				line: oneof.startLine,
+				column: oneof.startColumn
+			))
+		} else {
+			symbolTable.define(symbol: .oneof(name: oneof.name, declaration: oneof))
+		}
+		
+		var oneofFieldNumbers = Set<Int>()
+		var oneofFieldNames = Set<String>()
+		
+		for field in oneof.fields {
+			// Check for duplicate field numbers
+			if fieldNumbers.contains(field.number) || oneofFieldNumbers.contains(field.number) {
+				errors.append(SemanticError(
+					message: "Duplicate field number \(field.number) in oneof '\(oneof.name)'.",
+					line: field.startLine,
+					column: field.startColumn
+				))
+			} else {
+				fieldNumbers.insert(field.number)
+				oneofFieldNumbers.insert(field.number)
+			}
+			
+			// Check for duplicate field names
+			if fieldNames.contains(field.name) || oneofFieldNames.contains(field.name) {
+				errors.append(SemanticError(
+					message: "Duplicate field name '\(field.name)' in oneof '\(oneof.name)'.",
+					line: field.startLine,
+					column: field.startColumn
+				))
+			} else {
+				fieldNames.insert(field.name)
+				oneofFieldNames.insert(field.name)
+			}
+			
+			// Validate field type
+			try validateFieldType(field.type, line: field.startLine, column: field.startColumn)
+			
+			// Validate field options if any
+			for option in field.options {
+				try analyzeOption(option)
+			}
+		}
 	}
 	
-	private func analyzeOneof(_ oneof: OneofDeclaration) throws {
-		// Analyze oneof fields
+	// MARK: - Validation Helpers
+	
+	private func validateFieldType(_ typeName: String, line: Int, column: Int) throws {
+		if isScalarType(typeName) {
+			// Valid scalar type
+		} else if symbolTable.resolve(name: typeName) != nil {
+			// Type exists (message or enum)
+		} else {
+			errors.append(SemanticError(
+				message: "Undefined type '\(typeName)'.",
+				line: line,
+				column: column
+			))
+		}
+	}
+	
+	private func validateTypeName(_ typeName: String, line: Int, column: Int) throws {
+		if symbolTable.resolve(name: typeName) != nil {
+			// Type exists
+		} else {
+			errors.append(SemanticError(
+				message: "Undefined type '\(typeName)'.",
+				line: line,
+				column: column
+			))
+		}
+	}
+	
+	private func isScalarType(_ typeName: String) -> Bool {
+		let scalarTypes = [
+			"double", "float", "int32", "int64", "uint32", "uint64",
+			"sint32", "sint64", "fixed32", "fixed64", "sfixed32", "sfixed64",
+			"bool", "string", "bytes"
+		]
+		return scalarTypes.contains(typeName)
 	}
 }
 
-// SymbolTable and Symbol definitions
+// MARK: - Symbol Table
 
 public class SymbolTable {
-	private var scopes: [Scope] = [Scope()]
-	
+	private var scopes: [Scope] = [Scope()] // Initialize with a global scope
+
+	public init() {}
+
 	public func enterScope() {
 		scopes.append(Scope())
 	}
-	
+
 	public func exitScope() {
 		scopes.removeLast()
 	}
-	
-	public func define(symbol: Symbol) throws {
-		if scopes.last!.symbols[symbol.name] != nil {
-			throw SemanticError(
-				message: "Symbol '\(symbol.name)' is already defined.",
-				line: symbol.line,
-				column: symbol.column
-			)
-		}
-		scopes.last!.symbols[symbol.name] = symbol
+
+	public func define(symbol: Symbol) {
+		scopes.last?.symbols[symbol.name] = symbol
 	}
-	
+
+	public func contains(symbol name: String) -> Bool {
+		for scope in scopes.reversed() {
+			if scope.symbols[name] != nil {
+				return true
+			}
+		}
+		return false
+	}
+
 	public func resolve(name: String) -> Symbol? {
 		for scope in scopes.reversed() {
 			if let symbol = scope.symbols[name] {
@@ -192,45 +387,27 @@ public class SymbolTable {
 	}
 }
 
-public struct Scope {
-	public var symbols: [String: Symbol] = [:]
-}
-
-public class Symbol {
-	public let name: String
-	public let line: Int
-	public let column: Int
-	
-	public init(name: String, line: Int, column: Int) {
-		self.name = name
-		self.line = line
-		self.column = column
-	}
-}
-
-public enum SymbolKind {
-	case message
-	case enumType
-	case service
-	// ... other kinds
+public class Scope {
+	var symbols: [String: Symbol] = [:]
 }
 
 public enum Symbol {
-	case message(name: String)
-	case enumType(name: String)
-	case service(name: String)
-	// ... other symbols
+	case message(name: String, declaration: MessageDeclaration)
+	case enumType(name: String, declaration: EnumDeclaration)
+	case service(name: String, declaration: ServiceDeclaration)
+	case oneof(name: String, declaration: OneofDeclaration)
+	// Add more symbol types as needed
+
+	var name: String {
+		switch self {
+		case .message(let name, _):
+			return name
+		case .enumType(let name, _):
+			return name
+		case .service(let name, _):
+			return name
+		case .oneof(let name, _):
+			return name
+		}
+	}
 }
-
-//// Error definitions
-//
-//public struct SemanticError: Error {
-//	public let message: String
-//	public let line: Int
-//	public let column: Int
-//}
-
-public struct SemanticErrorCollection: Error {
-	public let errors: [SemanticError]
-}
-
