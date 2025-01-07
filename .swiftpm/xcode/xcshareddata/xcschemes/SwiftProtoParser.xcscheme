@@ -1,12 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
-   LastUpgradeVersion = "1610"
-   version = "1.7">
+   LastUpgradeVersion = "1620"
+   version = "2.2">
    <BuildAction
       parallelizeBuildables = "YES"
       buildImplicitDependencies = "YES"
       buildArchitectures = "Automatic">
       <BuildActionEntries>
+         <BuildActionEntry
+            buildForTesting = "NO"
+            buildForRunning = "YES"
+            buildForProfiling = "NO"
+            buildForArchiving = "NO"
+            buildForAnalyzing = "YES">
+            <AutocreatedTestPlanReference>
+            </AutocreatedTestPlanReference>
+         </BuildActionEntry>
          <BuildActionEntry
             buildForTesting = "YES"
             buildForRunning = "YES"
@@ -15,9 +24,9 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "SwiftProtoParse"
-               BuildableName = "SwiftProtoParse"
-               BlueprintName = "SwiftProtoParse"
+               BlueprintIdentifier = "SwiftProtoParser"
+               BuildableName = "SwiftProtoParser"
+               BlueprintName = "SwiftProtoParser"
                ReferencedContainer = "container:">
             </BuildableReference>
          </BuildActionEntry>
@@ -30,7 +39,7 @@
       shouldUseLaunchSchemeArgsEnv = "YES">
       <TestPlans>
          <TestPlanReference
-            reference = "container:.swiftpm/SwiftProtoParse.xctestplan"
+            reference = "container:.swiftpm/SwiftProtoParser.xctestplan"
             default = "YES">
          </TestPlanReference>
       </TestPlans>
@@ -39,9 +48,9 @@
             skipped = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "SwiftProtoParseTests"
-               BuildableName = "SwiftProtoParseTests"
-               BlueprintName = "SwiftProtoParseTests"
+               BlueprintIdentifier = "SwiftProtoParserTests"
+               BuildableName = "SwiftProtoParserTests"
+               BlueprintName = "SwiftProtoParserTests"
                ReferencedContainer = "container:">
             </BuildableReference>
          </TestableReference>
@@ -51,6 +60,7 @@
       buildConfiguration = "Debug"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
+      enableThreadSanitizer = "YES"
       launchStyle = "0"
       useCustomWorkingDirectory = "NO"
       ignoresPersistentStateOnLaunch = "NO"
@@ -67,9 +77,9 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "SwiftProtoParse"
-            BuildableName = "SwiftProtoParse"
-            BlueprintName = "SwiftProtoParse"
+            BlueprintIdentifier = "SwiftProtoParser"
+            BuildableName = "SwiftProtoParser"
+            BlueprintName = "SwiftProtoParser"
             ReferencedContainer = "container:">
          </BuildableReference>
       </MacroExpansion>

@@ -179,30 +179,71 @@ extension TokenType {
 // MARK: - CustomStringConvertible
 
 extension TokenType: CustomStringConvertible {
-    public var description: String {
-        switch self {
-        case .eof: return "EOF"
-        case .illegal: return "ILLEGAL"
-        case .identifier: return "IDENTIFIER"
-        case .intLiteral: return "INT_LITERAL"
-        case .floatLiteral: return "FLOAT_LITERAL"
-        case .stringLiteral: return "STRING_LITERAL"
-        case .equals: return "="
-        case .colon: return ":"
-        case .semicolon: return ";"
-        case .leftBrace: return "{"
-        case .rightBrace: return "}"
-        case .leftParen: return "("
-        case .rightParen: return ")"
-        case .leftAngle: return "<"
-        case .rightAngle: return ">"
-        case .leftBracket: return "["
-        case .rightBracket: return "]"
-        case .comma: return ","
-        case .period: return "."
-        case .minus: return "-"
-        case .plus: return "+"
-        default: return String(describing: self)
-        }
-    }
+	public var description: String {
+		switch self {
+		// Special Tokens
+		case .eof: return "EOF"
+		case .illegal: return "ILLEGAL"
+		
+		// Identifiers and Literals
+		case .identifier: return "IDENTIFIER"
+		case .intLiteral: return "INT_LITERAL"
+		case .floatLiteral: return "FLOAT_LITERAL"
+		case .stringLiteral: return "STRING_LITERAL"
+		
+		// Operators and Punctuation
+		case .equals: return "="
+		case .colon: return ":"
+		case .semicolon: return ";"
+		case .leftBrace: return "{"
+		case .rightBrace: return "}"
+		case .leftParen: return "("
+		case .rightParen: return ")"
+		case .leftAngle: return "<"
+		case .rightAngle: return ">"
+		case .leftBracket: return "["
+		case .rightBracket: return "]"
+		case .comma: return ","
+		case .period: return "."
+		case .minus: return "-"
+		case .plus: return "+"
+		
+		// Keywords
+		case .syntax: return "syntax"
+		case .import: return "import"
+		case .weak: return "weak"
+		case .public: return "public"
+		case .package: return "package"
+		case .option: return "option"
+		case .message: return "message"
+		case .enum: return "enum"
+		case .service: return "service"
+		case .rpc: return "rpc"
+		case .returns: return "returns"
+		case .stream: return "stream"
+		case .repeated: return "repeated"
+		case .optional: return "optional"
+		case .reserved: return "reserved"
+		case .to: return "to"
+		case .map: return "map"
+		case .oneof: return "oneof"
+		
+		// Built-in Types
+		case .double: return "double"
+		case .float: return "float"
+		case .int32: return "int32"
+		case .int64: return "int64"
+		case .uint32: return "uint32"
+		case .uint64: return "uint64"
+		case .sint32: return "sint32"
+		case .sint64: return "sint64"
+		case .fixed32: return "fixed32"
+		case .fixed64: return "fixed64"
+		case .sfixed32: return "sfixed32"
+		case .sfixed64: return "sfixed64"
+		case .bool: return "bool"
+		case .string: return "string"
+		case .bytes: return "bytes"
+		}
+	}
 }

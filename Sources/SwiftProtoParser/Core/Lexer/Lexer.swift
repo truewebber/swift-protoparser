@@ -43,11 +43,14 @@ public final class Lexer {
     private var line: Int = 1
     
     /// Current column number (1-based)
-    private var column: Int = 1
+    private var column: Int = 0
     
     /// Accumulated comments that appear before the next token
     private var pendingComments: [String] = []
-    
+
+	// Add token history
+	private var lastToken: Token?
+
     /// Creates a new lexer with the given input
     /// - Parameter input: The proto file content to tokenize
     public init(input: String) {
@@ -80,65 +83,84 @@ public final class Lexer {
         switch ch {
         case "=":
             token = makeToken(.equals, String(ch))
+			readChar()
 		case ":":
 			token = makeToken(.colon, String(ch))
+			readChar()
         case ";":
             token = makeToken(.semicolon, String(ch))
+			readChar()
         case "(":
             token = makeToken(.leftParen, String(ch))
+			readChar()
         case ")":
             token = makeToken(.rightParen, String(ch))
+			readChar()
         case "{":
             token = makeToken(.leftBrace, String(ch))
+			readChar()
         case "}":
             token = makeToken(.rightBrace, String(ch))
+			readChar()
         case "[":
             token = makeToken(.leftBracket, String(ch))
+			readChar()
         case "]":
             token = makeToken(.rightBracket, String(ch))
+			readChar()
         case "<":
             token = makeToken(.leftAngle, String(ch))
+			readChar()
         case ">":
             token = makeToken(.rightAngle, String(ch))
+			readChar()
         case ",":
             token = makeToken(.comma, String(ch))
+			readChar()
         case ".":
             token = makeToken(.period, String(ch))
+			readChar()
         case "-":
             token = makeToken(.minus, String(ch))
+			readChar()
         case "+":
             token = makeToken(.plus, String(ch))
+			readChar()
         case "\0":
             token = makeToken(.eof, "")
+			readChar()
         case "\"", "'":
             let stringLocation = startLocation
             token = try makeStringToken(stringLocation)
+			readChar()
         default:
             if ch.isLetter || ch == "_" {
-                return makeIdentifierToken(startLocation)
+                token = makeIdentifierToken(startLocation)
             } else if ch.isNumber || ch == "-" || ch == "+" {
-                return try makeNumberToken(startLocation)
+                token = try makeNumberToken(startLocation)
             } else {
                 throw LexerError.invalidCharacter(ch, location: startLocation)
             }
         }
-        
-        readChar()
+		
+		lastToken = token
+
         return token
     }
     
     // MARK: - Private Helper Methods
     
-    private func readChar() {
-        if readPosition < input.endIndex {
-            ch = input[readPosition]
-            position = readPosition
-            readPosition = input.index(after: readPosition)
-            column += 1
-        } else {
-            ch = "\0"
-        }
-    }
+	private func readChar() {
+		if readPosition < input.endIndex {
+			ch = input[readPosition]
+			position = readPosition
+			readPosition = input.index(after: readPosition)
+			column += 1
+		} else {
+			ch = "\0"
+			position = input.endIndex  // <-- Add this line
+		}
+	}
     
     private func peekChar() -> Character {
         if readPosition < input.endIndex {
@@ -146,7 +168,14 @@ public final class Lexer {
         }
         return "\0"
     }
-    
+
+	private func peekPrevious() -> Character? {
+		if position > input.startIndex {
+			return input[input.index(before: position)]
+		}
+		return nil
+	}
+
     private func makeToken(_ type: TokenType, _ literal: String, trailingComment: String? = nil) -> Token {
         let token = Token(
             type: type,
@@ -161,10 +190,10 @@ public final class Lexer {
     }
     
     private func skipWhitespace() {
-        while ch.isWhitespace {
-            if ch == "\n" {
+        while ch.isWhitespace || ch.isNewline {
+			if ch.isNewline {
                 line += 1
-                column = 1
+                column = 0
             }
             readChar()
         }
@@ -177,19 +206,7 @@ public final class Lexer {
 
         switch ch {
         case "/":  // Single-line comment
-            readChar()
-            let start = position
-            while ch != "\n" && ch != "\0" {
-                readChar()
-            }
-            let comment = String(input[start..<position]).trimmingCharacters(in: .whitespaces)
-            if ch == "\n" {
-                line += 1
-                column = 1
-                readChar()
-            }
-            return comment
-            
+			return self.processOneLineDoubleSlashComment()
         case "*":  // Multi-line comment
             readChar()
             let start = position
@@ -204,7 +221,7 @@ public final class Lexer {
                     readChar()
                 } else if ch == "\n" {
                     line += 1
-                    column = 1
+                    column = 0
                 }
                 readChar()
             }
@@ -221,7 +238,27 @@ public final class Lexer {
             return nil
         }
     }
-    
+
+	private func processOneLineDoubleSlashComment() -> String? {
+		guard ch == "/" else { return nil }
+
+		readChar()
+		let start = position
+
+		while ch != "\n" && ch != "\0" {
+			readChar()
+		}
+
+		let comment = String(input[start..<position]).trimmingCharacters(in: .whitespaces)
+		if ch == "\n" {
+			line += 1
+			column = 0
+			readChar()
+		}
+
+		return comment
+	}
+
     private func makeIdentifierToken(_ startLocation: SourceLocation) -> Token {
         let startPos = position
         while ch.isLetter || ch.isNumber || ch == "_" {
@@ -229,8 +266,12 @@ public final class Lexer {
         }
         
         let literal = String(input[startPos..<position])
-        let type = TokenType.keyword(from: literal) ?? .identifier
-        
+		let type = shouldTreatAsIdentifier() ? .identifier : (TokenType.keyword(from: literal) ?? .identifier)
+
+		defer {
+			pendingComments = []
+		}
+
         return Token(
             type: type,
             literal: literal,
@@ -239,7 +280,12 @@ public final class Lexer {
             leadingComments: pendingComments
         )
     }
-    
+
+	private func shouldTreatAsIdentifier() -> Bool {
+		// Check if last token was a period
+		return lastToken?.type == .period
+	}
+
     private func makeNumberToken(_ startLocation: SourceLocation) throws -> Token {
         let startPos = position
         var sawDot = false
@@ -289,10 +335,10 @@ public final class Lexer {
     private func makeStringToken(_ startLocation: SourceLocation) throws -> Token {
         let quote = ch
         readChar()  // consume opening quote
-        
+
         let startPos = position
         var value = ""
-        
+
         while ch != quote && ch != "\0" {
             if ch == "\\" {
                 readChar()
@@ -301,16 +347,16 @@ public final class Lexer {
                 value.append(ch)
                 readChar()
             }
-            
+
             if ch == "\n" {
                 throw LexerError.unterminatedString(location: startLocation)
             }
         }
-        
+
         if ch == "\0" {
             throw LexerError.unterminatedString(location: startLocation)
         }
-        
+
         return Token(
             type: .stringLiteral,
             literal: value,
