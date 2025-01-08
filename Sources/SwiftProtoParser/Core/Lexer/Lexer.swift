@@ -78,6 +78,7 @@ public final class Lexer {
         }
         
         let startLocation = SourceLocation(line: line, column: column)
+
         var token: Token
         
         switch ch {
@@ -120,25 +121,30 @@ public final class Lexer {
         case ".":
             token = makeToken(.period, String(ch))
 			readChar()
-        case "-":
-            token = makeToken(.minus, String(ch))
-			readChar()
-        case "+":
-            token = makeToken(.plus, String(ch))
-			readChar()
         case "\0":
             token = makeToken(.eof, "")
 			readChar()
         case "\"", "'":
             let stringLocation = startLocation
             token = try makeStringToken(stringLocation)
-			readChar()
         default:
-            if ch.isLetter || ch == "_" {
-                token = makeIdentifierToken(startLocation)
-            } else if ch.isNumber || ch == "-" || ch == "+" {
-                token = try makeNumberToken(startLocation)
-            } else {
+			if ch.isNumber ||
+			   // Only treat minus/plus as start of number if at beginning or after certain tokens
+			   ((ch == "-" || ch == "+") && (lastToken == nil ||
+				 lastToken?.type == .equals ||
+				 lastToken?.type == .leftParen ||
+				 lastToken?.type == .comma ||
+				 lastToken?.type == .colon)) {
+				return try makeNumberToken(startLocation)
+			} else if ch == "-" {
+				token = makeToken(.minus, String(ch))
+				readChar()
+			} else if ch == "+" {
+				token = makeToken(.plus, String(ch))
+				readChar()
+			} else if ch.isLetter || ch == "_" {
+				token = makeIdentifierToken(startLocation)
+			} else {
                 throw LexerError.invalidCharacter(ch, location: startLocation)
             }
         }
@@ -286,118 +292,179 @@ public final class Lexer {
 		return lastToken?.type == .period
 	}
 
-    private func makeNumberToken(_ startLocation: SourceLocation) throws -> Token {
-        let startPos = position
-        var sawDot = false
-        var isFloat = false
-        
-        // Handle sign
-        if ch == "-" || ch == "+" {
-            readChar()
-        }
-        
-        while ch.isNumber || ch == "." || ch.lowercased() == "e" {
-            if ch == "." {
-                if sawDot {
-                    throw LexerError.invalidNumber(
-                        String(input[startPos..<position]),
-                        location: startLocation
-                    )
-                }
-                sawDot = true
-                isFloat = true
-            } else if ch.lowercased() == "e" {
-                isFloat = true
-                readChar()
-                if ch == "+" || ch == "-" {
-                    readChar()
-                }
-                if !peekChar().isNumber {
-                    throw LexerError.invalidNumber(
-                        String(input[startPos..<position]),
-                        location: startLocation
-                    )
-                }
-            }
-            readChar()
-        }
-        
-        let literal = String(input[startPos..<position])
-        return Token(
-            type: isFloat ? .floatLiteral : .intLiteral,
-            literal: literal,
-            location: startLocation,
-            length: input.distance(from: startPos, to: position),
-            leadingComments: pendingComments
-        )
-    }
-    
-    private func makeStringToken(_ startLocation: SourceLocation) throws -> Token {
-        let quote = ch
-        readChar()  // consume opening quote
+	private func makeNumberToken(_ startLocation: SourceLocation) throws -> Token {
+		let startPos = position
+		var sawDot = false
+		var sawExponent = false
+		var isFloat = false
 
-        let startPos = position
-        var value = ""
+		// Handle sign at start
+//		if lastToken == nil || shouldParseAsNumberStart() {
+			if ch == "-" || ch == "+" {
+				readChar()
+			}
+//		}
 
-        while ch != quote && ch != "\0" {
-            if ch == "\\" {
-                readChar()
-                try value.append(parseEscapeSequence())
-            } else {
-                value.append(ch)
-                readChar()
-            }
+		// Must have at least one digit
+		if !ch.isNumber {
+			throw LexerError.invalidNumber(
+				String(input[startPos..<position]),
+				location: startLocation
+			)
+		}
 
-            if ch == "\n" {
-                throw LexerError.unterminatedString(location: startLocation)
-            }
-        }
+		while ch.isNumber || ch == "." || ch.lowercased() == "e" {
+			if ch == "." {
+				if sawDot {
+					throw LexerError.invalidNumber(
+						String(input[startPos..<position]),
+						location: startLocation
+					)
+				}
+				readChar()
+				// Must have at least one digit after decimal point
+				if !ch.isNumber {
+					throw LexerError.invalidNumber(
+						String(input[startPos..<position]),
+						location: startLocation
+					)
+				}
+				sawDot = true
+				isFloat = true
+			} else if ch.lowercased() == "e" {
+				if sawExponent {
+					throw LexerError.invalidNumber(
+						String(input[startPos..<position]),
+						location: startLocation
+					)
+				}
+				readChar()
+				if ch == "+" || ch == "-" {
+					readChar()
+				}
+				if !ch.isNumber {
+					throw LexerError.invalidNumber(
+						String(input[startPos..<position]),
+						location: startLocation
+					)
+				}
+				sawExponent = true
+				isFloat = true
+			} else {
+				readChar()
+			}
+		}
+		
+		// After we've finished parsing the number, check what follows
+		// If it's a letter or underscore, this is an invalid number format
+		if ch.isLetter || ch == "_" {
+			throw LexerError.invalidNumber(
+				String(input[startPos..<position]),
+				location: startLocation
+			)
+		}
 
-        if ch == "\0" {
-            throw LexerError.unterminatedString(location: startLocation)
-        }
+		let literal = String(input[startPos..<position])
 
-        return Token(
-            type: .stringLiteral,
-            literal: value,
-            location: startLocation,
-            length: input.distance(from: startPos, to: position),
-            leadingComments: pendingComments
-        )
-    }
-    
-    private func parseEscapeSequence() throws -> Character {
-        let escapeLocation = SourceLocation(line: line, column: column)
-        
-        switch ch {
-        case "\"": return "\""
-        case "\\": return "\\"
-        case "/": return "/"
-        case "b": return "\u{8}"
-        case "f": return "\u{12}"
-        case "n": return "\n"
-        case "r": return "\r"
-        case "t": return "\t"
-        case "u":
-            // Unicode escape sequence
-            var hexString = ""
-            for _ in 0..<4 {
-                readChar()
-                if ch.isHexDigit {
-                    hexString.append(ch)
-                } else {
-                    throw LexerError.invalidEscapeSequence("\\u" + hexString, location: escapeLocation)
-                }
-            }
-            guard let unicode = UInt32(hexString, radix: 16),
-                  let scalar = UnicodeScalar(unicode) else {
-                throw LexerError.invalidEscapeSequence("\\u" + hexString, location: escapeLocation)
-            }
-            return Character(scalar)
-        default:
-            throw LexerError.invalidEscapeSequence(String(ch), location: escapeLocation)
-        }
-    }
+		return Token(
+			type: isFloat ? .floatLiteral : .intLiteral,
+			literal: literal,
+			location: startLocation,
+			length: input.distance(from: startPos, to: position),
+			leadingComments: pendingComments
+		)
+	}
+
+	private func shouldParseAsNumberStart() -> Bool {
+		return lastToken?.type == .equals ||
+			   lastToken?.type == .leftParen ||
+			   lastToken?.type == .comma ||
+			   lastToken?.type == .colon
+	}
+
+	private func makeStringToken(_ startLocation: SourceLocation) throws -> Token {
+		let quote = ch
+		readChar()  // consume opening quote
+		
+		var value = ""
+		
+		while ch != quote && ch != "\0" {
+			if ch == "\\" {
+				readChar()  // consume backslash
+				value.append(try parseEscapeSequence())
+			} else {
+				value.append(ch)
+				readChar()
+			}
+			
+			if ch == "\n" {
+				throw LexerError.unterminatedString(location: startLocation)
+			}
+		}
+		
+		if ch == "\0" {
+			throw LexerError.unterminatedString(location: startLocation)
+		}
+		
+		readChar()  // consume closing quote
+		
+		return Token(
+			type: .stringLiteral,
+			literal: value,
+			location: startLocation,
+			length: value.count,
+			leadingComments: pendingComments
+		)
+	}
+
+	private func parseEscapeSequence() throws -> Character {
+		let escapeLocation = SourceLocation(line: line, column: column)
+		
+		switch ch {
+		case "\"":
+			readChar()
+			return "\""
+		case "\\":
+			readChar()
+			return "\\"
+		case "/":
+			readChar()
+			return "/"
+		case "b":
+			readChar()
+			return "\u{8}"  // backspace
+		case "f":
+			readChar()
+			return "\u{12}" // form feed
+		case "n":
+			readChar()
+			return "\n"     // newline
+		case "r":
+			readChar()
+			return "\r"     // carriage return
+		case "t":
+			readChar()
+			return "\t"     // tab
+		case "u":
+			readChar()      // consume 'u'
+			var hexString = ""
+			for _ in 0..<4 {
+				if ch.isHexDigit {
+					hexString.append(ch)
+					readChar()
+				} else {
+					throw LexerError.invalidEscapeSequence("\\u" + hexString, location: escapeLocation)
+				}
+			}
+			guard let codePoint = UInt32(hexString, radix: 16),
+				  let scalar = Unicode.Scalar(codePoint) else {
+				throw LexerError.invalidEscapeSequence("\\u" + hexString, location: escapeLocation)
+			}
+			return Character(scalar)
+		default:
+			throw LexerError.invalidEscapeSequence(String(ch), location: escapeLocation)
+		}
+	}
 }
 
 // MARK: - Character Extensions
@@ -411,9 +478,9 @@ private extension Character {
 		return Character.isNumber(self)
     }
     
-    var isHexDigit: Bool {
-        return isNumber || ("a"..."f").contains(lowercased()) || ("A"..."F").contains(uppercased())
-    }
+	var isHexDigit: Bool {
+		return isNumber || ("a"..."f").contains(lowercased()) || ("A"..."F").contains(uppercased())
+	}
     
     static func isLetter(_ ch: Character) -> Bool {
         return (ch >= "a" && ch <= "z") || (ch >= "A" && ch <= "Z")
