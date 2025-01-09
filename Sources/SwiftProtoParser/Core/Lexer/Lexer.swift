@@ -10,6 +10,8 @@ public enum LexerError: Error, CustomStringConvertible {
     case invalidEscapeSequence(String, location: SourceLocation)
     /// Invalid number format
     case invalidNumber(String, location: SourceLocation)
+	/// Encountered nested comment
+	case nestedComment(location: SourceLocation)
     
     public var description: String {
         switch self {
@@ -21,6 +23,8 @@ public enum LexerError: Error, CustomStringConvertible {
             return "Invalid escape sequence '\(seq)' at \(loc.line):\(loc.column)"
         case .invalidNumber(let num, let loc):
             return "Invalid number format '\(num)' at \(loc.line):\(loc.column)"
+		case .nestedComment(let loc):
+			return "Encountered not allowed nested comments at \(loc.line):\(loc.column)"
         }
     }
 }
@@ -48,19 +52,25 @@ public final class Lexer {
     /// Accumulated comments that appear before the next token
     private var pendingComments: [String] = []
 
-	// Add token history
+	/// Add token history
 	private var lastToken: Token?
 
     /// Creates a new lexer with the given input
     /// - Parameter input: The proto file content to tokenize
-    public init(input: String) {
-        self.input = input
-        self.position = input.startIndex
-        self.readPosition = input.startIndex
-        self.ch = "\0"  // Initialize with null character
-        readChar()  // Read the first character
-    }
-    
+	public init(input: String) {
+	   // Skip BOM if present at start of input
+	   if input.hasPrefix("\u{FEFF}") {
+		   self.input = String(input.dropFirst())
+	   } else {
+		   self.input = input
+	   }
+	   
+	   self.position = self.input.startIndex
+	   self.readPosition = self.input.startIndex
+	   self.ch = "\0"
+	   readChar()
+	}
+
     /// Returns the next token from the input
     /// - Throws: LexerError if invalid input is encountered
     /// - Returns: The next token
@@ -161,10 +171,15 @@ public final class Lexer {
 			ch = input[readPosition]
 			position = readPosition
 			readPosition = input.index(after: readPosition)
-			column += 1
+			if ch.isNewline {
+				line += 1
+				column = 0
+			} else {
+				column += 1
+			}
 		} else {
 			ch = "\0"
-			position = input.endIndex  // <-- Add this line
+			position = input.endIndex
 		}
 	}
     
@@ -197,10 +212,6 @@ public final class Lexer {
     
     private func skipWhitespace() {
         while ch.isWhitespace || ch.isNewline {
-			if ch.isNewline {
-                line += 1
-                column = 0
-            }
             readChar()
         }
     }
@@ -216,19 +227,22 @@ public final class Lexer {
         case "*":  // Multi-line comment
             readChar()
             let start = position
+            var end = position
             var depth = 1
             
             while depth > 0 && ch != "\0" {
+				if ch == "/" && peekChar() == "*" {
+					throw LexerError.nestedComment(location: SourceLocation(line: line, column: column))
+				}
                 if ch == "/" && peekChar() == "*" {
                     depth += 1
                     readChar()
                 } else if ch == "*" && peekChar() == "/" {
                     depth -= 1
                     readChar()
-                } else if ch == "\n" {
-                    line += 1
-                    column = 0
-                }
+				} else {
+					end = position
+				}
                 readChar()
             }
             
@@ -236,7 +250,9 @@ public final class Lexer {
                 throw LexerError.unterminatedString(location: SourceLocation(line: line, column: column))
             }
             
-            let comment = String(input[start..<position]).trimmingCharacters(in: .whitespaces)
+			let comment = String(input[start..<end]).trimmingCharacters(
+				in: .whitespaces
+			)
             readChar()  // consume the final '/'
             return comment
             
@@ -251,14 +267,12 @@ public final class Lexer {
 		readChar()
 		let start = position
 
-		while ch != "\n" && ch != "\0" {
+		while !ch.isNewline && ch != "\0" {
 			readChar()
 		}
 
 		let comment = String(input[start..<position]).trimmingCharacters(in: .whitespaces)
-		if ch == "\n" {
-			line += 1
-			column = 0
+		if ch.isNewline {
 			readChar()
 		}
 
@@ -424,6 +438,9 @@ public final class Lexer {
 		case "\"":
 			readChar()
 			return "\""
+		case "'":
+			readChar()
+			return "'"
 		case "\\":
 			readChar()
 			return "\\"
