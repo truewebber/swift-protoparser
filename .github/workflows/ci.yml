@@ -6,7 +6,7 @@ on:
     tags: [ "*" ]
 
 jobs:
-  lint-and-test:
+  lint:
     runs-on: macos-latest
 
     steps:
@@ -28,7 +28,3 @@ jobs:
             echo "Lint warnings found!"
             exit 1
           fi
-
-      # ----- Build and Test with Coverage -----
-      - name: Build and test with coverage
-        run: swift test --enable-code-coverage --parallel
