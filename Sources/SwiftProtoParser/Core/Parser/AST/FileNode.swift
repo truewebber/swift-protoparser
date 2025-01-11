@@ -198,18 +198,3 @@ extension FileNode {
     }
   }
 }
-
-// MARK: - Additional Error Types
-
-extension ParserError {
-  /// Invalid package name format
-  static func invalidPackageName(_ name: String) -> ParserError {
-    return .custom("Invalid package name: \(name)")
-  }
-
-  /// Duplicate type name
-  static func duplicateTypeName(_ name: String) -> ParserError {
-    return .custom("Duplicate type name: \(name)")
-  }
-
-}

@@ -13,6 +13,8 @@ public enum ParserError: Error, CustomStringConvertible {
   case invalidEnumName(String)
   case invalidServiceName(String)
   case invalidRPCName(String)
+  case invalidPackageName(String)
+  case duplicateTypeName(String)
   case custom(String)
 
   public var description: String {
@@ -40,6 +42,10 @@ public enum ParserError: Error, CustomStringConvertible {
       return "Invalid service name: \(name)"
     case .invalidRPCName(let name):
       return "Invalid RPC name: \(name)"
+    case .invalidPackageName(let name):
+      return "Invalid package name: \(name)"
+    case .duplicateTypeName(let name):
+      return "Duplicate type name: \(name)"
     case .custom(let message):
       return message
     }
@@ -142,9 +148,41 @@ public final class Parser {
 
   private func parsePackage() throws -> String {
     try expectToken(.package)
-    let package = try parseQualifiedIdentifier()
+    let components = try parsePackageIdentifiers()
     try expectToken(.semicolon)
-    return package
+    return components.joined(separator: ".")
+  }
+  
+  private func parsePackageIdentifiers() throws -> [String] {
+    var components: [String] = []
+    
+    // Parse first component
+    let identifier = try parseIdentifier()
+    if !isValidPackageComponent(identifier) {
+      throw ParserError.invalidPackageName(identifier)
+    }
+    components.append(identifier)
+    
+    // Parse additional components
+    while check(.period) {
+      try expectToken(.period)
+      if !check(.identifier) {
+        throw ParserError.unexpectedToken(expected: .identifier, got: currentToken)
+      }
+      let identifier = try parseIdentifier()
+      if !isValidPackageComponent(identifier) {
+        throw ParserError.invalidPackageName(identifier)
+      }
+      components.append(identifier)
+    }
+    
+    return components
+  }
+  
+  private func isValidPackageComponent(_ name: String) -> Bool {
+    guard let first = name.first else { return false }
+    return first.isLowercase && // Must start with lowercase
+    name.allSatisfy { $0.isLetter || $0.isNumber || $0 == "_" }
   }
 
   private func parseImport() throws -> ImportNode {
@@ -167,16 +205,6 @@ public final class Parser {
     )
   }
 
-  //    private func parseOption() throws -> OptionNode {
-  //        try expectToken(.option)
-  //        let name = try parseOptionName()
-  //        try expectToken(.equals)
-  //        let value = try parseOptionValue()
-  //        try expectToken(.semicolon)
-  //
-  //        return OptionNode(name: name, value: value)
-  //    }
-  //
   private func parseMessage() throws -> MessageNode {
     try expectToken(.message)
     let name = try parseIdentifier()

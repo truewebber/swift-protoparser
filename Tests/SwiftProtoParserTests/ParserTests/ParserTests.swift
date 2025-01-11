@@ -39,7 +39,16 @@ final class ParserTests: XCTestCase {
           return
         }
 
-        XCTAssertEqual(error.description.contains("syntax"), true)
+        switch error {
+          case .invalidSyntaxVersion(_):
+            return
+          case .unexpectedToken(let expected, let got):
+            if expected != .stringLiteral || got.type != .identifier {
+              XCTFail("Expected unexpectedToken on identifier instead of stringLiteral, but got: \(got)")
+            }
+          default:
+            XCTFail("Expected invalidSyntaxVersion error, got: \(error)")
+        }
       }
     }
   }
@@ -65,11 +74,11 @@ final class ParserTests: XCTestCase {
 
   func testInvalidPackageName() throws {
     let inputs = [
+      "package test.;",
+      "package Test.Name;",
       "package 123.456;",
       "package .test;",
-      "package test.;",
       "package test..name;",
-      "package Test.Name;",
     ]
 
     for input in inputs {
@@ -78,7 +87,13 @@ final class ParserTests: XCTestCase {
           XCTFail("Expected ParserError")
           return
         }
-        XCTAssertEqual(error.description.contains("package"), true)
+
+        switch error {
+          case .unexpectedToken(_, _), .invalidPackageName(_):
+            return
+          default:
+            XCTFail("Expected unexpectedToken error, got: \(error)")
+        }
       }
     }
   }
