@@ -5,7 +5,7 @@ public enum ParserError: Error, CustomStringConvertible {
   case unexpectedToken(expected: TokenType, got: Token)
   case unexpectedEOF(expected: TokenType)
   case invalidSyntaxVersion(String)
-  case duplicatePackageName(String)
+  case invalidImport(String)
   case invalidFieldNumber(Int, location: SourceLocation)
   case invalidMapKeyType(String)
   case invalidMessageName(String)
@@ -15,6 +15,8 @@ public enum ParserError: Error, CustomStringConvertible {
   case invalidRPCName(String)
   case invalidPackageName(String)
   case duplicateTypeName(String)
+  case duplicatePackageName(String)
+  case duplicateFieldNumber(Int, messageName: String)
   case custom(String)
 
   public var description: String {
@@ -24,6 +26,8 @@ public enum ParserError: Error, CustomStringConvertible {
         "Expected token \(expected) but got \(got) at \(got.location.line):\(got.location.column)"
     case .unexpectedEOF(let expected):
       return "Unexpected end of file, expected \(expected)"
+    case .invalidImport(let importValue):
+      return "Invalid import: \(importValue)"
     case .invalidSyntaxVersion(let version):
       return "Invalid syntax version: \(version), expected 'proto3'"
     case .duplicatePackageName(let name):
@@ -46,6 +50,8 @@ public enum ParserError: Error, CustomStringConvertible {
       return "Invalid package name: \(name)"
     case .duplicateTypeName(let name):
       return "Duplicate type name: \(name)"
+    case .duplicateFieldNumber(let fieldNumber, let name):
+      return "Duplicate field number: \(name) = \(fieldNumber)"
     case .custom(let message):
       return message
     }
@@ -81,7 +87,7 @@ public final class Parser {
   /// Parses a complete proto file
   /// - Returns: An AST representing the proto file
   public func parseFile() throws -> FileNode {
-    var syntax: String?
+    var syntax: String = "proto3"
     var package: String?
     var imports: [ImportNode] = []
     var options: [OptionNode] = []
@@ -91,7 +97,7 @@ public final class Parser {
     if currentToken.type == .syntax {
       syntax = try parseSyntax()
       if syntax != "proto3" {
-        throw ParserError.invalidSyntaxVersion(syntax ?? "unknown")
+        throw ParserError.invalidSyntaxVersion(syntax)
       }
     }
 
@@ -128,7 +134,7 @@ public final class Parser {
     }
 
     return FileNode(
-      syntax: syntax ?? "proto3",
+      syntax: syntax,
       package: package,
       imports: imports,
       options: options,
@@ -152,17 +158,17 @@ public final class Parser {
     try expectToken(.semicolon)
     return components.joined(separator: ".")
   }
-  
+
   private func parsePackageIdentifiers() throws -> [String] {
     var components: [String] = []
-    
+
     // Parse first component
     let identifier = try parseIdentifier()
     if !isValidPackageComponent(identifier) {
       throw ParserError.invalidPackageName(identifier)
     }
     components.append(identifier)
-    
+
     // Parse additional components
     while check(.period) {
       try expectToken(.period)
@@ -175,31 +181,58 @@ public final class Parser {
       }
       components.append(identifier)
     }
-    
+
     return components
   }
-  
+
   private func isValidPackageComponent(_ name: String) -> Bool {
     guard let first = name.first else { return false }
-    return first.isLowercase && // Must start with lowercase
-    name.allSatisfy { $0.isLetter || $0.isNumber || $0 == "_" }
+    return first.isLowercase  // Must start with lowercase
+      && name.allSatisfy { $0.isLetter || $0.isNumber || $0 == "_" }
   }
+
+  //  private func parseImport() throws -> ImportNode {
+  //    try expectToken(.import)
+  //
+  //    var modifier: ImportModifier = .none
+  //    if currentToken.isAny(of: .weak, .public) {
+  //      modifier = currentToken.type == .weak ? .weak : .public
+  //      try advanceToken()
+  //    }
+  //
+  //    let path = try parseStringLiteral()
+  //    try expectToken(.semicolon)
+  //    let importLocation = currentToken.location
+  //
+  //    return ImportNode(
+  //      location: importLocation,
+  //      path: path,
+  //      modifier: modifier
+  //    )
+  //  }
 
   private func parseImport() throws -> ImportNode {
     try expectToken(.import)
 
-    var modifier: ImportModifier = .none
-    if currentToken.isAny(of: .weak, .public) {
+    var modifier: ImportNode.Modifier = .none
+    if currentToken.type == .weak || currentToken.type == .public {
       modifier = currentToken.type == .weak ? .weak : .public
       try advanceToken()
     }
 
-    let path = try parseStringLiteral()
-    try expectToken(.semicolon)
-    let importLocation = currentToken.location
+    guard currentToken.type == .stringLiteral else {
+      throw ParserError.invalidImport("Expected import path string")
+    }
+    let path = currentToken.literal
+    try advanceToken()
+
+    guard currentToken.type == .semicolon else {
+      throw ParserError.invalidImport("Missing semicolon after import")
+    }
+    try advanceToken()
 
     return ImportNode(
-      location: importLocation,
+      location: currentToken.location,
       path: path,
       modifier: modifier
     )
@@ -221,6 +254,9 @@ public final class Parser {
     var reserved: [ReservedNode] = []
     var nestedMessages: [MessageNode] = []
     var nestedEnums: [EnumNode] = []
+
+    // Track used field numbers
+    var usedFieldNumbers = Set<Int>()
 
     // Clear field numbers for this message
     usedFieldNumbers.removeAll()
@@ -247,7 +283,13 @@ public final class Parser {
 
       default:
         if isType(currentToken) {
-          fields.append(try parseField())
+          let field = try parseField()
+
+          if !usedFieldNumbers.insert(field.number).inserted {
+            throw ParserError.duplicateFieldNumber(field.number, messageName: name)
+          }
+
+          fields.append(field)
         } else {
           throw ParserError.unexpectedToken(expected: .message, got: currentToken)
         }
@@ -255,10 +297,9 @@ public final class Parser {
     }
 
     try expectToken(.rightBrace)
-    let messageLocation = currentToken.location
 
     return MessageNode(
-      location: messageLocation,
+      location: currentToken.location,
       name: name,
       fields: fields,
       oneofs: oneofs,
@@ -468,13 +509,9 @@ public final class Parser {
     return (first.isLowercase || first == "_")
       && name.allSatisfy { $0.isLetter || $0.isNumber || $0 == "_" }
   }
-}
 
-// Add these methods to the existing Parser class
+  // MARK: - Option Parsing
 
-// MARK: - Option Parsing
-
-extension Parser {
   private func parseOption() throws -> OptionNode {
     try expectToken(.option)
     let optionLocation = currentToken.location
@@ -571,11 +608,78 @@ extension Parser {
     try expectToken(.rightBracket)
     return .array(array)
   }
-}
 
-// MARK: - Field Parsing
+  // MARK: - Field Parsing
 
-extension Parser {
+  //  private func parseField() throws -> FieldNode {
+  //    let fieldLocation = currentToken.location
+  //    let leadingComments = currentToken.leadingComments
+  //
+  //    var isRepeated = false
+  //    var isOptional = false
+  //
+  //    // Check for repeated or optional
+  //    if currentToken.type == .repeated {
+  //      isRepeated = true
+  //      try advanceToken()
+  //    } else if currentToken.type == .optional {
+  //      isOptional = true
+  //      try advanceToken()
+  //    }
+  //
+  //    // Parse type
+  //    let type = try parseType()
+  //
+  //    // Parse field name
+  //    let name = try parseIdentifier()
+  //
+  //    try expectToken(.equals)
+  //
+  //    // Parse and validate field number
+  //    guard case .intLiteral = currentToken.type else {
+  //      throw ParserError.unexpectedToken(expected: .intLiteral, got: currentToken)
+  //    }
+  //
+  //    guard let number = Int(currentToken.literal) else {
+  //      throw ParserError.invalidFieldNumber(0, location: currentToken.location)
+  //    }
+  //
+  //    // Validate field number
+  //    if number <= 0 || number > 536_870_911 || (19000...19999).contains(number) {
+  //      throw ParserError.invalidFieldNumber(number, location: fieldLocation)
+  //    }
+  //
+  //    try advanceToken()
+  //
+  //    // Parse field options if present
+  //    var options: [OptionNode] = []
+  //    if check(.leftBracket) {
+  //      try expectToken(.leftBracket)
+  //      repeat {
+  //        let option = try parseFieldOption()  // Use parseFieldOption instead of parseOption
+  //        options.append(option)
+  //        if check(.comma) {
+  //          try advanceToken()
+  //        }
+  //      } while !check(.rightBracket)
+  //      try expectToken(.rightBracket)
+  //    }
+  //
+  //    try expectToken(.semicolon)
+  //
+  //    return FieldNode(
+  //      location: fieldLocation,
+  //      leadingComments: leadingComments,
+  //      trailingComment: currentToken.trailingComment,
+  //      name: name,
+  //      type: type,
+  //      number: number,
+  //      isRepeated: isRepeated,
+  //      isOptional: isOptional,
+  //      options: options
+  //    )
+  //  }
+
   private func parseField() throws -> FieldNode {
     let fieldLocation = currentToken.location
     let leadingComments = currentToken.leadingComments
@@ -596,15 +700,34 @@ extension Parser {
     let type = try parseType()
 
     // Parse field name
-    let name = try parseIdentifier()
+    let name: String
+    if isAbsolutelyReservedKeyword(currentToken.type) {
+      throw ParserError.invalidFieldName(
+        "Cannot use reserved keyword '\(currentToken.literal)' as field name")
+    } else if currentToken.type == .identifier {
+      name = try parseIdentifier()
+    } else {
+      // Any other keyword can be used as identifier
+      name = currentToken.literal
+      try advanceToken()
+    }
 
     try expectToken(.equals)
 
-    // Parse field number
+    // Parse and validate field number
     guard case .intLiteral = currentToken.type else {
       throw ParserError.unexpectedToken(expected: .intLiteral, got: currentToken)
     }
-    let number = Int(currentToken.literal) ?? 0
+
+    guard let number = Int(currentToken.literal) else {
+      throw ParserError.invalidFieldNumber(0, location: currentToken.location)
+    }
+
+    // Validate field number
+    if number <= 0 || number > 536_870_911 || (19000...19999).contains(number) {
+      throw ParserError.invalidFieldNumber(number, location: fieldLocation)
+    }
+
     try advanceToken()
 
     // Parse field options if present
@@ -612,7 +735,7 @@ extension Parser {
     if check(.leftBracket) {
       try expectToken(.leftBracket)
       repeat {
-        let option = try parseOption()
+        let option = try parseFieldOption()
         options.append(option)
         if check(.comma) {
           try advanceToken()
@@ -636,16 +759,59 @@ extension Parser {
     )
   }
 
+  private func parseFieldOption() throws -> OptionNode {
+    // Handle custom options with parentheses
+    if check(.leftParen) {
+      try expectToken(.leftParen)
+      let name = try parseQualifiedIdentifier()
+      try expectToken(.rightParen)
+      try expectToken(.equals)
+      let value = try parseOptionValue()
+      return OptionNode(
+        location: currentToken.location,
+        name: "(\(name))",
+        value: value
+      )
+    }
+
+    // Regular options
+    let name = try parseIdentifier()
+    try expectToken(.equals)
+    let value = try parseOptionValue()
+
+    return OptionNode(
+      location: currentToken.location,
+      name: name,
+      value: value
+    )
+  }
+
+  private func isAbsolutelyReservedKeyword(_ type: TokenType) -> Bool {
+    switch type {
+    case .syntax, .import, .package, .option, .service,
+      .rpc, .returns, /* .extend, */ .reserved, .oneof, .repeated:
+      return true
+    default:
+      return false
+    }
+  }
+
   private func parseType() throws -> TypeNode {
     if currentToken.type == .map {
       return try parseMapType()
     }
 
+    // Handle scalar types
     if let scalarType = parseScalarType() {
       try advanceToken()
       return .scalar(scalarType)
     }
 
+    // For custom types, we need to parse qualified identifiers
+    // This could be either:
+    // 1. A local type (defined in current or parent scope)
+    // 2. A fully qualified type (with dots)
+    // 3. A type from the current package
     let typeName = try parseQualifiedIdentifier()
     return .named(typeName)
   }
@@ -688,11 +854,9 @@ extension Parser {
     default: return nil
     }
   }
-}
 
-// MARK: - Oneof Parsing
+  // MARK: - Oneof Parsing
 
-extension Parser {
   private func parseOneof() throws -> OneofNode {
     let oneofLocation = currentToken.location
     let leadingComments = currentToken.leadingComments
@@ -723,11 +887,9 @@ extension Parser {
       options: options
     )
   }
-}
 
-// MARK: - Reserved Parsing
+  // MARK: - Reserved Parsing
 
-extension Parser {
   private func parseReserved() throws -> ReservedNode {
     let reservedLocation = currentToken.location
     let leadingComments = currentToken.leadingComments
@@ -787,11 +949,9 @@ extension Parser {
 
     return .single(start)
   }
-}
 
-// MARK: - Identifier Parsing
+  // MARK: - Identifier Parsing
 
-extension Parser {
   private func parseIdentifier() throws -> String {
     guard case .identifier = currentToken.type else {
       throw ParserError.unexpectedToken(expected: .identifier, got: currentToken)
@@ -805,12 +965,20 @@ extension Parser {
   private func parseQualifiedIdentifier() throws -> String {
     var components: [String] = []
 
-    repeat {
+    // Handle absolute paths starting with dot
+    if check(.period) {
+      try advanceToken()
+      components.append("")
+    }
+
+    // Parse first component
+    components.append(try parseIdentifier())
+
+    // Parse additional components
+    while check(.period) {
+      try advanceToken()  // consume dot
       components.append(try parseIdentifier())
-      if check(.period) {
-        try advanceToken()
-      }
-    } while check(.identifier)
+    }
 
     return components.joined(separator: ".")
   }
