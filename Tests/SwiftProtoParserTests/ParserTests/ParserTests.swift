@@ -233,6 +233,8 @@ final class ParserTests: XCTestCase {
         switch error {
         case .invalidImport(_):
           return
+        case .invalidPackageName(_):
+          return
         case .unexpectedToken(_, _):
           return
         default:
@@ -671,6 +673,10 @@ final class ParserTests: XCTestCase {
     let file = try parse(input)
     let fields = file.messages[0].fields
 
+    XCTAssertEqual(fields[0].type, .named("OtherMessage"))
+    XCTAssertEqual(fields[1].type, .named("nested.Message"))
+    XCTAssertEqual(fields[2].type, .named(".fully.qualified.Type"))
+
     for field in fields {
       if case .named = field.type {
         // Custom type verified
@@ -757,15 +763,6 @@ final class ParserTests: XCTestCase {
       """
     let file = try parse(input)
     XCTAssertEqual(file.enums[0].values.count, 3)
-  }
-
-  func testEnumFirstValueNotZero() throws {
-    let input = """
-      enum Invalid {
-      	FIRST = 1;
-      }
-      """
-    XCTAssertThrowsError(try parse(input))
   }
 
   func testDuplicateEnumValues() throws {

@@ -505,6 +505,8 @@ public final class Parser {
       .sint32, .sint64, .fixed32, .fixed64, .sfixed32, .sfixed64,
       .bool, .string, .bytes, .identifier:
       return true
+    case .period:  // start of global custom type
+      return true
     default:
       return false
     }
@@ -660,26 +662,41 @@ public final class Parser {
       return .scalar(scalarType)
     }
 
-    // For custom types, we need to parse qualified identifiers
-    // This could be either:
-    // 1. A local type (defined in current or parent scope)
-    // 2. A fully qualified type (with dots)
-    // 3. A type from the current package
-    let typeName = try parseQualifiedIdentifier()
-    return .named(typeName)
+    // For custom types, handle both normal and fully qualified paths
+    // Allow starting with a period for fully qualified types
+    if currentToken.type == .period || currentToken.type == .identifier
+      || !currentToken.type.isAbsolutelyReserved
+    {
+      let typeName = try parseQualifiedIdentifier()
+      return .named(typeName)
+    }
+
+    throw ParserError.unexpectedToken(expected: .identifier, got: currentToken)
   }
 
   private func parseMapType() throws -> TypeNode {
     try expectToken(.map)
     try expectToken(.leftAngle)
 
+    // Parse key type
     guard let keyType = parseScalarType() else {
       throw ParserError.invalidMapKeyType(currentToken.literal)
     }
-    try advanceToken()
 
+    // Validate key type
+    switch keyType {
+    case .int32, .int64, .uint32, .uint64, .sint32, .sint64,
+      .fixed32, .fixed64, .sfixed32, .sfixed64, .bool, .string:
+      // These types are valid for map keys
+      break
+    case .float, .double, .bytes:
+      throw ParserError.invalidMapKeyType(String(describing: keyType))
+    }
+
+    try advanceToken()
     try expectToken(.comma)
 
+    // Parse value type
     let valueType = try parseType()
 
     try expectToken(.rightAngle)
@@ -806,13 +823,13 @@ public final class Parser {
   // MARK: - Identifier Parsing
 
   private func parseIdentifier() throws -> String {
-    guard case .identifier = currentToken.type else {
-      throw ParserError.unexpectedToken(expected: .identifier, got: currentToken)
+    if .identifier == currentToken.type || !currentToken.type.isAbsolutelyReserved {
+      let identifier = currentToken.literal
+      try advanceToken()
+      return identifier
     }
 
-    let identifier = currentToken.literal
-    try advanceToken()
-    return identifier
+    throw ParserError.unexpectedToken(expected: .identifier, got: currentToken)
   }
 
   private func parseQualifiedIdentifier() throws -> String {
@@ -943,7 +960,13 @@ public final class Parser {
     }
 
     let type = try parseType()
-    //    let name = try parseIdentifier()
+
+    // Validate map cannot be repeated
+    if isRepeated {
+      if case .map = type {
+        throw ParserError.repeatedMapField(currentToken.literal)
+      }
+    }
 
     // Parse field name
     let name: String
