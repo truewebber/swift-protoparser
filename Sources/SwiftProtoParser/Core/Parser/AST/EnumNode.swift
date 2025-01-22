@@ -77,11 +77,9 @@ public final class EnumNode: DefinitionNode {
     self.options = options
     self.allowAlias = allowAlias
   }
-}
 
-// MARK: - Value Management
+  // MARK: - Value Management
 
-extension EnumNode {
   /// Gets all used value numbers in this enum
   public var usedNumbers: Set<Int> {
     return Set(values.map { $0.number })
@@ -105,11 +103,9 @@ extension EnumNode {
   public func findValues(withNumber number: Int) -> [EnumValueNode] {
     return values.filter { $0.number == number }
   }
-}
 
-// MARK: - Validation
+  // MARK: - Validation
 
-extension EnumNode {
   /// Validates the enum according to proto3 rules
   /// - Throws: ParserError if validation fails
   public func validate() throws {

@@ -191,26 +191,6 @@ public final class Parser {
       && name.allSatisfy { $0.isLetter || $0.isNumber || $0 == "_" }
   }
 
-  //  private func parseImport() throws -> ImportNode {
-  //    try expectToken(.import)
-  //
-  //    var modifier: ImportModifier = .none
-  //    if currentToken.isAny(of: .weak, .public) {
-  //      modifier = currentToken.type == .weak ? .weak : .public
-  //      try advanceToken()
-  //    }
-  //
-  //    let path = try parseStringLiteral()
-  //    try expectToken(.semicolon)
-  //    let importLocation = currentToken.location
-  //
-  //    return ImportNode(
-  //      location: importLocation,
-  //      path: path,
-  //      modifier: modifier
-  //    )
-  //  }
-
   private func parseImport() throws -> ImportNode {
     try expectToken(.import)
 
@@ -255,43 +235,74 @@ public final class Parser {
     var nestedMessages: [MessageNode] = []
     var nestedEnums: [EnumNode] = []
 
-    // Track used field numbers
-    var usedFieldNumbers = Set<Int>()
-
-    // Clear field numbers for this message
-    usedFieldNumbers.removeAll()
+    // Track reserved and used numbers and names
+    var reservedNumbers = Set<Int>()
+    var reservedNames = Set<String>()
+    var usedFieldNumbers = Set<Int>()  // Track used field numbers
 
     while !check(.rightBrace) {
       switch currentToken.type {
-      case .option:
-        options.append(try parseOption())
-
       case .reserved:
-        reserved.append(try parseReserved())
-
-      case .oneof:
-        oneofs.append(try parseOneof())
-
-      case .message:
-        nestedMessages.append(try parseMessage())
-
-      case .enum:
-        nestedEnums.append(try parseEnum())
+        let reservedNode = try parseReserved()
+        // Collect reserved numbers and names
+        for range in reservedNode.ranges {
+          switch range {
+          case .single(let num):
+            reservedNumbers.insert(num)
+          case .range(let start, let end):
+            reservedNumbers.formUnion(start...end)
+          case .name(let name):
+            reservedNames.insert(name)
+          }
+        }
+        reserved.append(reservedNode)
 
       case .repeated, .optional, .map:
-        fields.append(try parseField())
+        let field = try parseField()
+        // Check if field number is reserved
+        if reservedNumbers.contains(field.number) {
+          throw ParserError.invalidFieldNumber(field.number, location: field.location)
+        }
+        // Check if field name is reserved
+        if reservedNames.contains(field.name) {
+          throw ParserError.invalidFieldName(field.name)
+        }
+        // Check for duplicate field numbers
+        if !usedFieldNumbers.insert(field.number).inserted {
+          throw ParserError.duplicateFieldNumber(field.number, messageName: name)
+        }
+        fields.append(field)
 
       default:
         if isType(currentToken) {
           let field = try parseField()
-
+          // Check if field number is reserved
+          if reservedNumbers.contains(field.number) {
+            throw ParserError.invalidFieldNumber(field.number, location: field.location)
+          }
+          // Check if field name is reserved
+          if reservedNames.contains(field.name) {
+            throw ParserError.invalidFieldName(field.name)
+          }
+          // Check for duplicate field numbers
           if !usedFieldNumbers.insert(field.number).inserted {
             throw ParserError.duplicateFieldNumber(field.number, messageName: name)
           }
-
           fields.append(field)
         } else {
-          throw ParserError.unexpectedToken(expected: .message, got: currentToken)
+          // Handle other message elements (options, nested types, etc.)
+          switch currentToken.type {
+          case .option:
+            options.append(try parseOption())
+          case .message:
+            nestedMessages.append(try parseMessage())
+          case .enum:
+            nestedEnums.append(try parseEnum())
+          case .oneof:
+            oneofs.append(try parseOneof())
+          default:
+            throw ParserError.unexpectedToken(expected: .message, got: currentToken)
+          }
         }
       }
     }
@@ -611,154 +622,6 @@ public final class Parser {
 
   // MARK: - Field Parsing
 
-  //  private func parseField() throws -> FieldNode {
-  //    let fieldLocation = currentToken.location
-  //    let leadingComments = currentToken.leadingComments
-  //
-  //    var isRepeated = false
-  //    var isOptional = false
-  //
-  //    // Check for repeated or optional
-  //    if currentToken.type == .repeated {
-  //      isRepeated = true
-  //      try advanceToken()
-  //    } else if currentToken.type == .optional {
-  //      isOptional = true
-  //      try advanceToken()
-  //    }
-  //
-  //    // Parse type
-  //    let type = try parseType()
-  //
-  //    // Parse field name
-  //    let name = try parseIdentifier()
-  //
-  //    try expectToken(.equals)
-  //
-  //    // Parse and validate field number
-  //    guard case .intLiteral = currentToken.type else {
-  //      throw ParserError.unexpectedToken(expected: .intLiteral, got: currentToken)
-  //    }
-  //
-  //    guard let number = Int(currentToken.literal) else {
-  //      throw ParserError.invalidFieldNumber(0, location: currentToken.location)
-  //    }
-  //
-  //    // Validate field number
-  //    if number <= 0 || number > 536_870_911 || (19000...19999).contains(number) {
-  //      throw ParserError.invalidFieldNumber(number, location: fieldLocation)
-  //    }
-  //
-  //    try advanceToken()
-  //
-  //    // Parse field options if present
-  //    var options: [OptionNode] = []
-  //    if check(.leftBracket) {
-  //      try expectToken(.leftBracket)
-  //      repeat {
-  //        let option = try parseFieldOption()  // Use parseFieldOption instead of parseOption
-  //        options.append(option)
-  //        if check(.comma) {
-  //          try advanceToken()
-  //        }
-  //      } while !check(.rightBracket)
-  //      try expectToken(.rightBracket)
-  //    }
-  //
-  //    try expectToken(.semicolon)
-  //
-  //    return FieldNode(
-  //      location: fieldLocation,
-  //      leadingComments: leadingComments,
-  //      trailingComment: currentToken.trailingComment,
-  //      name: name,
-  //      type: type,
-  //      number: number,
-  //      isRepeated: isRepeated,
-  //      isOptional: isOptional,
-  //      options: options
-  //    )
-  //  }
-
-  private func parseField() throws -> FieldNode {
-    let fieldLocation = currentToken.location
-    let leadingComments = currentToken.leadingComments
-
-    var isRepeated = false
-    var isOptional = false
-
-    // Check for repeated or optional
-    if currentToken.type == .repeated {
-      isRepeated = true
-      try advanceToken()
-    } else if currentToken.type == .optional {
-      isOptional = true
-      try advanceToken()
-    }
-
-    // Parse type
-    let type = try parseType()
-
-    // Parse field name
-    let name: String
-    if isAbsolutelyReservedKeyword(currentToken.type) {
-      throw ParserError.invalidFieldName(
-        "Cannot use reserved keyword '\(currentToken.literal)' as field name")
-    } else if currentToken.type == .identifier {
-      name = try parseIdentifier()
-    } else {
-      // Any other keyword can be used as identifier
-      name = currentToken.literal
-      try advanceToken()
-    }
-
-    try expectToken(.equals)
-
-    // Parse and validate field number
-    guard case .intLiteral = currentToken.type else {
-      throw ParserError.unexpectedToken(expected: .intLiteral, got: currentToken)
-    }
-
-    guard let number = Int(currentToken.literal) else {
-      throw ParserError.invalidFieldNumber(0, location: currentToken.location)
-    }
-
-    // Validate field number
-    if number <= 0 || number > 536_870_911 || (19000...19999).contains(number) {
-      throw ParserError.invalidFieldNumber(number, location: fieldLocation)
-    }
-
-    try advanceToken()
-
-    // Parse field options if present
-    var options: [OptionNode] = []
-    if check(.leftBracket) {
-      try expectToken(.leftBracket)
-      repeat {
-        let option = try parseFieldOption()
-        options.append(option)
-        if check(.comma) {
-          try advanceToken()
-        }
-      } while !check(.rightBracket)
-      try expectToken(.rightBracket)
-    }
-
-    try expectToken(.semicolon)
-
-    return FieldNode(
-      location: fieldLocation,
-      leadingComments: leadingComments,
-      trailingComment: currentToken.trailingComment,
-      name: name,
-      type: type,
-      number: number,
-      isRepeated: isRepeated,
-      isOptional: isOptional,
-      options: options
-    )
-  }
-
   private func parseFieldOption() throws -> OptionNode {
     // Handle custom options with parentheses
     if check(.leftParen) {
@@ -784,16 +647,6 @@ public final class Parser {
       name: name,
       value: value
     )
-  }
-
-  private func isAbsolutelyReservedKeyword(_ type: TokenType) -> Bool {
-    switch type {
-    case .syntax, .import, .package, .option, .service,
-      .rpc, .returns, /* .extend, */ .reserved, .oneof, .repeated:
-      return true
-    default:
-      return false
-    }
   }
 
   private func parseType() throws -> TypeNode {
@@ -991,5 +844,166 @@ public final class Parser {
     let literal = currentToken.literal
     try advanceToken()
     return literal
+  }
+
+  /// Validates a field number according to proto3 rules
+  private func validateFieldNumber(_ field: FieldNode, inMessage message: MessageNode) throws {
+    let number = field.number
+    let location = field.location
+
+    // Field numbers must be positive and in valid range
+    guard number > 0 else {
+      throw ParserError.invalidFieldNumber(number, location: location)
+    }
+
+    guard number <= 536_870_911 else {
+      throw ParserError.invalidFieldNumber(number, location: location)
+    }
+
+    // Check reserved ranges (19000-19999 reserved for internal use)
+    guard !(19000...19999).contains(number) else {
+      throw ParserError.invalidFieldNumber(number, location: location)
+    }
+
+    // Check for use of reserved field numbers in this message
+    if message.reservedNumbers.contains(number) {
+      throw ParserError.invalidFieldNumber(number, location: location)
+    }
+
+    // Check for duplicate field numbers in this message
+    if message.usedFieldNumbers.contains(number) {
+      throw ParserError.duplicateFieldNumber(number, messageName: message.name)
+    }
+
+    // Check for field numbers used in any oneof fields
+    for oneof in message.oneofs {
+      if oneof.fields.contains(where: { $0.number == number }) {
+        throw ParserError.duplicateFieldNumber(number, messageName: message.name)
+      }
+    }
+  }
+
+  /// Validates reserved field numbers
+  private func validateReservedNumbers(
+    _ ranges: [ReservedNode.Range], inMessage message: MessageNode
+  ) throws {
+    var reservedNumbers = Set<Int>()
+
+    for range in ranges {
+      switch range {
+      case .single(let num):
+        // Check valid range
+        guard num > 0 && num <= 536_870_911 else {
+          throw ParserError.invalidFieldNumber(num, location: message.location)
+        }
+
+        // Check for duplicates in reserved numbers
+        guard reservedNumbers.insert(num).inserted else {
+          throw ParserError.duplicateFieldNumber(num, messageName: message.name)
+        }
+
+      case .range(let start, let end):
+        // Validate range bounds
+        guard start > 0 && start <= 536_870_911 && end > 0 && end <= 536_870_911 else {
+          throw ParserError.invalidFieldNumber(start, location: message.location)
+        }
+
+        // Start must be less than end
+        guard start < end else {
+          throw ParserError.custom("Invalid field number range: end must be greater than start")
+        }
+
+        // Check for overlaps with existing reserved numbers
+        for num in start...end {
+          guard reservedNumbers.insert(num).inserted else {
+            throw ParserError.duplicateFieldNumber(num, messageName: message.name)
+          }
+        }
+
+      case .name:
+        continue  // Names handled separately
+      }
+    }
+  }
+
+  /// Entry point for field parsing
+  private func parseField() throws -> FieldNode {
+    let fieldLocation = currentToken.location
+    let leadingComments = currentToken.leadingComments
+
+    var isRepeated = false
+    var isOptional = false
+
+    if currentToken.type == .repeated {
+      isRepeated = true
+      try advanceToken()
+    } else if currentToken.type == .optional {
+      isOptional = true
+      try advanceToken()
+    }
+
+    let type = try parseType()
+    //    let name = try parseIdentifier()
+
+    // Parse field name
+    let name: String
+    if currentToken.type.isAbsolutelyReserved {
+      throw ParserError.invalidFieldName(
+        "Cannot use reserved keyword '\(currentToken.literal)' as field name")
+    } else if currentToken.type == .identifier {
+      name = try parseIdentifier()
+    } else {
+      // Any other keyword can be used as identifier
+      name = currentToken.literal
+      try advanceToken()
+    }
+
+    try expectToken(.equals)
+
+    // Parse and immediately validate field number
+    guard case .intLiteral = currentToken.type,
+      let number = Int(currentToken.literal)
+    else {
+      throw ParserError.unexpectedToken(expected: .intLiteral, got: currentToken)
+    }
+
+    // Validate field number immediately
+    if number <= 0 || number > 536_870_911 {
+      throw ParserError.invalidFieldNumber(number, location: currentToken.location)
+    }
+
+    // Check reserved range (19000-19999)
+    if (19000...19999).contains(number) {
+      throw ParserError.invalidFieldNumber(number, location: currentToken.location)
+    }
+
+    try advanceToken()
+
+    var options: [OptionNode] = []
+    if currentToken.type == .leftBracket {
+      try expectToken(.leftBracket)
+      repeat {
+        let option = try parseFieldOption()
+        options.append(option)
+        if check(.comma) {
+          try advanceToken()
+        }
+      } while !check(.rightBracket)
+      try expectToken(.rightBracket)
+    }
+
+    try expectToken(.semicolon)
+
+    return FieldNode(
+      location: fieldLocation,
+      leadingComments: leadingComments,
+      trailingComment: currentToken.trailingComment,
+      name: name,
+      type: type,
+      number: number,
+      isRepeated: isRepeated,
+      isOptional: isOptional,
+      options: options
+    )
   }
 }

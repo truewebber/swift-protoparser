@@ -78,6 +78,7 @@ public final class Lexer {
     skipWhitespace()
 
     // Process any comments before the token
+    pendingComments = []
     while ch == "/" {
       if let comment = try processComment() {
         pendingComments.append(comment)
@@ -88,51 +89,50 @@ public final class Lexer {
     }
 
     let startLocation = SourceLocation(line: line, column: column)
-
     var token: Token
 
     switch ch {
     case "=":
-      token = makeToken(.equals, String(ch))
+      token = makeCurrentToken(.equals, String(ch))
       readChar()
     case ":":
-      token = makeToken(.colon, String(ch))
+      token = makeCurrentToken(.colon, String(ch))
       readChar()
     case ";":
-      token = makeToken(.semicolon, String(ch))
+      token = makeCurrentToken(.semicolon, String(ch))
       readChar()
     case "(":
-      token = makeToken(.leftParen, String(ch))
+      token = makeCurrentToken(.leftParen, String(ch))
       readChar()
     case ")":
-      token = makeToken(.rightParen, String(ch))
+      token = makeCurrentToken(.rightParen, String(ch))
       readChar()
     case "{":
-      token = makeToken(.leftBrace, String(ch))
+      token = makeCurrentToken(.leftBrace, String(ch))
       readChar()
     case "}":
-      token = makeToken(.rightBrace, String(ch))
+      token = makeCurrentToken(.rightBrace, String(ch))
       readChar()
     case "[":
-      token = makeToken(.leftBracket, String(ch))
+      token = makeCurrentToken(.leftBracket, String(ch))
       readChar()
     case "]":
-      token = makeToken(.rightBracket, String(ch))
+      token = makeCurrentToken(.rightBracket, String(ch))
       readChar()
     case "<":
-      token = makeToken(.leftAngle, String(ch))
+      token = makeCurrentToken(.leftAngle, String(ch))
       readChar()
     case ">":
-      token = makeToken(.rightAngle, String(ch))
+      token = makeCurrentToken(.rightAngle, String(ch))
       readChar()
     case ",":
-      token = makeToken(.comma, String(ch))
+      token = makeCurrentToken(.comma, String(ch))
       readChar()
     case ".":
-      token = makeToken(.period, String(ch))
+      token = makeCurrentToken(.period, String(ch))
       readChar()
     case "\0":
-      token = makeToken(.eof, "")
+      token = makeCurrentToken(.eof, "")
       readChar()
     case "\"", "'":
       let stringLocation = startLocation
@@ -146,10 +146,10 @@ public final class Lexer {
       {
         return try makeNumberToken(startLocation)
       } else if ch == "-" {
-        token = makeToken(.minus, String(ch))
+        token = makeCurrentToken(.minus, String(ch))
         readChar()
       } else if ch == "+" {
-        token = makeToken(.plus, String(ch))
+        token = makeCurrentToken(.plus, String(ch))
         readChar()
       } else if ch.isLetter || ch == "_" {
         token = makeIdentifierToken(startLocation)
@@ -196,19 +196,13 @@ public final class Lexer {
     return nil
   }
 
-  private func makeToken(_ type: TokenType, _ literal: String, trailingComment: String? = nil)
-    -> Token
-  {
-    let token = Token(
-      type: type,
-      literal: literal,
+  private func makeCurrentToken(_ type: TokenType, _ literal: String) -> Token {
+    return makeToken(
+      type,
+      literal,
       location: SourceLocation(line: line, column: column),
-      length: literal.count,
-      leadingComments: pendingComments,
-      trailingComment: trailingComment
+      length: literal.count
     )
-    pendingComments = []
-    return token
   }
 
   private func skipWhitespace() {
@@ -220,64 +214,97 @@ public final class Lexer {
   private func processComment() throws -> String? {
     guard ch == "/" else { return nil }
 
-    readChar()
+    // Save initial location for error reporting
+    let startLocation = SourceLocation(line: line, column: column)
+    readChar()  // consume first '/'
 
     switch ch {
     case "/":  // Single-line comment
-      return self.processOneLineDoubleSlashComment()
-    case "*":  // Multi-line comment
-      readChar()
+      readChar()  // consume second '/'
       let start = position
-      var end = position
-      var depth = 1
 
-      while depth > 0 && ch != "\0" {
-        if ch == "/" && peekChar() == "*" {
-          throw LexerError.nestedComment(location: SourceLocation(line: line, column: column))
-        }
-        if ch == "/" && peekChar() == "*" {
-          depth += 1
-          readChar()
-        } else if ch == "*" && peekChar() == "/" {
-          depth -= 1
-          readChar()
-        } else {
-          end = position
-        }
+      // Read until newline or EOF
+      while !ch.isNewline && ch != "\0" {
         readChar()
       }
 
-      if depth > 0 {
-        throw LexerError.unterminatedString(location: SourceLocation(line: line, column: column))
+      return String(input[start..<position]).trimmingCharacters(in: .whitespaces)
+
+    case "*":  // Multi-line comment
+      readChar()  // consume '*'
+      let start = position
+      var depth = 1
+      var endPos = position
+
+      while ch != "\0" {
+        // Check for nested comments - /* inside /* */
+        if ch == "/" && peekChar() == "*" {
+          throw LexerError.nestedComment(location: startLocation)
+        }
+
+        // Check for comment end - */
+        if ch == "*" && peekChar() == "/" {
+          depth -= 1
+          if depth == 0 {
+            readChar()  // consume *
+            readChar()  // consume /
+            break
+          }
+          readChar()
+        }
+
+        if ch != "\0" {
+          endPos = position
+          readChar()
+        }
       }
 
-      let comment = String(input[start..<end]).trimmingCharacters(
-        in: .whitespaces
-      )
-      readChar()  // consume the final '/'
-      return comment
+      if depth > 0 {
+        throw LexerError.unterminatedString(location: startLocation)
+      }
+
+      return String(input[start..<endPos]).trimmingCharacters(in: .whitespaces)
 
     default:
+      // Not a comment, rewind to start
+      position = input.index(before: position)
+      readPosition = position
+      readChar()
       return nil
     }
   }
 
+  /// Process single line comments starting with //
   private func processOneLineDoubleSlashComment() -> String? {
-    guard ch == "/" else { return nil }
-
-    readChar()
+    readChar()  // consume second '/'
     let start = position
 
     while !ch.isNewline && ch != "\0" {
       readChar()
     }
 
-    let comment = String(input[start..<position]).trimmingCharacters(in: .whitespaces)
-    if ch.isNewline {
-      readChar()
+    return String(input[start..<position]).trimmingCharacters(in: .whitespaces)
+  }
+
+  /// Helper method to create tokens
+  private func makeToken(
+    _ type: TokenType,
+    _ literal: String,
+    location: SourceLocation,
+    length: Int
+  ) -> Token {
+    defer {
+      pendingComments = []
     }
 
-    return comment
+    return Token(
+      type: type,
+      literal: literal,
+      location: location,
+      length: length,
+      leadingComments: pendingComments,
+      trailingComment: nil
+    )
   }
 
   private func makeIdentifierToken(_ startLocation: SourceLocation) -> Token {
@@ -290,16 +317,11 @@ public final class Lexer {
     let type =
       shouldTreatAsIdentifier() ? .identifier : (TokenType.keyword(from: literal) ?? .identifier)
 
-    defer {
-      pendingComments = []
-    }
-
-    return Token(
-      type: type,
-      literal: literal,
+    return makeToken(
+      type,
+      literal,
       location: startLocation,
-      length: input.distance(from: startPos, to: position),
-      leadingComments: pendingComments
+      length: input.distance(from: startPos, to: position)
     )
   }
 
@@ -382,12 +404,11 @@ public final class Lexer {
 
     let literal = String(input[startPos..<position])
 
-    return Token(
-      type: isFloat ? .floatLiteral : .intLiteral,
-      literal: literal,
+    return makeToken(
+      isFloat ? .floatLiteral : .intLiteral,
+      literal,
       location: startLocation,
-      length: input.distance(from: startPos, to: position),
-      leadingComments: pendingComments
+      length: input.distance(from: startPos, to: position)
     )
   }
 
@@ -422,12 +443,11 @@ public final class Lexer {
 
     readChar()  // consume closing quote
 
-    return Token(
-      type: .stringLiteral,
-      literal: value,
+    return makeToken(
+      .stringLiteral,
+      value,
       location: startLocation,
-      length: value.count,
-      leadingComments: pendingComments
+      length: value.count
     )
   }
 

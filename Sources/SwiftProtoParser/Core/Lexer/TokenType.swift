@@ -247,3 +247,18 @@ extension TokenType: CustomStringConvertible {
     }
   }
 }
+
+extension TokenType {
+  /// Checks if this token type represents an absolutely reserved keyword
+  /// .extend - has to be added
+  var isAbsolutelyReserved: Bool {
+    switch self {
+    case .syntax, .import, .package, .option,
+      .service, .rpc, .returns, .reserved,
+      .oneof, .repeated:
+      return true
+    default:
+      return false
+    }
+  }
+}

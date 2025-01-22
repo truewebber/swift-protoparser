@@ -60,48 +60,9 @@ public final class FieldNode: Node {
     self.options = options
     self.jsonName = jsonName
   }
-}
 
-/// Represents a oneof definition in a message
-public final class OneofNode: Node {
-  /// Source location of this oneof
-  public let location: SourceLocation
+  // MARK: - Field Validation
 
-  /// Comments that appear before this oneof
-  public let leadingComments: [String]
-
-  /// Comment that appears after the oneof name
-  public let trailingComment: String?
-
-  /// Name of the oneof
-  public let name: String
-
-  /// Fields in this oneof
-  public private(set) var fields: [FieldNode]
-
-  /// Options applied to this oneof
-  public let options: [OptionNode]
-
-  public init(
-    location: SourceLocation,
-    leadingComments: [String] = [],
-    trailingComment: String? = nil,
-    name: String,
-    fields: [FieldNode] = [],
-    options: [OptionNode] = []
-  ) {
-    self.location = location
-    self.leadingComments = leadingComments
-    self.trailingComment = trailingComment
-    self.name = name
-    self.fields = fields
-    self.options = options
-  }
-}
-
-// MARK: - Field Validation
-
-extension FieldNode {
   /// Validates the field according to proto3 rules
   /// - Throws: ParserError if validation fails
   public func validate() throws {
@@ -221,9 +182,44 @@ extension FieldNode {
   }
 }
 
-// MARK: - Oneof Validation
+/// Represents a oneof definition in a message
+public final class OneofNode: Node {
+  /// Source location of this oneof
+  public let location: SourceLocation
 
-extension OneofNode {
+  /// Comments that appear before this oneof
+  public let leadingComments: [String]
+
+  /// Comment that appears after the oneof name
+  public let trailingComment: String?
+
+  /// Name of the oneof
+  public let name: String
+
+  /// Fields in this oneof
+  public private(set) var fields: [FieldNode]
+
+  /// Options applied to this oneof
+  public let options: [OptionNode]
+
+  public init(
+    location: SourceLocation,
+    leadingComments: [String] = [],
+    trailingComment: String? = nil,
+    name: String,
+    fields: [FieldNode] = [],
+    options: [OptionNode] = []
+  ) {
+    self.location = location
+    self.leadingComments = leadingComments
+    self.trailingComment = trailingComment
+    self.name = name
+    self.fields = fields
+    self.options = options
+  }
+
+  // MARK: - Oneof Validation
+
   /// Validates the oneof according to proto3 rules
   /// - Throws: ParserError if validation fails
   public func validate() throws {

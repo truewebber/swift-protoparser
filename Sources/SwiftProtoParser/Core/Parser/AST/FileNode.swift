@@ -82,11 +82,9 @@ public final class FileNode: Node, DefinitionContainer {
   public var trailingComment: String? {
     return nil
   }
-}
 
-// MARK: - Helper Methods
+  // MARK: - Helper Methods
 
-extension FileNode {
   /// Returns all types defined in this file, including nested types
   public var allDefinedTypes: [DefinitionNode] {
     var types: [DefinitionNode] = []
@@ -146,11 +144,9 @@ extension FileNode {
   public func findType(_ name: String) -> DefinitionNode? {
     return typeMap[name]
   }
-}
 
-// MARK: - Validation
+  // MARK: - Validation
 
-extension FileNode {
   /// Validates the file node according to proto3 rules
   /// - Throws: ParserError if validation fails
   public func validate() throws {
