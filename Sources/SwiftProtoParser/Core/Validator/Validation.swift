@@ -4,8 +4,6 @@ import Foundation
 public enum ValidationError: Error, CustomStringConvertible {
   case cyclicDependency([String])
   case undefinedType(String, referencedIn: String)
-  case duplicateTypeName(String)
-  case duplicateFieldName(String, inType: String)
   case duplicateEnumValue(String, inEnum: String)
   case invalidPackageReference(String)
   case invalidImportPath(String)
@@ -13,6 +11,20 @@ public enum ValidationError: Error, CustomStringConvertible {
   case invalidMapKeyType(String, inField: String)
   case repeatedMapField(String)
   case invalidDefaultValue(String, forField: String)
+  case firstEnumValueNotZero(String)  // String is enum name
+  case emptyEnum(String)  // String is enum name
+  case duplicateOption(String)
+  case emptyOneof(String)  // oneof name
+  case duplicateTypeName(String)  // type name
+  case duplicateNestedTypeName(String)  // nested type name
+  case duplicateFieldName(String, inType: String)  // field name and containing type
+  case maxNestingDepthExceeded(Int)  // Int is current nesting depth
+  case invalidFieldNumber(Int, location: SourceLocation)
+  case invalidFieldName(String)
+  case reservedFieldName(String)
+  case invalidOptionValue(String)
+  case invalidOptionName(String)
+  case unknownOption(String)
   case custom(String)
 
   public var description: String {
@@ -21,10 +33,6 @@ public enum ValidationError: Error, CustomStringConvertible {
       return "Cyclic dependency detected: \(path.joined(separator: " -> "))"
     case .undefinedType(let type, let container):
       return "Undefined type '\(type)' referenced in '\(container)'"
-    case .duplicateTypeName(let name):
-      return "Duplicate type name: '\(name)'"
-    case .duplicateFieldName(let field, let type):
-      return "Duplicate field name '\(field)' in type '\(type)'"
     case .duplicateEnumValue(let value, let enumType):
       return "Duplicate enum value '\(value)' in enum '\(enumType)'"
     case .invalidPackageReference(let package):
@@ -39,6 +47,34 @@ public enum ValidationError: Error, CustomStringConvertible {
       return "Map field '\(field)' cannot be repeated"
     case .invalidDefaultValue(let value, let field):
       return "Invalid default value '\(value)' for field '\(field)'"
+    case .firstEnumValueNotZero(let name):
+      return "First enum value in '\(name)' must be zero in proto3"
+    case .emptyEnum(let name):
+      return "Enum '\(name)' must have at least one value"
+    case .duplicateOption(let name):
+      return "Duplicate option '\(name)'"
+    case .emptyOneof(let name):
+      return "Empty oneof '\(name)'"
+    case .duplicateTypeName(let name):
+      return "Duplicate type name: '\(name)'"
+    case .duplicateNestedTypeName(let name):
+      return "Duplicate nested type name: '\(name)'"
+    case .duplicateFieldName(let field, let type):
+      return "Duplicate field name '\(field)' in '\(type)'"
+    case .maxNestingDepthExceeded(let depth):
+      return "Maximum message nesting depth exceeded (depth: \(depth))"
+    case .invalidFieldNumber(let num, let loc):
+      return "Invalid field number \(num) at \(loc.line):\(loc.column)"
+    case .invalidFieldName(let name):
+      return "Invalid field name \(name)"
+    case .reservedFieldName(let name):
+      return "Field is reserved \(name)"
+    case .invalidOptionValue(let message):
+      return "Invalid option value: \(message)"
+    case .invalidOptionName(let name):
+      return "Invalid option name: \(name)"
+    case .unknownOption(let name):
+      return "Unknown option: \(name)"
     case .custom(let message):
       return message
     }
@@ -56,10 +92,15 @@ public final class Validator {
   /// The current package being validated
   private var currentPackage: String?
 
+  /// Track imported types
+  private var importedTypes: [String: String] = [:]
+
   /// Initialize a new validator
   public init() {}
 
-  /// Validates a proto file
+  // MARK: - Main Validation
+
+  /// Validates a proto file according to proto3 rules
   /// - Parameter file: The file node to validate
   /// - Throws: ValidationError if validation fails
   public func validate(_ file: FileNode) throws {
@@ -76,6 +117,94 @@ public final class Validator {
 
     // Third pass: check for cyclic dependencies
     try checkCyclicDependencies()
+  }
+
+  // MARK: - Field Validation
+
+  private func validateField(_ field: FieldNode, inMessage message: MessageNode) throws {
+    // Validate field number
+    try validateFieldNumber(field.number, location: field.location)
+
+    // Validate name
+    try validateFieldName(field.name, inMessage: message)
+
+    // Validate type
+    try validateFieldType(field.type, inField: field.name, inMessage: message)
+
+    // Validate field rules (repeated/optional)
+    try validateFieldRules(field)
+
+    // Validate options
+    try validateFieldOptions(field.options)
+  }
+
+  private func validateFieldNumber(_ number: Int, location: SourceLocation) throws {
+    // Check basic range
+    guard number > 0 else {
+      throw ValidationError.invalidFieldNumber(number, location: location)
+    }
+
+    guard number <= 536_870_911 else {
+      throw ValidationError.invalidFieldNumber(number, location: location)
+    }
+
+    // Check reserved range
+    if (19000...19999).contains(number) {
+      throw ValidationError.invalidFieldNumber(number, location: location)
+    }
+  }
+
+  private func validateFieldName(_ name: String, inMessage message: MessageNode) throws {
+    // Check name format
+    guard isValidFieldName(name) else {
+      throw ValidationError.invalidFieldName(name)
+    }
+
+    // Check for reserved names
+    if message.reservedNames.contains(name) {
+      throw ValidationError.reservedFieldName(name)
+    }
+
+    // Check for duplicates
+    if message.usedFieldNames.contains(name) {
+      throw ValidationError.duplicateFieldName(name, inType: message.name)
+    }
+  }
+
+  private func validateFieldType(
+    _ type: TypeNode, inField field: String, inMessage message: MessageNode
+  ) throws {
+    switch type {
+    case .scalar:
+      return  // All scalar types are valid
+    case .map(let keyType, let valueType):
+      try validateMapKeyType(keyType, inField: field)
+      try validateFieldType(valueType, inField: field, inMessage: message)
+    case .named(let typeName):
+      try validateTypeReference(typeName, inMessage: message)
+    }
+  }
+
+  private func validateMapKeyType(_ type: TypeNode.ScalarType, inField field: String) throws {
+    switch type {
+    case .int32, .int64, .uint32, .uint64, .sint32, .sint64,
+      .fixed32, .fixed64, .sfixed32, .sfixed64,
+      .bool, .string:
+      return  // Valid map key types
+    case .float, .double, .bytes:
+      throw
+        ValidationError
+        .invalidMapKeyType(String(describing: type), inField: field)
+    }
+  }
+
+  private func validateFieldRules(_ field: FieldNode) throws {
+    // Map fields can't be repeated
+    if field.isRepeated {
+      if case .map = field.type {
+        throw ValidationError.repeatedMapField(field.name)
+      }
+    }
   }
 
   // MARK: - Type Collection
@@ -181,17 +310,7 @@ public final class Validator {
       throw ValidationError.custom("Invalid field name: '\(field.name)'")
     }
 
-    // Validate field number
-    if field.number < 1 || field.number > 536_870_911 {
-      throw ValidationError.custom(
-        "Field number \(field.number) out of valid range (1 to 536,870,911)")
-    }
-
-    // Check reserved ranges
-    if (19000...19999).contains(field.number) {
-      throw ValidationError.custom(
-        "Field number \(field.number) is in reserved range (19000-19999)")
-    }
+    try validateFieldNumber(field.number, location: field.location)
 
     // Validate map fields
     if case .map(let keyType, _) = field.type {
@@ -376,5 +495,132 @@ public final class Validator {
     guard let first = name.first else { return false }
     return (first.isLowercase || first == "_")
       && name.allSatisfy { $0.isLetter || $0.isNumber || $0 == "_" }
+  }
+
+  private func validateFieldOptions(_ options: [OptionNode]) throws {
+    for option in options {
+      switch option.name {
+      case "deprecated":
+        // deprecated must be boolean
+        guard case .identifier(let value) = option.value,
+          value == "true" || value == "false"
+        else {
+          throw ValidationError.invalidOptionValue("deprecated must be a boolean")
+        }
+
+      case "packed":
+        // packed can be only used with repeated scalar fields
+        guard case .identifier(let value) = option.value,
+          value == "true" || value == "false"
+        else {
+          throw ValidationError.invalidOptionValue("packed must be a boolean")
+        }
+
+      case "json_name":
+        // json_name must be string
+        guard case .string = option.value else {
+          throw ValidationError.invalidOptionValue("json_name must be a string")
+        }
+
+      default:
+        // Handle custom options (ones in parentheses)
+        if option.name.hasPrefix("(") {
+          // Validate custom option format - must be (package.option_name) or (option_name)
+          let name = String(option.name.dropFirst().dropLast())
+          let components = name.split(separator: ".")
+          guard !components.isEmpty else {
+            throw ValidationError.invalidOptionName(option.name)
+          }
+          // Custom option validation would go here
+        } else {
+          throw ValidationError.unknownOption(option.name)
+        }
+      }
+    }
+  }
+
+  private func validateTypeReference(_ typeName: String, inMessage message: MessageNode) throws {
+    // Handle fully qualified names (starting with dot)
+    let typeToCheck = typeName.hasPrefix(".") ? String(typeName.dropFirst()) : typeName
+
+    // If type contains dots, we need to validate each component
+    let components = typeToCheck.split(separator: ".")
+
+    if components.count > 1 {
+      // For nested type references like "Outer.Inner.VeryInner"
+      // First try to find from root scope
+      var currentScope = try resolveСurrentScope(
+        currentScope: String(components[0]),
+        typeName: typeName,
+        messageName: message.name
+      )
+
+      // Then validate each nested component
+      for component in components.dropFirst() {
+        currentScope = "\(currentScope).\(component)"
+        guard definedTypes[String(currentScope)] != nil else {
+          throw ValidationError.undefinedType(typeName, referencedIn: message.name)
+        }
+      }
+      return
+    }
+
+    // For non-nested types, search in this order:
+    // 1. Current message scope and its parents
+    // 2. Current package scope
+    // 3. Root package scope
+    // 4. Imported files
+
+    // 1. Check message scope hierarchy
+    var currentMessage: MessageNode? = message
+    while currentMessage != nil {
+      if currentMessage?.findNestedType(typeToCheck) != nil {
+        return
+      }
+      currentMessage = currentMessage?.parent as? MessageNode
+    }
+
+    // 2. Check current package scope
+    if let currentPackage = currentPackage {
+      let fullName = "\(currentPackage).\(typeToCheck)"
+      if definedTypes[fullName] != nil {
+        return
+      }
+    }
+
+    // 3. Check root scope
+    if definedTypes[typeToCheck] != nil {
+      return
+    }
+
+    // 4. Check imported types
+    if importedTypes[typeToCheck] != nil {
+      return
+    }
+
+    // Type not found in any scope
+    throw ValidationError.undefinedType(typeName, referencedIn: message.name)
+  }
+
+  func resolveСurrentScope(
+    currentScope: String,
+    typeName: String,
+    messageName: String
+  ) throws -> String {
+    if definedTypes[currentScope] != nil {
+      return currentScope
+    }
+
+    // Если не найден, а пакет доступен — формируем комбинированное имя
+    guard let package = currentPackage else {
+      throw ValidationError.undefinedType(typeName, referencedIn: messageName)
+    }
+
+    let combinedScope = "\(package).\(currentScope)"
+    if definedTypes[combinedScope] == nil {
+      throw ValidationError.undefinedType(typeName, referencedIn: messageName)
+    }
+
+    return combinedScope
   }
 }

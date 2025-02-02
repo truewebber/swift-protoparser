@@ -321,6 +321,43 @@ public final class Parser {
     )
   }
 
+  //  private func parseEnumValue() throws -> EnumValueNode {
+  //    let valueLocation = currentToken.location
+  //    let leadingComments = currentToken.leadingComments
+  //
+  //    let name = try parseIdentifier()
+  //    try expectToken(.equals)
+  //
+  //    guard case .intLiteral = currentToken.type else {
+  //      throw ParserError.unexpectedToken(expected: .intLiteral, got: currentToken)
+  //    }
+  //    let number = Int(currentToken.literal) ?? 0
+  //    try advanceToken()
+  //
+  //    var options: [OptionNode] = []
+  //    if check(.leftBracket) {
+  //      try expectToken(.leftBracket)
+  //      repeat {
+  //        options.append(try parseOption())
+  //        if check(.comma) {
+  //          try advanceToken()
+  //        }
+  //      } while !check(.rightBracket)
+  //      try expectToken(.rightBracket)
+  //    }
+  //
+  //    try expectToken(.semicolon)
+  //
+  //    return EnumValueNode(
+  //      location: valueLocation,
+  //      leadingComments: leadingComments,
+  //      trailingComment: currentToken.trailingComment,
+  //      name: name,
+  //      number: number,
+  //      options: options
+  //    )
+  //  }
+
   private func parseEnumValue() throws -> EnumValueNode {
     let valueLocation = currentToken.location
     let leadingComments = currentToken.leadingComments
@@ -338,7 +375,7 @@ public final class Parser {
     if check(.leftBracket) {
       try expectToken(.leftBracket)
       repeat {
-        options.append(try parseOption())
+        options.append(try parseFieldOption())
         if check(.comma) {
           try advanceToken()
         }
@@ -863,85 +900,85 @@ public final class Parser {
     return literal
   }
 
-  /// Validates a field number according to proto3 rules
-  private func validateFieldNumber(_ field: FieldNode, inMessage message: MessageNode) throws {
-    let number = field.number
-    let location = field.location
+  //  /// Validates a field number according to proto3 rules
+  //  private func validateFieldNumber(_ field: FieldNode, inMessage message: MessageNode) throws {
+  //    let number = field.number
+  //    let location = field.location
+  //
+  //    // Field numbers must be positive and in valid range
+  //    guard number > 0 else {
+  //      throw ParserError.invalidFieldNumber(number, location: location)
+  //    }
+  //
+  //    guard number <= 536_870_911 else {
+  //      throw ParserError.invalidFieldNumber(number, location: location)
+  //    }
+  //
+  //    // Check reserved ranges (19000-19999 reserved for internal use)
+  //    guard !(19000...19999).contains(number) else {
+  //      throw ParserError.invalidFieldNumber(number, location: location)
+  //    }
+  //
+  //    // Check for use of reserved field numbers in this message
+  //    if message.reservedNumbers.contains(number) {
+  //      throw ParserError.invalidFieldNumber(number, location: location)
+  //    }
+  //
+  //    // Check for duplicate field numbers in this message
+  //    if message.usedFieldNumbers.contains(number) {
+  //      throw ParserError.duplicateFieldNumber(number, messageName: message.name)
+  //    }
+  //
+  //    // Check for field numbers used in any oneof fields
+  //    for oneof in message.oneofs {
+  //      if oneof.fields.contains(where: { $0.number == number }) {
+  //        throw ParserError.duplicateFieldNumber(number, messageName: message.name)
+  //      }
+  //    }
+  //  }
 
-    // Field numbers must be positive and in valid range
-    guard number > 0 else {
-      throw ParserError.invalidFieldNumber(number, location: location)
-    }
-
-    guard number <= 536_870_911 else {
-      throw ParserError.invalidFieldNumber(number, location: location)
-    }
-
-    // Check reserved ranges (19000-19999 reserved for internal use)
-    guard !(19000...19999).contains(number) else {
-      throw ParserError.invalidFieldNumber(number, location: location)
-    }
-
-    // Check for use of reserved field numbers in this message
-    if message.reservedNumbers.contains(number) {
-      throw ParserError.invalidFieldNumber(number, location: location)
-    }
-
-    // Check for duplicate field numbers in this message
-    if message.usedFieldNumbers.contains(number) {
-      throw ParserError.duplicateFieldNumber(number, messageName: message.name)
-    }
-
-    // Check for field numbers used in any oneof fields
-    for oneof in message.oneofs {
-      if oneof.fields.contains(where: { $0.number == number }) {
-        throw ParserError.duplicateFieldNumber(number, messageName: message.name)
-      }
-    }
-  }
-
-  /// Validates reserved field numbers
-  private func validateReservedNumbers(
-    _ ranges: [ReservedNode.Range], inMessage message: MessageNode
-  ) throws {
-    var reservedNumbers = Set<Int>()
-
-    for range in ranges {
-      switch range {
-      case .single(let num):
-        // Check valid range
-        guard num > 0 && num <= 536_870_911 else {
-          throw ParserError.invalidFieldNumber(num, location: message.location)
-        }
-
-        // Check for duplicates in reserved numbers
-        guard reservedNumbers.insert(num).inserted else {
-          throw ParserError.duplicateFieldNumber(num, messageName: message.name)
-        }
-
-      case .range(let start, let end):
-        // Validate range bounds
-        guard start > 0 && start <= 536_870_911 && end > 0 && end <= 536_870_911 else {
-          throw ParserError.invalidFieldNumber(start, location: message.location)
-        }
-
-        // Start must be less than end
-        guard start < end else {
-          throw ParserError.custom("Invalid field number range: end must be greater than start")
-        }
-
-        // Check for overlaps with existing reserved numbers
-        for num in start...end {
-          guard reservedNumbers.insert(num).inserted else {
-            throw ParserError.duplicateFieldNumber(num, messageName: message.name)
-          }
-        }
-
-      case .name:
-        continue  // Names handled separately
-      }
-    }
-  }
+  //  /// Validates reserved field numbers
+  //  private func validateReservedNumbers(
+  //    _ ranges: [ReservedNode.Range], inMessage message: MessageNode
+  //  ) throws {
+  //    var reservedNumbers = Set<Int>()
+  //
+  //    for range in ranges {
+  //      switch range {
+  //      case .single(let num):
+  //        // Check valid range
+  //        guard num > 0 && num <= 536_870_911 else {
+  //          throw ParserError.invalidFieldNumber(num, location: message.location)
+  //        }
+  //
+  //        // Check for duplicates in reserved numbers
+  //        guard reservedNumbers.insert(num).inserted else {
+  //          throw ParserError.duplicateFieldNumber(num, messageName: message.name)
+  //        }
+  //
+  //      case .range(let start, let end):
+  //        // Validate range bounds
+  //        guard start > 0 && start <= 536_870_911 && end > 0 && end <= 536_870_911 else {
+  //          throw ParserError.invalidFieldNumber(start, location: message.location)
+  //        }
+  //
+  //        // Start must be less than end
+  //        guard start < end else {
+  //          throw ParserError.custom("Invalid field number range: end must be greater than start")
+  //        }
+  //
+  //        // Check for overlaps with existing reserved numbers
+  //        for num in start...end {
+  //          guard reservedNumbers.insert(num).inserted else {
+  //            throw ParserError.duplicateFieldNumber(num, messageName: message.name)
+  //          }
+  //        }
+  //
+  //      case .name:
+  //        continue  // Names handled separately
+  //      }
+  //    }
+  //  }
 
   /// Entry point for field parsing
   private func parseField() throws -> FieldNode {
@@ -988,16 +1025,6 @@ public final class Parser {
       let number = Int(currentToken.literal)
     else {
       throw ParserError.unexpectedToken(expected: .intLiteral, got: currentToken)
-    }
-
-    // Validate field number immediately
-    if number <= 0 || number > 536_870_911 {
-      throw ParserError.invalidFieldNumber(number, location: currentToken.location)
-    }
-
-    // Check reserved range (19000-19999)
-    if (19000...19999).contains(number) {
-      throw ParserError.invalidFieldNumber(number, location: currentToken.location)
     }
 
     try advanceToken()

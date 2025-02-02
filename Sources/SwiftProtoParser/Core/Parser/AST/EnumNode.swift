@@ -1,7 +1,7 @@
 import Foundation
 
 /// Represents an enum value definition in a proto file
-public struct EnumValueNode: Node {
+public class EnumValueNode: Node {
   /// Source location of this enum value
   public let location: SourceLocation
 

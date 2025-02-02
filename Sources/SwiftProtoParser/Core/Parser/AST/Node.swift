@@ -1,7 +1,7 @@
 import Foundation
 
 /// Base protocol for all AST nodes
-public protocol Node {
+public protocol Node: AnyObject {
   /// The source location of this node
   var location: SourceLocation { get }
 
@@ -19,7 +19,7 @@ public protocol DefinitionNode: Node {
 }
 
 /// Represents an import statement with its modifier
-public struct ImportNode: Node {
+public class ImportNode: Node {
   public enum Modifier {
     case none
     case weak
@@ -50,7 +50,7 @@ public struct ImportNode: Node {
 public typealias ImportModifier = ImportNode.Modifier
 
 /// Represents a proto option
-public struct OptionNode: Node {
+public class OptionNode: Node {
   public enum Value: Equatable {
     case string(String)
     case number(Double)
@@ -122,7 +122,7 @@ public enum TypeNode: Equatable {
 }
 
 /// Represents a reserved statement in a message
-public struct ReservedNode: Node {
+public class ReservedNode: Node {
   public enum Range: Equatable {
     case single(Int)
     case range(start: Int, end: Int)
