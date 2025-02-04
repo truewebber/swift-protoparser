@@ -26,9 +26,6 @@ public final class MessageNode: DefinitionNode, DefinitionContainer {
   /// Reserved field numbers and names
   public private(set) var reserved: [ReservedNode]
 
-  // Parent node (for nested messages)
-  public weak var parent: Node?
-
   /// Nested message definitions
   public private(set) var messages: [MessageNode]
 
@@ -56,7 +53,6 @@ public final class MessageNode: DefinitionNode, DefinitionContainer {
     oneofs: [OneofNode] = [],
     options: [OptionNode] = [],
     reserved: [ReservedNode] = [],
-    parent: Node? = nil,
     messages: [MessageNode] = [],
     enums: [EnumNode] = []
   ) {
@@ -68,7 +64,6 @@ public final class MessageNode: DefinitionNode, DefinitionContainer {
     self.oneofs = oneofs
     self.options = options
     self.reserved = reserved
-    self.parent = parent
     self.messages = messages
     self.enums = enums
   }

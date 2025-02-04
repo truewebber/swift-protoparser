@@ -1,7 +1,7 @@
 import Foundation
 
 /// Represents an RPC method in a service
-public class RPCNode: Node {
+public struct RPCNode: Node {
   /// Source location of this RPC
   public let location: SourceLocation
 
