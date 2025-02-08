@@ -88,8 +88,8 @@ final class ValidatorTests: XCTestCase {
       }
 
       switch error {
-//      case .duplicateOption(_,_):
-//        return
+      case .duplicateOption(_):
+        return
       default:
         XCTFail("Expected duplicateOption error, got: \(error)")
       }
@@ -186,8 +186,8 @@ final class ValidatorTests: XCTestCase {
       }
 
       switch error {
-//      case .maxNestingDepthExceeded(_):
-//        return
+      //      case .maxNestingDepthExceeded(_):
+      //        return
       default:
         XCTFail("Expected maxNestingDepthExceeded error, got: \(error)")
       }
