@@ -92,7 +92,7 @@ public final class Validator {
 
   private func registerTypes(_ file: FileNode) throws {
     let prefix = currentPackage.map { $0 + "." } ?? ""
-    
+
     // Register messages
     for message in file.messages {
       let fullName = prefix + message.name
@@ -101,7 +101,7 @@ public final class Validator {
       }
       definedTypes[fullName] = message
     }
-    
+
     // Register enums
     for enum_ in file.enums {
       let fullName = prefix + enum_.name
@@ -119,41 +119,41 @@ public final class Validator {
 
     // Track names used in this scope
     var usedNames = Set<String>()
-    
+
     // Check nested message names
     for nestedMessage in message.messages {
-        if !usedNames.insert(nestedMessage.name).inserted {
-            throw ValidationError.duplicateNestedTypeName(nestedMessage.name)
-        }
+      if !usedNames.insert(nestedMessage.name).inserted {
+        throw ValidationError.duplicateNestedTypeName(nestedMessage.name)
+      }
     }
-    
+
     // Check nested enum names
     for nestedEnum in message.enums {
-        if !usedNames.insert(nestedEnum.name).inserted {
-            throw ValidationError.duplicateNestedTypeName(nestedEnum.name)
-        }
+      if !usedNames.insert(nestedEnum.name).inserted {
+        throw ValidationError.duplicateNestedTypeName(nestedEnum.name)
+      }
     }
-    
+
     // Check field names
     var usedFieldNames = Set<String>()
     for field in message.fields {
-        if !usedFieldNames.insert(field.name).inserted {
-            throw ValidationError.duplicateFieldName(field.name, inType: message.name)
-        }
+      if !usedFieldNames.insert(field.name).inserted {
+        throw ValidationError.duplicateFieldName(field.name, inType: message.name)
+      }
     }
-    
+
     // Check oneof field names
     for oneof in message.oneofs {
-        for field in oneof.fields {
-            if !usedFieldNames.insert(field.name).inserted {
-                throw ValidationError.duplicateFieldName(field.name, inType: message.name)
-            }
+      for field in oneof.fields {
+        if !usedFieldNames.insert(field.name).inserted {
+          throw ValidationError.duplicateFieldName(field.name, inType: message.name)
         }
+      }
     }
 
     // Recursively validate nested messages
     for nestedMessage in message.messages {
-        try validateNestedMessage(nestedMessage)
+      try validateNestedMessage(nestedMessage)
     }
   }
 

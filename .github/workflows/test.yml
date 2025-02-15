@@ -10,13 +10,13 @@ jobs:
     runs-on: self-hosted
 
     steps:
-      - name: Check out the code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - name: Set up Swift
-        uses: fwal/setup-swift@v1
+      - uses: compnerd/gha-setup-swift@main
         with:
-          swift-version: '5.9'
+          branch: swift-5.9.2-release
+          platform: ubuntu22.04
+          arch: aarch64
 
       - name: Build and test with coverage
         run: swift test --enable-code-coverage --parallel
