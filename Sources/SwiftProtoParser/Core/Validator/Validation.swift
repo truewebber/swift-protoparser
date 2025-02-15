@@ -273,17 +273,6 @@ public final class Validator {
     }
   }
 
-  //  // Helper function to resolve type names
-  //  private func resolveTypeName(_ name: String) -> String {
-  //    if name.hasPrefix(".") {
-  //      return String(name.dropFirst())
-  //    }
-  //    if let currentPackage = currentPackage, !currentPackage.isEmpty {
-  //      return "\(currentPackage).\(name)"
-  //    }
-  //    return name
-  //  }
-
   private func validateTypeReference(_ typeName: String, inMessage message: MessageNode?) throws {
     // Handle fully qualified names (starting with dot)
     let typeToCheck = typeName.hasPrefix(".") ? String(typeName.dropFirst()) : typeName
@@ -603,15 +592,6 @@ public final class Validator {
     }
   }
 
-  //  private func validateFieldRules(_ field: FieldNode) throws {
-  //    // Map fields can't be repeated
-  //    if field.isRepeated {
-  //      if case .map = field.type {
-  //        throw ValidationError.repeatedMapField(field.name)
-  //      }
-  //    }
-  //  }
-
   // MARK: - Type Collection
 
   private func collectDefinedTypes(_ file: FileNode) throws {
@@ -687,48 +667,6 @@ public final class Validator {
     return (first.isLowercase || first == "_")
       && name.allSatisfy { $0.isLetter || $0.isNumber || $0 == "_" }
   }
-
-  //  private func validateFieldOptions(_ options: [OptionNode]) throws {
-  //    for option in options {
-  //      switch option.name {
-  //      case "deprecated":
-  //        // deprecated must be boolean
-  //        guard case .identifier(let value) = option.value,
-  //          value == "true" || value == "false"
-  //        else {
-  //          throw ValidationError.invalidOptionValue("deprecated must be a boolean")
-  //        }
-  //
-  //      case "packed":
-  //        // packed can be only used with repeated scalar fields
-  //        guard case .identifier(let value) = option.value,
-  //          value == "true" || value == "false"
-  //        else {
-  //          throw ValidationError.invalidOptionValue("packed must be a boolean")
-  //        }
-  //
-  //      case "json_name":
-  //        // json_name must be string
-  //        guard case .string = option.value else {
-  //          throw ValidationError.invalidOptionValue("json_name must be a string")
-  //        }
-  //
-  //      default:
-  //        // Handle custom options (ones in parentheses)
-  //        if option.name.hasPrefix("(") {
-  //          // Validate custom option format - must be (package.option_name) or (option_name)
-  //          let name = String(option.name.dropFirst().dropLast())
-  //          let components = name.split(separator: ".")
-  //          guard !components.isEmpty else {
-  //            throw ValidationError.invalidOptionName(option.name)
-  //          }
-  //          // Custom option validation would go here
-  //        } else {
-  //          throw ValidationError.unknownOption(option.name)
-  //        }
-  //      }
-  //    }
-  //  }
 
   func resolveСurrentScope(
     currentScope: String,
