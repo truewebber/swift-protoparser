@@ -12,11 +12,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: compnerd/gha-setup-swift@main
+      - uses: swift-actions/setup-swift@v2
         with:
-          branch: swift-5.9.2-release
-          platform: ubuntu22.04
-          arch: aarch64
+          swift-version: '5.9'
 
       - name: Build and test with coverage
         run: swift test --enable-code-coverage --parallel
