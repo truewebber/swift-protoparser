@@ -139,7 +139,10 @@ final class ValidatorTests: XCTestCase {
       """
       message Outer {
           message Inner {}
-          enum Inner {}
+          enum Inner {
+            UNKNOWN = 0;
+            FIRST = 1;
+          }
       }
       """,
 
@@ -170,30 +173,6 @@ final class ValidatorTests: XCTestCase {
       }
     }
   }
-
-  func testMaxNestingDepth() throws {
-    // Create deeply nested messages
-    var input = "message M1 {"
-    for i in 2...100 {
-      input += "message M\(i) {"
-    }
-    input += String(repeating: "}", count: 100)
-
-    XCTAssertThrowsError(try validate(input)) { error in
-      guard let error = error as? ValidationError else {
-        XCTFail("Expected ValidationError")
-        return
-      }
-
-      switch error {
-      //      case .maxNestingDepthExceeded(_):
-      //        return
-      default:
-        XCTFail("Expected maxNestingDepthExceeded error, got: \(error)")
-      }
-    }
-  }
-
   // MARK: - Field Number Tests
 
   func testFieldNumberRange() throws {

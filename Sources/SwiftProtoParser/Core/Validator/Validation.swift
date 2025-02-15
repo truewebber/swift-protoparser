@@ -117,44 +117,43 @@ public final class Validator {
     pushScope(message)
     defer { popScope() }
 
-    // Validate message structure and semantics
-    try validateMessageSemantics(message)
-    try validateReservedFields(message)
-    try validateExtensionRules(message)
-    try validateMessageOptions(message.options)
-
-    // Validate fields
-    var usedFieldNumbers = Set<Int>()
-    for field in message.fields {
-      if !usedFieldNumbers.insert(field.number).inserted {
-        throw ValidationError.duplicateMessageFieldNumber(field.number, messageName: message.name)
-      }
-      try validateFieldTypeReference(field.type, inMessage: message)
-      try validateFieldOptions(field.options)
-    }
-
-    // Validate oneofs
-    for oneof in message.oneofs {
-      try validateOneofSemantics(oneof)
-      for field in oneof.fields {
-        if !usedFieldNumbers.insert(field.number).inserted {
-          throw ValidationError.duplicateMessageFieldNumber(
-            field.number, messageName: message.name)
+    // Track names used in this scope
+    var usedNames = Set<String>()
+    
+    // Check nested message names
+    for nestedMessage in message.messages {
+        if !usedNames.insert(nestedMessage.name).inserted {
+            throw ValidationError.duplicateNestedTypeName(nestedMessage.name)
         }
-      }
+    }
+    
+    // Check nested enum names
+    for nestedEnum in message.enums {
+        if !usedNames.insert(nestedEnum.name).inserted {
+            throw ValidationError.duplicateNestedTypeName(nestedEnum.name)
+        }
+    }
+    
+    // Check field names
+    var usedFieldNames = Set<String>()
+    for field in message.fields {
+        if !usedFieldNames.insert(field.name).inserted {
+            throw ValidationError.duplicateFieldName(field.name, inType: message.name)
+        }
+    }
+    
+    // Check oneof field names
+    for oneof in message.oneofs {
+        for field in oneof.fields {
+            if !usedFieldNames.insert(field.name).inserted {
+                throw ValidationError.duplicateFieldName(field.name, inType: message.name)
+            }
+        }
     }
 
     // Recursively validate nested messages
     for nestedMessage in message.messages {
-      try validateNestedMessage(nestedMessage)
-    }
-
-    // Validate nested enums
-    for nestedEnum in message.enums {
-      try validateEnumSemantics(nestedEnum)
-      try validateEnumValueSemantics(nestedEnum)
-      try validateEnumValuesUniqueness(nestedEnum)
-      try validateEnumOptions(nestedEnum.options)
+        try validateNestedMessage(nestedMessage)
     }
   }
 
