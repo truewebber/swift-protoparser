@@ -31,5 +31,5 @@ format:
 ## Run tests
 test:
 	@echo "Running swift test..."
-	$(SWIFT_TEST) --package-path ./Tests/SwiftProtoParserTests/
+	$(SWIFT_TEST) -q --package-path ./Tests/SwiftProtoParserTests/
 	@echo "Tests complete."

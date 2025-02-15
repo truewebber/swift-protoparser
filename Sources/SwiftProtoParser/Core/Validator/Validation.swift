@@ -28,94 +28,29 @@ public final class Validator {
   /// - Parameter file: The file node to validate
   /// - Throws: ValidationError if validation fails
   public func validate(_ file: FileNode) throws {
-    // 1. Reset and initialize state
+    // Reset state
+    currentPackage = nil
     definedTypes.removeAll()
     scopeStack.removeAll()
     importedTypes.removeAll()
     importedDefinitions.removeAll()
     dependencies.removeAll()
+
+    // Store current package
     currentPackage = file.package
 
-    // 2. Basic structure validation
+    // 1. Basic validation
     guard file.syntax == "proto3" else {
       throw ValidationError.invalidSyntaxVersion(file.syntax)
     }
 
-    if let package = file.package {
-      try validatePackageSemantics(package)
-    }
-
-    // 3. Imports validation and collection
-    var publicImportPaths = Set<String>()
-    for import_ in file.imports {
-      try validateImportSemantics(import_)
-      if import_.modifier == .public {
-        publicImportPaths.insert(import_.path)
-      }
-    }
-
-    // 4. Collect and validate types
-    try collectDefinedTypes(file)
-    try collectImportedTypes(file)
-
-    // 5. File options validation
+    // 2. Validate file options
     try validateFileOptions(file.options)
 
-    // 6. Message validation
-    for message in file.messages {
-      // Push scope for nested type resolution
-      pushScope(message)
+    // 3. Register types before validation to allow for forward references
+    try registerTypes(file)
 
-      // Validate message structure and semantics
-      try validateMessageSemantics(message)
-      try validateReservedFields(message)
-      try validateExtensionRules(message)
-      try validateMessageOptions(message.options)
-
-      // Validate fields
-      var usedFieldNumbers = Set<Int>()
-      for field in message.fields {
-        // Validate field number uniqueness
-        if !usedFieldNumbers.insert(field.number).inserted {
-          throw ValidationError.duplicateMessageFieldNumber(field.number, messageName: message.name)
-        }
-
-        // Validate field type reference
-        try validateFieldTypeReference(field.type, inMessage: message)
-
-        // Validate field options
-        try validateFieldOptions(field.options)
-      }
-
-      // Validate oneofs
-      for oneof in message.oneofs {
-        try validateOneofSemantics(oneof)
-        for field in oneof.fields {
-          if !usedFieldNumbers.insert(field.number).inserted {
-            throw ValidationError.duplicateMessageFieldNumber(
-              field.number, messageName: message.name)
-          }
-        }
-      }
-
-      // Recursively validate nested messages
-      for nestedMessage in message.messages {
-        try validateNestedMessage(nestedMessage)
-      }
-
-      // Validate nested enums
-      for nestedEnum in message.enums {
-        try validateEnumSemantics(nestedEnum)
-        try validateEnumValueSemantics(nestedEnum)
-        try validateEnumValuesUniqueness(nestedEnum)
-        try validateEnumOptions(nestedEnum.options)
-      }
-
-      // Pop scope after nested validation
-      popScope()
-    }
-
-    // 7. Top-level enum validation
+    // 4. Validate enums first (to catch enum value errors)
     for enum_ in file.enums {
       try validateEnumSemantics(enum_)
       try validateEnumValueSemantics(enum_)
@@ -128,35 +63,53 @@ public final class Validator {
       }
     }
 
-    // 8. Service validation
+    // 5. Validate messages
+    for message in file.messages {
+      pushScope(message)
+      try validateMessageSemantics(message)
+      try validateNestedMessage(message)
+      popScope()
+    }
+
+    // 6. Validate services
     for service in file.services {
-      // Validate service structure
       try validateServiceSemantics(service)
       try validateMethodUniqueness(service)
       try validateServiceOptions(service.options)
 
-      // Validate each RPC method
       for rpc in service.rpcs {
-        // Validate method types
         try validateTypeReference(rpc.inputType, inMessage: nil)
         try validateTypeReference(rpc.outputType, inMessage: nil)
-
-        // Validate streaming configuration
-        if rpc.clientStreaming || rpc.serverStreaming {
-          try validateStreamingRules(rpc)
-        }
-
-        // Validate method options
         try validateMethodOptions(rpc.options)
       }
     }
 
-    // 9. Dependency validation
+    // 7. Final validations
     try buildDependencyGraph(file)
     try checkCyclicDependencies()
-
-    // 10. Final cross-reference validation
     try validateCrossReferences(file)
+  }
+
+  private func registerTypes(_ file: FileNode) throws {
+    let prefix = currentPackage.map { $0 + "." } ?? ""
+    
+    // Register messages
+    for message in file.messages {
+      let fullName = prefix + message.name
+      if definedTypes[fullName] != nil {
+        throw ValidationError.duplicateTypeName(fullName)
+      }
+      definedTypes[fullName] = message
+    }
+    
+    // Register enums
+    for enum_ in file.enums {
+      let fullName = prefix + enum_.name
+      if definedTypes[fullName] != nil {
+        throw ValidationError.duplicateTypeName(fullName)
+      }
+      definedTypes[fullName] = enum_
+    }
   }
 
   // Add new helper function for nested message validation
@@ -1020,6 +973,11 @@ extension Validator {
         throw ValidationError.invalidOptionValue("message_set_wire_format must be a boolean")
       }
 
+      // In proto3, message_set_wire_format is discouraged
+      if value == "true" {
+        print("Warning: message_set_wire_format is not recommended in proto3")
+      }
+
     case "no_standard_descriptor_accessor":
       guard case .identifier(let value) = option.value,
         value == "true" || value == "false"
@@ -1042,9 +1000,51 @@ extension Validator {
         throw ValidationError.invalidOptionValue("map_entry must be a boolean")
       }
 
+      // map_entry should typically be generated automatically
+      print(
+        "Warning: map_entry option is typically generated automatically by the protocol buffer compiler"
+      )
+
+    case "optimize_for":
+      guard case .identifier(let value) = option.value else {
+        throw ValidationError.invalidOptionValue("optimize_for must be an identifier")
+      }
+
+      switch value.uppercased() {
+      case "SPEED":
+        // Default optimization mode
+        break
+      case "CODE_SIZE":
+        // Generates minimal classes
+        break
+      case "LITE_RUNTIME":
+        // Uses lite runtime library
+        break
+      default:
+        throw ValidationError.invalidOptionValue(
+          "optimize_for must be SPEED, CODE_SIZE, or LITE_RUNTIME")
+      }
+
+    case "preserve_unknown_fields":
+      guard case .identifier(let value) = option.value,
+        value == "true" || value == "false"
+      else {
+        throw ValidationError.invalidOptionValue("preserve_unknown_fields must be a boolean")
+      }
+
+      // In proto3, unknown fields are preserved by default
+      if value == "false" {
+        print("Warning: Setting preserve_unknown_fields to false is not recommended in proto3")
+      }
+
+    case "features":
+      // Proto3 features option (introduced in newer versions)
+      try validateMessageFeatures(option)
+
     default:
       if option.name.hasPrefix("(") {
-        try validateCustomOption(option)
+        // Handle custom options
+        try validateCustomMessageOption(option)
       } else {
         throw ValidationError.unknownOption(option.name)
       }
