@@ -1,5 +1,8 @@
 import Foundation
 
+/// Validator for Proto3 files
+/// @deprecated Use ValidatorFactory.createValidator() instead
+@available(*, deprecated, message: "Use ValidatorFactory.createValidator() instead")
 public final class Validator {
   // Current package being validated
   private var currentPackage: String?

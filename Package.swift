@@ -23,6 +23,14 @@ let package = Package(
         .product(name: "SwiftProtobuf", package: "swift-protobuf")
       ]
     ),
+    .executableTarget(
+      name: "BenchmarkTool",
+      dependencies: ["SwiftProtoParser"]
+    ),
+    .executableTarget(
+      name: "ValidationComparisonTool",
+      dependencies: ["SwiftProtoParser"]
+    ),
     .testTarget(
       name: "SwiftProtoParserTests",
       dependencies: ["SwiftProtoParser"]
