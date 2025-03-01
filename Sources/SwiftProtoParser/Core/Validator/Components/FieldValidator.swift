@@ -100,8 +100,8 @@ class FieldValidator: FieldValidating {
       
       // Recursively validate value type
       try validateFieldType(valueType, field: field)
-      
-    case .named(let typeName):
+
+    case .named(_):
       // Named types would be validated during reference validation
       // This is a simplified implementation
       break
