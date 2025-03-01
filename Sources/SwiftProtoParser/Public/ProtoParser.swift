@@ -65,7 +65,7 @@ public final class ProtoParser {
     try processImports(fileNode)
 
     // Validate file
-    let validator = ValidatorFactory.createValidator()
+    let validator = ValidatorV2()
     try validator.validate(fileNode)
 
     // Generate descriptors

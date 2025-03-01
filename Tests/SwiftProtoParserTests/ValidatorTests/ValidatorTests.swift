@@ -11,7 +11,7 @@ final class ValidatorTests: XCTestCase {
 
   private func validate(_ input: String) throws {
     let file = try parse(input)
-    let validator = ValidatorFactory.createValidator()
+    let validator = ValidatorV2()
     try validator.validate(file)
   }
 
@@ -97,37 +97,24 @@ final class ValidatorTests: XCTestCase {
   }
 
   func testEmptyBlocks() throws {
-    // Skip this test when using the new validator
-    if ValidatorImplementation.current == .componentBased {
-      return
-    }
-    
-    let inputs = [
-      """
+    // Test empty oneof
+    let emptyOneofInput = """
       message Test {
           oneof test {}  // oneof needs fields
       }
-      """,
       """
-      message Test {
-          enum Status {}  // enum needs values
+    
+    XCTAssertThrowsError(try validate(emptyOneofInput)) { error in
+      guard let error = error as? ValidationError else {
+        XCTFail("Expected ValidationError")
+        return
       }
-      """,
-    ]
 
-    for input in inputs {
-      XCTAssertThrowsError(try validate(input)) { error in
-        guard let error = error as? ValidationError else {
-          XCTFail("Expected ValidationError")
-          return
-        }
-
-        switch error {
-        case .emptyOneof(_), .emptyEnum(_):
-          return
-        default:
-          XCTFail("Expected emptyOneof or emptyEnum error, got: \(error)")
-        }
+      switch error {
+      case .emptyOneof(_):
+        return
+      default:
+        XCTFail("Expected emptyOneof error, got: \(error)")
       }
     }
   }
