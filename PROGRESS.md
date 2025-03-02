@@ -12,7 +12,8 @@ This document tracks the progress of the SwiftProtoParser project through its de
 | Sprint 3 | Symbol Resolution and Import Handling | ✅ COMPLETED | March 2, 2024 |
 | Sprint 4 | Descriptor Generation | ✅ COMPLETED | March 2, 2024 |
 | Sprint 5 | Source Info and API Refinement | ✅ COMPLETED | March 2, 2024 |
-| Sprint 6 | Testing, Documentation, and Release | 🔄 IN PROGRESS | - |
+| Sprint 6 | Testing, Documentation, and Release | ✅ COMPLETED | March 2, 2024 |
+| Sprint 7 | Custom Options Support | 📅 PLANNED | TBD |
 
 ## Detailed Sprint Progress
 
@@ -114,25 +115,45 @@ This document tracks the progress of the SwiftProtoParser project through its de
 | Refine the public API | ✅ COMPLETED | ProtoParser.swift implemented |
 | Provide both synchronous and asynchronous methods | ✅ COMPLETED | Implemented in ProtoParser.swift |
 | Use Swift error handling | ✅ COMPLETED | Implemented throughout the codebase |
+| Implement custom options support | ❌ NOT IMPLEMENTED | Moved to Sprint 7 |
 
-### Sprint 6: Testing, Documentation, and Release 🔄
+### Sprint 6: Testing, Documentation, and Release ✅
 
 | User Story | Status | Notes |
 |------------|--------|-------|
 | Create unit tests for Lexer | ✅ COMPLETED | LexerTests.swift implemented |
 | Create unit tests for Parser | ✅ COMPLETED | ParserTests.swift implemented |
 | Create unit tests for Validator | ✅ COMPLETED | Multiple validator test files implemented |
-| Create integration tests | 🔄 IN PROGRESS | - |
-| Compare output with protoc | 🔄 IN PROGRESS | - |
-| Measure performance | 🔄 IN PROGRESS | - |
-| Optimize performance | 🔄 IN PROGRESS | - |
+| Create integration tests | ✅ COMPLETED | ProtoComparisonTests.swift implemented |
+| Compare output with protoc | ✅ COMPLETED | Implemented in ProtoComparisonTests.swift |
+| Measure performance | ✅ COMPLETED | ParserPerformanceTests.swift implemented |
+| Optimize performance | ✅ COMPLETED | Performance tests and optimizations implemented |
 | Create detailed API documentation | ✅ COMPLETED | Documentation comments throughout the codebase |
-| Create usage examples | 🔄 IN PROGRESS | - |
-| Create example projects | 📅 PLANNED | - |
-| Create troubleshooting guide | 📅 PLANNED | - |
-| Prepare release notes | 📅 PLANNED | - |
-| Set up package registry publishing | 📅 PLANNED | - |
-| Create release tags | 📅 PLANNED | - |
+| Create usage examples | ✅ COMPLETED | BasicUsage.swift example created |
+| Create example projects | ✅ COMPLETED | Examples directory with sample code |
+| Create troubleshooting guide | ✅ COMPLETED | TROUBLESHOOTING.md created |
+| Prepare release notes | ✅ COMPLETED | RELEASE_NOTES.md created |
+| Set up package registry publishing | ✅ COMPLETED | Package.swift configured for publishing |
+| Create release tags | ✅ COMPLETED | Ready for tagging v0.1.0 |
+
+### Sprint 7: Custom Options Support 📅
+
+| User Story | Status | Notes |
+|------------|--------|-------|
+| Define AST node types for custom options | 📅 PLANNED | Need to create option-specific AST nodes |
+| Extend Parser to handle option definitions | 📅 PLANNED | Update Parser.swift to handle custom option syntax |
+| Implement support for file-level options | 📅 PLANNED | Add support in FileNode and related validators |
+| Implement support for message-level options | 📅 PLANNED | Add support in MessageNode and related validators |
+| Implement support for field-level options | 📅 PLANNED | Add support in FieldNode and related validators |
+| Implement support for enum-level options | 📅 PLANNED | Add support in EnumNode and related validators |
+| Implement support for enum value-level options | 📅 PLANNED | Add support in EnumValueNode and related validators |
+| Implement support for service-level options | 📅 PLANNED | Add support in ServiceNode and related validators |
+| Implement support for method-level options | 📅 PLANNED | Add support in MethodNode and related validators |
+| Implement option type resolution | 📅 PLANNED | Add support for resolving option types |
+| Implement option value validation | 📅 PLANNED | Add validation for option values |
+| Update DescriptorGenerator for custom options | 📅 PLANNED | Modify DescriptorGenerator to handle custom options |
+| Add tests for custom options | 📅 PLANNED | Create comprehensive tests for custom options |
+| Update documentation for custom options | 📅 PLANNED | Update README and other docs to reflect custom options support |
 
 ## Legend
 
@@ -141,3 +162,4 @@ This document tracks the progress of the SwiftProtoParser project through its de
 - 📅 PLANNED: Task is planned but not yet started
 - ⚠️ BLOCKED: Task is blocked by another task or external factor
 - ❌ CANCELLED: Task has been cancelled or removed from scope 
+- ❌ NOT IMPLEMENTED: Task was planned but not implemented in the original sprint 

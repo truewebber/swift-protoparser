@@ -103,7 +103,7 @@ final class ValidatorTests: XCTestCase {
           oneof test {}  // oneof needs fields
       }
       """
-    
+
     XCTAssertThrowsError(try validate(emptyOneofInput)) { error in
       guard let error = error as? ValidationError else {
         XCTFail("Expected ValidationError")

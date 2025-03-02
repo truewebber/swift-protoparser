@@ -61,14 +61,16 @@ syntax = "proto3";
 
 package test;
 
-import "google/protobuf/descriptor.proto";
+//import "google/protobuf/descriptor.proto";
+import "simple.proto";
 
-extend google.protobuf.FieldOptions {
-  string custom_option = 50000;
-}
+//extend google.protobuf.FieldOptions {
+//  string custom_option = 50000;
+//}
 
 message Complex {
-  string name = 1 [(custom_option) = "test"];
+  //string name = 1 [(custom_option) = "test"];
+  string name = 1;
   repeated int32 numbers = 2;
   map<string, string> attributes = 3;
   
@@ -100,7 +102,7 @@ EOF
 
 echo "Generating reference descriptors with protoc..."
 Tools/protoc/bin/protoc --descriptor_set_out=TestProtos/simple.pb TestProtos/simple.proto
-Tools/protoc/bin/protoc --descriptor_set_out=TestProtos/complex.pb TestProtos/complex.proto
+Tools/protoc/bin/protoc --descriptor_set_out=TestProtos/complex.pb --proto_path=TestProtos TestProtos/complex.proto
 
 echo "Setup complete!"
 echo "Reference protoc binary: Tools/protoc/bin/protoc"

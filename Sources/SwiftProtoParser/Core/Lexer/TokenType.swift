@@ -67,6 +67,8 @@ public enum TokenType: Equatable {
   case package
   /// 'option' keyword
   case option
+  /// 'extend' keyword
+  case extend
   /// 'message' keyword
   case message
   /// 'enum' keyword
@@ -137,6 +139,7 @@ extension TokenType {
     "public": .public,
     "package": .package,
     "option": .option,
+    "extend": .extend,
     "message": .message,
     "enum": .enum,
     "service": .service,
@@ -215,6 +218,7 @@ extension TokenType: CustomStringConvertible {
     case .public: return "public"
     case .package: return "package"
     case .option: return "option"
+    case .extend: return "extend"
     case .message: return "message"
     case .enum: return "enum"
     case .service: return "service"
@@ -253,7 +257,7 @@ extension TokenType {
   /// .extend - has to be added
   var isAbsolutelyReserved: Bool {
     switch self {
-    case .syntax, .import, .package, .option,
+    case .syntax, .import, .package, .option, .extend,
       .service, .rpc, .returns, .reserved,
       .oneof, .repeated:
       return true

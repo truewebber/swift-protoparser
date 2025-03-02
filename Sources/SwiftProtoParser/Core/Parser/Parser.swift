@@ -85,13 +85,18 @@ public final class Parser {
   }
 
   /// Parses a complete proto file
-  /// - Returns: An AST representing the proto file
-  public func parseFile() throws -> FileNode {
+  /// - Parameter filePath: Optional path to the file being parsed
+  /// - Returns: A FileNode representing the parsed file
+  /// - Throws: ParserError if parsing fails
+  public func parseFile(filePath: String? = nil) throws -> FileNode {
+    // Track the current location for error reporting
+    let location = currentToken.location
+
+    // Track leading comments at the file level
+    let leadingComments = currentToken.leadingComments
+
     var syntax: String = "proto3"
     var package: String?
-    var imports: [ImportNode] = []
-    var options: [OptionNode] = []
-    var definitions: [DefinitionNode] = []
 
     // Parse syntax
     if currentToken.type == .syntax {
@@ -102,6 +107,11 @@ public final class Parser {
     }
 
     // Parse file level elements
+    var imports: [ImportNode] = []
+    var options: [OptionNode] = []
+    var definitions: [DefinitionNode] = []
+    var extensions: [ExtendNode] = []
+
     while !isAtEnd {
       switch currentToken.type {
       case .package:
@@ -115,6 +125,9 @@ public final class Parser {
 
       case .option:
         options.append(try parseOption())
+
+      case .extend:
+        extensions.append(try parseExtend())
 
       case .message:
         definitions.append(try parseMessage())
@@ -133,12 +146,17 @@ public final class Parser {
       }
     }
 
+    // Create and return the file node
     return FileNode(
+      location: location,
+      leadingComments: leadingComments,
       syntax: syntax,
       package: package,
+      filePath: filePath,
       imports: imports,
       options: options,
-      definitions: definitions
+      definitions: definitions,
+      extensions: extensions
     )
   }
 
@@ -1054,6 +1072,36 @@ public final class Parser {
       isRepeated: isRepeated,
       isOptional: isOptional,
       options: options
+    )
+  }
+
+  /// Parses an extend statement
+  private func parseExtend() throws -> ExtendNode {
+    try expectToken(.extend)
+    let extendLocation = currentToken.location
+    let leadingComments = currentToken.leadingComments
+
+    let typeName = try parseQualifiedIdentifier()
+    try expectToken(.leftBrace)
+
+    var fields: [FieldNode] = []
+
+    while !check(.rightBrace) {
+      if isType(currentToken) {
+        fields.append(try parseField())
+      } else {
+        throw ParserError.unexpectedToken(expected: .identifier, got: currentToken)
+      }
+    }
+
+    try expectToken(.rightBrace)
+
+    return ExtendNode(
+      location: extendLocation,
+      leadingComments: leadingComments,
+      trailingComment: currentToken.trailingComment,
+      typeName: typeName,
+      fields: fields
     )
   }
 }

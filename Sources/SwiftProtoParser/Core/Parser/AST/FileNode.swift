@@ -14,6 +14,9 @@ public final class FileNode: Node, DefinitionContainer {
   /// The package name specified in the file
   public let package: String?
 
+  /// The path to the file
+  public let filePath: String?
+
   /// The list of import statements
   public let imports: [ImportNode]
 
@@ -29,30 +32,39 @@ public final class FileNode: Node, DefinitionContainer {
   /// All service definitions
   public private(set) var services: [ServiceNode]
 
+  /// All extend statements
+  public private(set) var extensions: [ExtendNode]
+
   /// Creates a new file node
   /// - Parameters:
   ///   - location: The source location where this file begins
   ///   - leadingComments: Any comments at the start of the file
   ///   - syntax: The syntax version specified
   ///   - package: The optional package name
+  ///   - filePath: The path to the file
   ///   - imports: List of import statements
   ///   - options: List of file-level options
   ///   - definitions: List of top-level definitions
+  ///   - extensions: List of extend statements
   public init(
     location: SourceLocation = SourceLocation(line: 1, column: 1),
     leadingComments: [String] = [],
     syntax: String,
     package: String? = nil,
+    filePath: String? = nil,
     imports: [ImportNode] = [],
     options: [OptionNode] = [],
-    definitions: [DefinitionNode] = []
+    definitions: [DefinitionNode] = [],
+    extensions: [ExtendNode] = []
   ) {
     self.location = location
     self.leadingComments = leadingComments
     self.syntax = syntax
     self.package = package
+    self.filePath = filePath
     self.imports = imports
     self.options = options
+    self.extensions = extensions
 
     // Sort definitions into their respective collections
     var messages: [MessageNode] = []

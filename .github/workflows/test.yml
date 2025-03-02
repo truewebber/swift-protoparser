@@ -18,5 +18,9 @@ jobs:
         with:
           swift-version: '5.9'
 
+      - name: Install protoc
+        run: bash Scripts/setup_protoc.sh
+        shell: bash
+
       - name: Build and test with coverage
         run: swift test --enable-code-coverage --parallel

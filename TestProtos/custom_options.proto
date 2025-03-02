@@ -1,0 +1,89 @@
+syntax = "proto3";
+
+package test.options;
+
+import "google/protobuf/descriptor.proto";
+
+// Define custom options
+extend google.protobuf.FileOptions {
+  string file_option = 1000;
+  bool file_feature = 1001;
+}
+
+extend google.protobuf.MessageOptions {
+  string message_option = 1000;
+  int32 message_priority = 1001;
+}
+
+extend google.protobuf.FieldOptions {
+  string field_option = 1000;
+  bool field_deprecated = 1001;
+}
+
+extend google.protobuf.EnumOptions {
+  string enum_option = 1000;
+  bool enum_allow_alias = 1001;
+}
+
+extend google.protobuf.EnumValueOptions {
+  string enum_value_option = 1000;
+  int32 enum_value_priority = 1001;
+}
+
+extend google.protobuf.ServiceOptions {
+  string service_option = 1000;
+  bool service_deprecated = 1001;
+}
+
+extend google.protobuf.MethodOptions {
+  string method_option = 1000;
+  int32 method_timeout = 1001;
+}
+
+// Use custom options at file level
+option (file_option) = "file value";
+option (file_feature) = true;
+
+// Message with custom options
+message CustomMessage {
+  option (message_option) = "message value";
+  option (message_priority) = 5;
+  
+  // Field with custom options
+  string name = 1 [(field_option) = "field value", (field_deprecated) = false];
+  
+  // Enum with custom options
+  enum Status {
+    option (enum_option) = "enum value";
+    option (enum_allow_alias) = true;
+    
+    UNKNOWN = 0 [(enum_value_option) = "unknown value", (enum_value_priority) = 0];
+    ACTIVE = 1 [(enum_value_option) = "active value", (enum_value_priority) = 1];
+    ENABLED = 1 [(enum_value_option) = "enabled value", (enum_value_priority) = 1]; // Alias
+    INACTIVE = 2 [(enum_value_option) = "inactive value", (enum_value_priority) = 2];
+  }
+  
+  Status status = 2;
+  
+  // Nested message with custom options
+  message Nested {
+    option (message_option) = "nested message value";
+    option (message_priority) = 3;
+    
+    string value = 1 [(field_option) = "nested field value"];
+  }
+  
+  Nested nested = 3;
+}
+
+// Service with custom options
+service CustomService {
+  option (service_option) = "service value";
+  option (service_deprecated) = false;
+  
+  // Method with custom options
+  rpc GetCustom(CustomMessage) returns (CustomMessage) {
+    option (method_option) = "method value";
+    option (method_timeout) = 30;
+  }
+} 

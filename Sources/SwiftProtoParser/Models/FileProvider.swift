@@ -68,7 +68,7 @@ public final class ImportResolver {
   private var processingFiles: Set<String> = []
 
   /// The parser to use for parsing imported files
-  private let parser: (String) throws -> FileNode
+  private let parser: (String, String) throws -> FileNode
 
   /// Initialize a new import resolver
   /// - Parameters:
@@ -76,7 +76,7 @@ public final class ImportResolver {
   ///   - parser: Function to parse proto files
   public init(
     fileProvider: FileProvider,
-    parser: @escaping (String) throws -> FileNode
+    parser: @escaping (String, String) throws -> FileNode
   ) {
     self.fileProvider = fileProvider
     self.parser = parser
@@ -108,7 +108,7 @@ public final class ImportResolver {
 
     // Read and parse the file
     let content = try fileProvider.readFile(resolvedPath)
-    let file = try parser(content)
+    let file = try parser(path, content)
 
     // Cache the result
     fileCache[path] = file

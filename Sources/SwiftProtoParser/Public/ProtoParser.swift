@@ -21,12 +21,12 @@ public final class ProtoParser {
     let fileProvider = DefaultFileProvider(importPaths: configuration.importPaths)
 
     // Changed the closure to return FileNode instead of descriptor
-    self.importResolver = ImportResolver(fileProvider: fileProvider) { content in
+    self.importResolver = ImportResolver(fileProvider: fileProvider) { path, content in
       // Create lexer and parser for the imported content
       let lexer = Lexer(input: content)
       let parser = try Parser(lexer: lexer)
-      // Return FileNode instead of descriptor
-      return try parser.parseFile()
+      // Return FileNode with the file path
+      return try parser.parseFile(filePath: path)
     }
   }
 
@@ -59,13 +59,14 @@ public final class ProtoParser {
     let parser = try Parser(lexer: lexer)
 
     // Parse file
-    let fileNode = try parser.parseFile()
+    let fileNode = try parser.parseFile(filePath: filePath)
 
-    // Process imports
-    try processImports(fileNode)
+    // Process imports and collect imported types
+    let importedTypes = try processImports(fileNode)
 
     // Validate file
     let validator = ValidatorV2()
+    validator.setImportedTypes(importedTypes)
     try validator.validate(fileNode)
 
     // Generate descriptors
@@ -97,9 +98,53 @@ public final class ProtoParser {
 
   // MARK: - Private Methods
 
-  private func processImports(_ file: FileNode) throws {
-    for import_ in file.imports {
-      _ = try importResolver.resolveImport(import_.path)
+  /// Process imports in a file node
+  /// - Parameter fileNode: The file node to process imports for
+  /// - Returns: Dictionary of imported types
+  /// - Throws: Error if import resolution fails
+  private func processImports(_ fileNode: FileNode) throws -> [String: String] {
+    // Get all imported types
+    var importedTypes: [String: String] = [:]
+    var processedImports = Set<String>()
+
+    // Process imports recursively
+    try processImportsRecursively(
+      fileNode, importedTypes: &importedTypes, processedImports: &processedImports)
+
+    return importedTypes
+  }
+
+  /// Recursively process imports in a file node and its imported files
+  /// - Parameters:
+  ///   - fileNode: The file node to process imports for
+  ///   - importedTypes: Dictionary to collect imported types
+  ///   - processedImports: Set of already processed import paths to avoid cycles
+  /// - Throws: Error if import resolution fails
+  private func processImportsRecursively(
+    _ fileNode: FileNode, importedTypes: inout [String: String], processedImports: inout Set<String>
+  ) throws {
+    // For each import, collect the types from the imported file
+    for import_ in fileNode.imports {
+      // Skip if we've already processed this import
+      if processedImports.contains(import_.path) {
+        continue
+      }
+
+      // Mark this import as processed
+      processedImports.insert(import_.path)
+
+      // Resolve the import
+      let importedFile = try importResolver.resolveImport(import_.path)
+
+      // Add all defined types from this imported file
+      for type in importedFile.allDefinedTypes {
+        let fullName = type.fullName(inPackage: importedFile.package)
+        importedTypes[fullName] = import_.path
+      }
+
+      // Recursively process imports in the imported file
+      try processImportsRecursively(
+        importedFile, importedTypes: &importedTypes, processedImports: &processedImports)
     }
   }
 }

@@ -31,6 +31,7 @@ public final class DescriptorGenerator {
     // Set basic file properties
     fileDescriptor.syntax = file.syntax
     fileDescriptor.package = file.package ?? ""
+    fileDescriptor.name = file.filePath ?? ""
 
     // Process imports
     fileDescriptor.dependency = file.importedFiles

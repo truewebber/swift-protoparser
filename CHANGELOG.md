@@ -8,16 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Initial project setup
-- Lexical analysis for proto3 files
-- Basic parsing for proto3 elements
-- AST node types for proto3 elements
-- Validation framework
-- Descriptor generation
-- Public API for parsing proto files
-- Configuration options
-- Error handling with detailed messages
-- Documentation
+- Planned support for custom options in Sprint 7
 
 ### Changed
 
@@ -29,6 +20,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
-## [0.1.0] - TBD
+## [0.1.0] - 2024-03-02
 
-- Initial release 
+### Added
+- Initial project setup
+- Lexical analysis for proto3 files
+- Basic parsing for proto3 elements
+- AST node types for proto3 elements
+- Validation framework
+- Descriptor generation
+- Public API for parsing proto files
+- Configuration options
+- Error handling with detailed messages
+- Documentation
+- Integration tests comparing output with protoc
+- Performance tests and optimizations
+- Usage examples
+- Troubleshooting guide
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security 
