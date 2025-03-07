@@ -14,6 +14,7 @@ This document tracks the progress of the SwiftProtoParser project through its de
 | Sprint 5 | Source Info and API Refinement | ✅ COMPLETED | March 2, 2024 |
 | Sprint 6 | Testing, Documentation, and Release | ✅ COMPLETED | March 2, 2024 |
 | Sprint 7 | Custom Options Support and Test Coverage Completion | ✅ COMPLETED | March 15, 2025 |
+| Sprint 8 | Extensions Support | 📅 PLANNED | Scheduled for March 16-30, 2025 |
 
 ## Detailed Sprint Progress
 
@@ -158,6 +159,19 @@ This document tracks the progress of the SwiftProtoParser project through its de
 | Create Source Info Generation Tests | ✅ COMPLETED | Added SourceInfoGeneratorTests.swift |
 | Create Configuration Tests | ✅ COMPLETED | Added ConfigurationTests.swift |
 | Create Public API Tests | ✅ COMPLETED | Added ProtoParserTests.swift |
+
+### Sprint 8: Extensions Support 📅
+
+| User Story | Status | Notes |
+|------------|--------|-------|
+| Define AST node types for extensions | 📅 PLANNED | Create ExtensionNode to represent extension definitions |
+| Extend Parser to handle extension definitions | 📅 PLANNED | Update Parser.swift to handle extension syntax |
+| Implement support for using extensions in options | 📅 PLANNED | Extend option parsing to handle extension references |
+| Implement validation for extension field numbers | 📅 PLANNED | Add validation for extension field numbers |
+| Implement validation for extension field types | 📅 PLANNED | Add validation for extension field types |
+| Update DescriptorGenerator for extensions | 📅 PLANNED | Modify DescriptorGenerator to handle extensions |
+| Add tests for extensions | 📅 PLANNED | Create ExtensionsTests.swift |
+| Update documentation for extensions | 📅 PLANNED | Update README and other docs |
 
 ## Legend
 
