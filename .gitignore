@@ -9,3 +9,6 @@ DerivedData/
 .swiftpm/
 .netrc
 Package.resolved
+
+# Coverage files
+coverage.lcov

@@ -15,6 +15,7 @@ This document tracks the progress of the SwiftProtoParser project through its de
 | Sprint 6 | Testing, Documentation, and Release | ✅ COMPLETED | March 2, 2024 |
 | Sprint 7 | Custom Options Support and Test Coverage Completion | ✅ COMPLETED | March 15, 2025 |
 | Sprint 8 | Extensions Support | ✅ COMPLETED | March 7, 2025 |
+| Sprint 9 | Comprehensive Test Coverage | 🔄 IN PROGRESS | April 15, 2025 (Expected) |
 
 ## Detailed Sprint Progress
 
@@ -172,6 +173,28 @@ This document tracks the progress of the SwiftProtoParser project through its de
 | Update DescriptorGenerator for extensions | ✅ COMPLETED | Modified DescriptorGenerator to handle extensions |
 | Add tests for extensions | ✅ COMPLETED | Created ExtensionTests.swift and ExtensionIntegrationTests.swift |
 | Update documentation for extensions | ✅ COMPLETED | Updated README and other docs |
+
+### Sprint 9: Comprehensive Test Coverage 🔄
+
+| User Story | Status | Notes |
+|------------|--------|-------|
+| Perform gap analysis of test coverage | 🔄 IN PROGRESS | Using code coverage tools to identify untested code |
+| Implement comprehensive Lexer tests | 📅 PLANNED | Enhancing LexerTests.swift with positive, negative, and corner cases |
+| Implement comprehensive Parser tests | 📅 PLANNED | Enhancing ParserTests.swift with positive, negative, and corner cases |
+| Implement comprehensive Service and RPC tests | 📅 PLANNED | Creating ServiceTests.swift for service-specific test cases |
+| Implement comprehensive Custom Options tests | 📅 PLANNED | Enhancing CustomOptionsTests.swift with additional test cases |
+| Implement comprehensive Extensions tests | 📅 PLANNED | Enhancing ExtensionTests.swift with additional test cases |
+| Implement comprehensive Symbol Resolution tests | 📅 PLANNED | Creating SymbolResolutionTests.swift for symbol resolution test cases |
+| Implement comprehensive Import Resolution tests | 📅 PLANNED | Creating ImportResolutionTests.swift for import resolution test cases |
+| Implement comprehensive Descriptor Generation tests | 📅 PLANNED | Enhancing DescriptorGeneratorTests.swift with additional test cases |
+| Implement comprehensive Source Info Generation tests | 📅 PLANNED | Enhancing SourceInfoGeneratorTests.swift with additional test cases |
+| Implement comprehensive Configuration tests | 📅 PLANNED | Enhancing ConfigurationTests.swift with additional test cases |
+| Implement comprehensive Public API tests | 📅 PLANNED | Enhancing ProtoParserTests.swift with additional test cases |
+| Implement comprehensive Error Handling tests | 📅 PLANNED | Creating ErrorHandlingTests.swift for error handling test cases |
+| Implement comprehensive Performance tests | 📅 PLANNED | Enhancing ParserPerformanceTests.swift with additional test cases |
+| Implement property-based tests | 📅 PLANNED | Creating PropertyTests.swift for property-based testing |
+| Create test documentation | 📅 PLANNED | Creating TEST_PLAN.md with comprehensive test strategy |
+| Generate test coverage reports | 📅 PLANNED | Using code coverage tools to generate reports |
 
 ## Legend
 
