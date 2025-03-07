@@ -143,4 +143,4 @@ The performance must:
 - Parse a 1000-line proto file in under 1 second on a modern device
 - Use memory efficiently
 - Have no memory leaks
-- Support parsing multiple files efficiently 
+- Support parsing multiple files efficiently
