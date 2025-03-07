@@ -1,8 +1,12 @@
-# Sprint 7: Custom Options Support
+# Sprint 7: Custom Options Support and Test Coverage Completion
 
 ## Overview
 
-This sprint focuses on implementing support for custom options in the SwiftProtoParser library. Custom options are a powerful feature of Protocol Buffers that allow extending the protocol with user-defined options at various levels (file, message, field, enum, etc.).
+This sprint has two main focuses:
+1. Implementing support for custom options in the SwiftProtoParser library
+2. Completing test coverage for all acceptance criteria from previous sprints
+
+Custom options are a powerful feature of Protocol Buffers that allow extending the protocol with user-defined options at various levels (file, message, field, enum, etc.). Additionally, we need to ensure that all acceptance criteria from previous sprints are properly covered by unit tests.
 
 ## Timeline
 
@@ -16,6 +20,7 @@ This sprint focuses on implementing support for custom options in the SwiftProto
 2. Validate custom options according to proto3 rules
 3. Generate correct descriptor representations for custom options
 4. Provide comprehensive tests and documentation for custom options
+5. Complete test coverage for all acceptance criteria from previous sprints
 
 ## User Stories
 
@@ -111,7 +116,7 @@ This sprint focuses on implementing support for custom options in the SwiftProto
 - All option types and values are supported
 - Generated descriptors match protoc output for the same input
 
-### 7. Testing and Documentation
+### 7. Testing and Documentation for Custom Options
 
 **Description**: As a developer, I want comprehensive tests and documentation for custom options so that I can ensure they work correctly and users know how to use them.
 
@@ -128,6 +133,73 @@ This sprint focuses on implementing support for custom options in the SwiftProto
 - Documentation includes examples of using custom options
 - README is updated to mention custom options support
 
+### 8. Descriptor Generation Tests
+
+**Description**: As a developer, I want to ensure that the descriptor generation functionality from Sprint 4 is properly tested.
+
+**Tasks**:
+- Create a new test file `Tests/SwiftProtoParserTests/GeneratorTests/DescriptorGeneratorTests.swift`
+- Add tests for generating FileDescriptorProto objects
+- Add tests for generating DescriptorProto objects for messages
+- Add tests for generating EnumDescriptorProto objects for enums
+- Add tests for generating FieldDescriptorProto objects for fields
+- Add tests for generating ServiceDescriptorProto objects for services
+- Add tests for generating MethodDescriptorProto objects for methods
+- Add tests for generating UninterpretedOption objects for options
+
+**Acceptance Criteria**:
+- Unit tests cover >90% of descriptor generation code
+- Tests verify that generated descriptors match expected values
+- Tests cover all descriptor types (file, message, enum, field, service, method, option)
+
+### 9. Source Info Generation Tests
+
+**Description**: As a developer, I want to ensure that the source info generation functionality from Sprint 5 is properly tested.
+
+**Tasks**:
+- Create a new test file `Tests/SwiftProtoParserTests/GeneratorTests/SourceInfoGeneratorTests.swift`
+- Add tests for tracking source locations during parsing
+- Add tests for generating SourceCodeInfo objects
+- Add tests for including locations for all elements (file, message, enum, field, service, method, option)
+
+**Acceptance Criteria**:
+- Unit tests cover >90% of source info generation code
+- Tests verify that generated source info matches expected values
+- Tests cover source locations for all element types
+
+### 10. Configuration Tests
+
+**Description**: As a developer, I want to ensure that the configuration functionality from Sprint 5 is properly tested.
+
+**Tasks**:
+- Create a new test file `Tests/SwiftProtoParserTests/PublicTests/ConfigurationTests.swift`
+- Add tests for Configuration.Builder
+- Add tests for configuring import paths
+- Add tests for configuring source info generation
+- Add tests for configuring validation strictness
+- Add tests for configuring feature support
+
+**Acceptance Criteria**:
+- Unit tests cover >90% of configuration code
+- Tests verify that all configuration options work as expected
+- Tests cover all configuration options from requirements
+
+### 11. Public API Tests
+
+**Description**: As a developer, I want to ensure that the public API from Sprint 5 is properly tested.
+
+**Tasks**:
+- Create a new test file `Tests/SwiftProtoParserTests/PublicTests/ProtoParserTests.swift`
+- Add tests for the public API methods
+- Add tests for both synchronous and asynchronous parsing methods
+- Add tests for error handling
+
+**Acceptance Criteria**:
+- Unit tests cover >90% of public API code
+- Tests verify that the API works as expected
+- Tests cover both synchronous and asynchronous methods
+- Tests cover error handling
+
 ## Dependencies
 
 - Protocol Buffer descriptor.proto file (for understanding option extensions)
@@ -135,6 +207,9 @@ This sprint focuses on implementing support for custom options in the SwiftProto
 - Existing Parser implementation
 - Existing Validator implementation
 - Existing DescriptorGenerator implementation
+- Existing SourceInfoGenerator implementation
+- Existing Configuration implementation
+- Existing public API implementation
 
 ## Risks and Mitigations
 
@@ -144,10 +219,13 @@ This sprint focuses on implementing support for custom options in the SwiftProto
 | Compatibility with protoc output | High | Medium | Create comprehensive comparison tests |
 | Performance impact | Medium | Low | Profile and optimize as needed |
 | Scope creep | Medium | Medium | Clearly define MVP and stick to it |
+| Test coverage gaps | High | Medium | Use code coverage tools to identify untested code |
+| Time constraints due to additional test coverage work | High | High | Prioritize critical components and consider extending sprint duration if necessary |
 
 ## Definition of Done
 
 - All user stories are implemented and meet acceptance criteria
+- All acceptance criteria from previous sprints are covered by unit tests
 - Code is well-tested with >90% test coverage
 - Documentation is updated to include custom options
 - All tests pass, including integration tests with protoc

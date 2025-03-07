@@ -156,36 +156,72 @@ We will follow an iterative approach with 2-week sprints. Each sprint will focus
 - Unit tests cover >90% of service-related code
 - Documentation is updated and reviewed
 
-## Sprint 5: Custom Options Support (2 weeks)
+## Sprint 5: Custom Options Support and Test Coverage Completion (2 weeks)
 
-**Goal**: Implement support for custom options
+**Goal**: Implement custom options support and complete test coverage for all acceptance criteria from previous sprints
 
 **Tasks**:
 - [ ] Define AST node types for custom options
+  - [ ] Create or extend OptionNode to support custom option syntax
+  - [ ] Add support for option extensions
+  - [ ] Implement proper source location tracking for custom options
 - [ ] Extend Parser to handle option definitions
-- [ ] Implement support for file-level options
-- [ ] Implement support for message-level options
-- [ ] Implement support for field-level options
-- [ ] Implement support for enum-level options
-- [ ] Implement support for enum value-level options
-- [ ] Implement support for service-level options
-- [ ] Implement support for method-level options
+  - [ ] Support parsing option extensions
+  - [ ] Handle nested option fields
+  - [ ] Support all primitive types in option values
+- [ ] Implement multi-level option support
+  - [ ] Support file-level custom options
+  - [ ] Support message-level custom options
+  - [ ] Support field-level custom options
+  - [ ] Support enum-level custom options
+  - [ ] Support enum value-level custom options
+  - [ ] Support service-level custom options
+  - [ ] Support method-level custom options
 - [ ] Implement option type resolution
+  - [ ] Extend SymbolTable to track option extensions
+  - [ ] Implement resolution of option extension types
+  - [ ] Handle imported option extensions
 - [ ] Implement option value validation
-- [ ] Update error handling for option-related errors
-- [ ] Write unit tests for option parsing
-  - [ ] Test option definitions
-  - [ ] Test option usage at all levels
-  - [ ] Test option type resolution
-  - [ ] Test option value validation
-- [ ] Document option parsing API and implementation details
+  - [ ] Validate option values against their types
+  - [ ] Handle repeated and map options
+  - [ ] Validate nested option fields
+- [ ] Update DescriptorGenerator for custom options
+  - [ ] Generate UninterpretedOption objects for custom options
+  - [ ] Support all option types and values
+- [ ] Create comprehensive tests for custom options
+  - [ ] Test custom option parsing
+  - [ ] Test custom option validation
+  - [ ] Test custom option descriptor generation
+  - [ ] Test integration with protoc
+- [ ] Update documentation for custom options
+  - [ ] Update README to mention custom options support
+  - [ ] Add examples of using custom options
+- [ ] Create tests for Descriptor Generation (Sprint 4)
+  - [ ] Test generating FileDescriptorProto objects
+  - [ ] Test generating DescriptorProto objects
+  - [ ] Test generating EnumDescriptorProto objects
+  - [ ] Test generating FieldDescriptorProto objects
+  - [ ] Test generating ServiceDescriptorProto objects
+  - [ ] Test generating MethodDescriptorProto objects
+- [ ] Create tests for Source Info Generation (Sprint 5)
+  - [ ] Test tracking source locations
+  - [ ] Test generating SourceCodeInfo objects
+  - [ ] Test source locations for all element types
+- [ ] Create tests for Configuration (Sprint 5)
+  - [ ] Test Configuration.Builder
+  - [ ] Test all configuration options
+- [ ] Create tests for Public API (Sprint 5)
+  - [ ] Test public API methods
+  - [ ] Test synchronous and asynchronous parsing
+  - [ ] Test error handling
 
 **Definition of Done**:
-- Parser can handle custom options at all levels
-- Parser correctly resolves option types
-- Parser correctly validates option values
-- Unit tests cover >90% of option-related code
-- Documentation is updated and reviewed
+- All custom options features are implemented
+- All acceptance criteria from previous sprints are covered by unit tests
+- Unit tests cover >90% of code
+- All tests pass, including integration tests with protoc
+- Documentation is updated to include custom options
+- Performance impact is acceptable
 
 ## Sprint 6: Extensions Support (2 weeks)
 
@@ -267,104 +303,11 @@ We will follow an iterative approach with 2-week sprints. Each sprint will focus
 - Import resolution works for all import types
 - Circular imports are properly handled
 - Import paths are configurable
+- All acceptance criteria are covered by unit tests
 - Unit tests cover >90% of import resolution code
 - Documentation is updated and reviewed
 
-## Sprint 9: Descriptor Generation (2 weeks)
-
-**Goal**: Implement descriptor generation
-
-**Tasks**:
-- [ ] Implement DescriptorGenerator
-- [ ] Generate FileDescriptorProto from AST
-- [ ] Generate DescriptorProto for messages
-- [ ] Generate EnumDescriptorProto for enums
-- [ ] Generate FieldDescriptorProto for fields
-- [ ] Generate ServiceDescriptorProto for services
-- [ ] Generate MethodDescriptorProto for methods
-- [ ] Generate UninterpretedOption for options
-- [ ] Implement comparison with protoc output
-- [ ] Write unit tests for descriptor generation
-  - [ ] Test file descriptor generation
-  - [ ] Test message descriptor generation
-  - [ ] Test enum descriptor generation
-  - [ ] Test field descriptor generation
-  - [ ] Test service descriptor generation
-  - [ ] Test method descriptor generation
-  - [ ] Test option descriptor generation
-  - [ ] Test comparison with protoc output
-- [ ] Document descriptor generation API and implementation details
-
-**Definition of Done**:
-- Descriptor generation produces valid descriptors
-- Generated descriptors exactly match protoc output for the same input files
-- Unit tests cover >90% of descriptor generation code
-- Documentation is updated and reviewed
-
-## Sprint 10: Source Info Generation (2 weeks)
-
-**Goal**: Implement source info generation
-
-**Tasks**:
-- [ ] Implement SourceInfoGenerator
-- [ ] Track source locations during parsing
-- [ ] Generate SourceCodeInfo for all elements
-  - [ ] File elements
-  - [ ] Message elements
-  - [ ] Enum elements
-  - [ ] Field elements
-  - [ ] Service elements
-  - [ ] Method elements
-  - [ ] Option elements
-- [ ] Implement comparison with protoc source info output
-- [ ] Write unit tests for source info generation
-  - [ ] Test source location tracking
-  - [ ] Test source info generation for all elements
-  - [ ] Test comparison with protoc output
-- [ ] Document source info generation API and implementation details
-
-**Definition of Done**:
-- Source info generation produces valid source info
-- Generated source info matches protoc output for the same input files
-- Unit tests cover >90% of source info generation code
-- Documentation is updated and reviewed
-
-## Sprint 11: Configuration and API Refinement (2 weeks)
-
-**Goal**: Implement configuration options and refine public API
-
-**Tasks**:
-- [ ] Implement Configuration struct
-- [ ] Implement Configuration.Builder with fluent interface
-- [ ] Add support for import paths configuration
-- [ ] Add support for source info generation configuration
-- [ ] Add support for validation strictness configuration
-- [ ] Add support for service/option/extension configuration
-- [ ] Add support for all configuration options from requirements
-  - [ ] Allow/disallow services
-  - [ ] Allow/disallow custom options
-  - [ ] Allow/disallow extensions
-  - [ ] Validation strictness levels
-- [ ] Refine public API for ease of use
-  - [ ] Create clean, Swift-idiomatic API
-  - [ ] Provide both synchronous and asynchronous parsing methods
-  - [ ] Use Swift error handling (throws)
-- [ ] Write unit tests for configuration
-  - [ ] Test all configuration options
-  - [ ] Test builder pattern
-  - [ ] Test default values
-- [ ] Document configuration API and implementation details
-  - [ ] Document all configuration options
-  - [ ] Provide usage examples
-
-**Definition of Done**:
-- Configuration options work as expected
-- All required configuration options are implemented
-- Public API is clean, Swift-idiomatic, and easy to use
-- Unit tests cover >90% of configuration code
-- Documentation is comprehensive and includes examples
-
-## Sprint 12: Integration Testing and Performance Optimization (2 weeks)
+## Sprint 9: Integration Testing and Performance Optimization (2 weeks)
 
 **Goal**: Ensure library works end-to-end and performs well
 
@@ -393,9 +336,10 @@ We will follow an iterative approach with 2-week sprints. Each sprint will focus
 - Output matches protoc output for all test cases
 - Performance meets requirements (1000-line file in <1s)
 - Memory usage is reasonable and documented
+- All acceptance criteria are covered by unit tests
 - Documentation includes performance guidelines
 
-## Sprint 13: Documentation and Examples (2 weeks)
+## Sprint 10: Documentation and Examples (2 weeks)
 
 **Goal**: Provide comprehensive documentation and examples
 
@@ -428,9 +372,10 @@ We will follow an iterative approach with 2-week sprints. Each sprint will focus
 - Documentation is comprehensive and accurate
 - Examples demonstrate all major features
 - README provides clear getting started instructions
+- All acceptance criteria are covered by unit tests
 - All documentation is reviewed and approved
 
-## Sprint 14: Final Testing and Release Preparation (2 weeks)
+## Sprint 11: Final Testing and Release Preparation (2 weeks)
 
 **Goal**: Prepare for initial release
 
@@ -453,7 +398,7 @@ We will follow an iterative approach with 2-week sprints. Each sprint will focus
 
 **Definition of Done**:
 - All tests pass
-- All acceptance criteria are met
+- All acceptance criteria are met and covered by unit tests
 - All documentation is complete
 - Release notes are prepared
 - Package is ready for publishing

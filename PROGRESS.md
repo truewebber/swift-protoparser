@@ -13,7 +13,7 @@ This document tracks the progress of the SwiftProtoParser project through its de
 | Sprint 4 | Descriptor Generation | ✅ COMPLETED | March 2, 2024 |
 | Sprint 5 | Source Info and API Refinement | ✅ COMPLETED | March 2, 2024 |
 | Sprint 6 | Testing, Documentation, and Release | ✅ COMPLETED | March 2, 2024 |
-| Sprint 7 | Custom Options Support | 📅 PLANNED | TBD |
+| Sprint 7 | Custom Options Support and Test Coverage Completion | 📅 PLANNED | TBD |
 
 ## Detailed Sprint Progress
 
@@ -136,7 +136,7 @@ This document tracks the progress of the SwiftProtoParser project through its de
 | Set up package registry publishing | ✅ COMPLETED | Package.swift configured for publishing |
 | Create release tags | ✅ COMPLETED | Ready for tagging v0.1.0 |
 
-### Sprint 7: Custom Options Support 📅
+### Sprint 7: Custom Options Support and Test Coverage Completion 📅
 
 | User Story | Status | Notes |
 |------------|--------|-------|
@@ -154,6 +154,10 @@ This document tracks the progress of the SwiftProtoParser project through its de
 | Update DescriptorGenerator for custom options | 📅 PLANNED | Modify DescriptorGenerator to handle custom options |
 | Add tests for custom options | 📅 PLANNED | Create comprehensive tests for custom options |
 | Update documentation for custom options | 📅 PLANNED | Update README and other docs to reflect custom options support |
+| Create Descriptor Generation Tests | 📅 PLANNED | Add tests for DescriptorGenerator from Sprint 4 |
+| Create Source Info Generation Tests | 📅 PLANNED | Add tests for SourceInfoGenerator from Sprint 5 |
+| Create Configuration Tests | 📅 PLANNED | Add tests for Configuration from Sprint 5 |
+| Create Public API Tests | 📅 PLANNED | Add tests for ProtoParser from Sprint 5 |
 
 ## Legend
 

@@ -9,8 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Planned support for custom options in Sprint 7
+- Planned completion of test coverage for all acceptance criteria from previous sprints
 
 ### Changed
+- Updated Sprint 7 plan to include both custom options support and test coverage completion
+- Updated Definition of Done for all sprints to include test coverage for all acceptance criteria
 
 ### Deprecated
 
