@@ -316,6 +316,69 @@ class OptionValidator: OptionValidating {
       if let fieldType = symbolTable.resolveOptionType(for: extensionName) {
         try validateOptionValueType(option.value, expectedType: fieldType, optionName: extensionName)
       }
+      
+      // If there are nested fields, validate them
+      if option.pathParts.count > 1 {
+        try validateNestedOptionFields(option.pathParts.dropFirst(), extensionName: extensionName, symbolTable: symbolTable)
+      }
+    }
+  }
+  
+  /// Validate nested option fields
+  /// - Parameters:
+  ///   - pathParts: The nested field path parts
+  ///   - extensionName: The name of the extension
+  ///   - symbolTable: The symbol table for type resolution
+  /// - Throws: ValidationError if validation fails
+  private func validateNestedOptionFields(_ pathParts: ArraySlice<OptionNode.PathPart>, extensionName: String, symbolTable: SymbolTable) throws {
+    // Get the extension field type
+    guard let fieldType = symbolTable.resolveOptionType(for: extensionName) else {
+      return
+    }
+    
+    // For nested fields, the extension field must be a message type
+    guard case .named(let typeName) = fieldType else {
+      throw ValidationError.invalidOptionValue("Extension field \(extensionName) must be a message type to have nested fields")
+    }
+    
+    // Validate that each nested field exists in the message type
+    var currentType = typeName
+    
+    for pathPart in pathParts {
+      // If this part is an extension, it must extend the current type
+      if pathPart.isExtension {
+        if !symbolTable.hasExtension(for: currentType, named: pathPart.name) {
+          throw ValidationError.unknownOption("(\(pathPart.name)) for type \(currentType)")
+        }
+        
+        // Update current type to the extension field type
+        if let nextType = symbolTable.resolveOptionType(for: pathPart.name) {
+          if case .named(let name) = nextType {
+            currentType = name
+          } else {
+            throw ValidationError.invalidOptionValue("Extension field \(pathPart.name) must be a message type to have nested fields")
+          }
+        }
+      } else {
+        // Regular field - should be a field of the current message type
+        if !symbolTable.hasField(in: currentType, named: pathPart.name) {
+          throw ValidationError.unknownOption("\(pathPart.name) in type \(currentType)")
+        }
+        
+        // Update current type to the field type
+        if let nextType = symbolTable.resolveFieldType(in: currentType, named: pathPart.name) {
+          if case .named(let name) = nextType {
+            currentType = name
+          } else {
+            // If this is the last part, it can be a scalar type
+            if pathPart == pathParts.last {
+              // No need to update currentType
+            } else {
+              throw ValidationError.invalidOptionValue("Field \(pathPart.name) must be a message type to have nested fields")
+            }
+          }
+        }
+      }
     }
   }
   

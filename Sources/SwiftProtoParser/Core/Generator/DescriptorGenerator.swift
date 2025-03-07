@@ -65,6 +65,12 @@ public final class DescriptorGenerator {
       fileDescriptor.service.append(descriptor)
     }
 
+    // Process all extensions
+    for extensionNode in file.extensions {
+      let extensionFields = try processExtension(extensionNode)
+      fileDescriptor.extension.append(contentsOf: extensionFields)
+    }
+
     return fileDescriptor
   }
 
@@ -322,6 +328,29 @@ public final class DescriptorGenerator {
   private func uppercaseFirst(_ str: String) -> String {
     guard let first = str.first else { return str }
     return first.uppercased() + str.dropFirst()
+  }
+
+  /// Processes an extension node and generates field descriptors for its fields
+  /// - Parameter extension: The extension node to process
+  /// - Returns: An array of FieldDescriptorProto objects for the extension fields
+  /// - Throws: DescriptorGeneratorError if processing fails
+  private func processExtension(_ extension: ExtendNode) throws -> [Google_Protobuf_FieldDescriptorProto] {
+    var extensionFields: [Google_Protobuf_FieldDescriptorProto] = []
+    
+    // Get the fully qualified name of the extended type
+    let extendedType = `extension`.fullExtendedName(inPackage: currentPackage)
+    
+    // Process each field in the extension
+    for field in `extension`.fields {
+      var fieldDescriptor = try generateFieldDescriptor(field)
+      
+      // Set the extendee field to indicate this is an extension
+      fieldDescriptor.extendee = extendedType
+      
+      extensionFields.append(fieldDescriptor)
+    }
+    
+    return extensionFields
   }
 }
 

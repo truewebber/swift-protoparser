@@ -94,6 +94,35 @@ SwiftProtoParser will correctly parse these custom options and include them in t
 - All primitive value types (string, number, boolean, identifier)
 - Validation of option values against their defined types
 
+### Extensions
+
+SwiftProtoParser supports extensions in proto3 files. Extensions allow you to add fields to existing message types without modifying the original definition.
+
+```swift
+// Define a message
+message MyMessage {
+  string name = 1;
+}
+
+// Extend the message with new fields
+extend MyMessage {
+  string additional_info = 2;
+  int32 count = 3;
+}
+
+// You can also extend messages from imported files
+import "google/protobuf/descriptor.proto";
+
+extend google.protobuf.FileOptions {
+  string custom_option = 50000;
+}
+
+// Use the extension
+option (custom_option) = "value";
+```
+
+Extensions are fully supported in the generated descriptors and can be used with Swift Protobuf.
+
 ## Requirements
 
 - Swift 5.9+

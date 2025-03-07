@@ -1147,13 +1147,35 @@ public final class Parser {
 
     while !check(.rightBrace) {
       if isType(currentToken) {
-        fields.append(try parseField())
+        // Parse extension field
+        let field = try parseField()
+        
+        // Extension fields must have explicit field numbers
+        if field.number <= 0 {
+          throw ParserError.invalidFieldNumber(field.number, location: field.location)
+        }
+        
+        // Check for valid extension field numbers (ranges 1-536,870,911 except 19000-19999)
+        if field.number > 536_870_911 {
+          throw ParserError.invalidFieldNumber(field.number, location: field.location)
+        }
+        
+        if (19000...19999).contains(field.number) {
+          throw ParserError.invalidFieldNumber(field.number, location: field.location)
+        }
+        
+        fields.append(field)
       } else {
         throw ParserError.unexpectedToken(expected: .identifier, got: currentToken)
       }
     }
 
     try expectToken(.rightBrace)
+    
+    // Ensure there's at least one field in the extension
+    if fields.isEmpty {
+      throw ParserError.custom("Extension must contain at least one field")
+    }
 
     return ExtendNode(
       location: extendLocation,

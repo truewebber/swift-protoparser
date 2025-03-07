@@ -1,5 +1,50 @@
 # Release Notes
 
+## Version 0.3.0 (Extensions Support)
+
+We're excited to announce the release of SwiftProtoParser 0.3.0, which adds full support for extensions in proto3 files.
+
+### New Features
+
+- **Extensions Support**: Parse and validate extension definitions that allow extending existing message types with new fields.
+- **Field Validation**: Validate extension field numbers and types according to proto3 rules.
+- **Descriptor Generation**: Generate proper descriptor representations for extensions compatible with Swift Protobuf.
+- **Integration**: Seamless integration with Google Protobuf extensions.
+
+### Improvements
+
+- **Enhanced Validation**: Improved validation to correctly handle extended types.
+- **Comprehensive Test Coverage**: Added tests for all extension functionality.
+- **Updated Documentation**: Added examples and documentation for using extensions.
+
+### Example Usage
+
+```swift
+// Define extensions in your proto file
+syntax = "proto3";
+
+message MyMessage {
+  int32 id = 1;
+}
+
+extend MyMessage {
+  string extra_info = 2;
+  bool is_valid = 3;
+}
+
+// In another file, you can extend imported messages
+import "my_message.proto";
+
+extend MyMessage {
+  repeated string tags = 4;
+}
+```
+
+### Requirements
+
+- Swift 5.9+
+- macOS 13.0+ or iOS 16.0+
+
 ## Version 0.2.0 (Custom Options Support)
 
 We're excited to announce the release of SwiftProtoParser 0.2.0, which adds full support for custom options in proto3 files.

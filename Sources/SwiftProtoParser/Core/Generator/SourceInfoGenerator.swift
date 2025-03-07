@@ -104,6 +104,13 @@ public final class SourceInfoGenerator {
         processServiceNode(service)
       }
     }
+
+    // Process extensions
+    for (index, extension_) in file.extensions.enumerated() {
+      withPath(7, Int32(index)) {  // extensions = 7
+        processExtendNode(extension_)
+      }
+    }
   }
 
   private func processMessageNode(_ message: MessageNode) {
@@ -220,6 +227,18 @@ public final class SourceInfoGenerator {
     for (index, option) in oneof.options.enumerated() {
       withPath(1, Int32(index)) {  // options = 1
         addLocation(for: option)
+      }
+    }
+  }
+
+  private func processExtendNode(_ extend: ExtendNode) {
+    // Record extension location
+    addLocation(for: extend)
+    
+    // Process extension fields
+    for (index, field) in extend.fields.enumerated() {
+      withPath(2, Int32(index)) {  // extension fields = 2
+        processFieldNode(field)
       }
     }
   }

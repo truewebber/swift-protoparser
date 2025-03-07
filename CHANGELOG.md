@@ -19,6 +19,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.3.0] - 2025-03-07
+
+### Added
+- Full support for extensions in proto3 files
+- Support for extending existing message types with new fields
+- Validation of extension field numbers and types
+- Descriptor generation for extensions
+- Integration with Google Protobuf extensions
+- Comprehensive test coverage for extensions
+
+### Changed
+- Updated documentation to include extensions support
+- Enhanced validation to handle extended types correctly
+
 ## [0.2.0] - 2025-03-15
 
 ### Added

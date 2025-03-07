@@ -262,6 +262,79 @@ public final class SymbolTable {
     extensions.removeAll()
   }
 
+  /// Add an extension node to the table
+  /// - Parameters:
+  ///   - extend: The extend node
+  ///   - package: The package name
+  ///   - parent: The parent symbol, if any
+  /// - Throws: SymbolTableError if extension already exists
+  public func addExtendNode(
+    _ extend: ExtendNode,
+    package: String?,
+    parent: Symbol? = nil
+  ) throws {
+    // Get the fully qualified name of the extended type
+    let extendedType = extend.fullExtendedName(inPackage: package)
+    
+    // Add each field as an extension
+    for field in extend.fields {
+      try addExtension(
+        field,
+        extendedType: extendedType,
+        package: package,
+        parent: parent
+      )
+    }
+  }
+
+  /// Check if an extension exists for a specific type
+  /// - Parameters:
+  ///   - typeName: The fully qualified name of the type
+  ///   - extensionName: The name of the extension
+  /// - Returns: Whether the extension exists
+  public func hasExtension(for typeName: String, named extensionName: String) -> Bool {
+    guard let extensionSymbols = extensions[typeName] else {
+      return false
+    }
+    
+    return extensionSymbols.contains { $0.fullName.hasSuffix(".\(extensionName)") || $0.fullName == extensionName }
+  }
+  
+  /// Check if a field exists in a specific message type
+  /// - Parameters:
+  ///   - typeName: The fully qualified name of the message type
+  ///   - fieldName: The name of the field
+  /// - Returns: Whether the field exists
+  public func hasField(in typeName: String, named fieldName: String) -> Bool {
+    guard let symbol = symbols[typeName], symbol.kind == .message else {
+      return false
+    }
+    
+    // Check if any child is a field with the given name
+    return symbol.children.contains { $0.kind == .field && $0.fullName.hasSuffix(".\(fieldName)") }
+  }
+  
+  /// Resolve the type of a field in a specific message type
+  /// - Parameters:
+  ///   - typeName: The fully qualified name of the message type
+  ///   - fieldName: The name of the field
+  /// - Returns: The type of the field, if found
+  public func resolveFieldType(in typeName: String, named fieldName: String) -> TypeNode? {
+    guard let symbol = symbols[typeName], symbol.kind == .message else {
+      return nil
+    }
+    
+    // Find the field symbol
+    let fieldSymbol = symbol.children.first { $0.kind == .field && $0.fullName.hasSuffix(".\(fieldName)") }
+    
+    // Get the field node and return its type
+    if let fieldSymbol = fieldSymbol, let fieldNode = fieldSymbol.node as? FieldNode {
+      return fieldNode.type
+    }
+    
+    return nil
+  }
+
   // MARK: - Private Helper Methods
 
   private func getName(for node: Node) -> String {

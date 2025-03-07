@@ -9,7 +9,7 @@ This sprint focuses on implementing support for extensions in the SwiftProtoPars
 - **Start Date**: March 16, 2025
 - **End Date**: March 30, 2025
 - **Review Date**: March 31, 2025
-- **Status**: PLANNED 📅
+- **Status**: COMPLETED ✅
 
 ## Goals
 
@@ -35,7 +35,7 @@ This sprint focuses on implementing support for extensions in the SwiftProtoPars
 - AST nodes include source location information
 - AST nodes can be properly serialized and deserialized
 
-**Status**: PLANNED
+**Status**: COMPLETED
 
 ### 2. Parser Support for Extensions
 
@@ -51,7 +51,7 @@ This sprint focuses on implementing support for extensions in the SwiftProtoPars
 - Parser correctly parses extension fields with types and options
 - Parser provides meaningful error messages for invalid extensions
 
-**Status**: PLANNED
+**Status**: COMPLETED
 
 ### 3. Extension Usage in Options
 
@@ -67,7 +67,7 @@ This sprint focuses on implementing support for extensions in the SwiftProtoPars
 - Extension references are correctly resolved
 - Nested extension references are supported
 
-**Status**: PLANNED
+**Status**: COMPLETED
 
 ### 4. Extension Field Validation
 
@@ -83,7 +83,7 @@ This sprint focuses on implementing support for extensions in the SwiftProtoPars
 - Extension field types are validated for compatibility
 - Meaningful error messages are provided for invalid extensions
 
-**Status**: PLANNED
+**Status**: COMPLETED
 
 ### 5. Descriptor Generation for Extensions
 
@@ -99,7 +99,7 @@ This sprint focuses on implementing support for extensions in the SwiftProtoPars
 - Extension fields are correctly generated
 - Generated descriptors match protoc output for the same input
 
-**Status**: PLANNED
+**Status**: COMPLETED
 
 ### 6. Testing and Documentation for Extensions
 
@@ -118,7 +118,7 @@ This sprint focuses on implementing support for extensions in the SwiftProtoPars
 - Documentation includes examples of using extensions
 - README is updated to mention extensions support
 
-**Status**: PLANNED
+**Status**: COMPLETED
 
 ## Dependencies
 

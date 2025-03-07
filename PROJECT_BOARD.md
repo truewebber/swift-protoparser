@@ -19,7 +19,7 @@ As a developer, I want to parse service and RPC definitions so that I can suppor
 ### Epic 5: Custom Options Support ✅
 As a developer, I want to parse custom options so that I can support extended functionality.
 
-### Epic 6: Extensions Support
+### Epic 6: Extensions Support ✅
 As a developer, I want to parse extensions so that I can support extending existing messages.
 
 ### Epic 7: Symbol Resolution and Validation ✅
@@ -98,7 +98,7 @@ As a developer, I want to prepare for the initial release so that users can star
 4. As a developer, I want to resolve option types so that I can validate option values. ✅
 5. As a developer, I want to validate option values so that they match their defined types. ✅
 
-### Epic 6: Extensions Support
+### Epic 6: Extensions Support ✅
 
 1. As a developer, I want to define AST node types for extensions so that I can represent extension definitions.
 2. As a developer, I want to parse extension definitions so that I can support extending existing messages.

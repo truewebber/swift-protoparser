@@ -180,10 +180,30 @@ public final class FileNode: Node, DefinitionContainer {
       }
     }
 
+    // Collect extended type names to exclude from duplicate check
+    var extendedTypeNames = Set<String>()
+    for ext in extensions {
+      // Get the fully qualified name of the extended type
+      let extendedTypeName = ext.typeName
+      if extendedTypeName.contains(".") {
+        extendedTypeNames.insert(extendedTypeName)
+      } else if let package = package, !package.isEmpty {
+        extendedTypeNames.insert("\(package).\(extendedTypeName)")
+      } else {
+        extendedTypeNames.insert(extendedTypeName)
+      }
+    }
+
     // Validate type names are unique within their scope
     var seenTypes: Set<String> = []
     for type in allDefinedTypes {
       let fullName = type.fullName(inPackage: package)
+      
+      // Skip the check if this is an extended type
+      if extendedTypeNames.contains(fullName) {
+        continue
+      }
+      
       guard !seenTypes.contains(fullName) else {
         throw ParserError.duplicateTypeName(fullName)
       }
@@ -203,6 +223,37 @@ public final class FileNode: Node, DefinitionContainer {
     // Validate all services
     for svc in services {
       try svc.validate()
+    }
+    
+    // Validate all extensions
+    for ext in extensions {
+      try validateExtension(ext)
+    }
+  }
+  
+  /// Validates an extension
+  /// - Parameter extension: The extension to validate
+  /// - Throws: ParserError if validation fails
+  private func validateExtension(_ extension: ExtendNode) throws {
+    // Validate that the extended type is a valid identifier
+    let components = `extension`.typeName.split(separator: ".")
+    for component in components {
+      guard component.allSatisfy({ $0.isLetter || $0.isNumber || $0 == "_" }),
+        let first = component.first,
+        first.isLetter || first == "_"
+      else {
+        throw ParserError.custom("Invalid extended type name: \(`extension`.typeName)")
+      }
+    }
+    
+    // Validate that there is at least one field
+    guard !`extension`.fields.isEmpty else {
+      throw ParserError.custom("Extension of \(`extension`.typeName) must contain at least one field")
+    }
+    
+    // Validate each field
+    for field in `extension`.fields {
+      try field.validate()
     }
   }
 }
