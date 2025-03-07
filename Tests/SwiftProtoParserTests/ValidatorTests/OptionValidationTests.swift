@@ -440,7 +440,9 @@ final class OptionValidationTests: XCTestCase {
       leadingComments: [],
       trailingComment: nil,
       name: "(custom.option)",
-      value: .string("value")
+      value: .string("value"),
+      pathParts: [OptionNode.PathPart(name: "custom.option", isExtension: true)],
+      isCustomOption: true
     )
 
     // Custom options are currently not validated in the validator

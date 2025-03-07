@@ -9,6 +9,9 @@ class ValidationState {
   // Track all defined types
   var definedTypes: [String: DefinitionNode] = [:]
 
+  // Symbol table for type resolution
+  var symbolTable: SymbolTable?
+
   // Track scope stack for nested type resolution
   struct Scope {
     let typeName: String  // Fully qualified name of the type

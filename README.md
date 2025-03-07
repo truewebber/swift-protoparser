@@ -62,6 +62,38 @@ let config = Configuration.builder()
 let parser = ProtoParser(configuration: config)
 ```
 
+### Custom Options
+
+SwiftProtoParser fully supports custom options in proto3 files. Custom options allow you to extend the protocol with user-defined options at various levels (file, message, field, enum, etc.).
+
+```swift
+// Define custom options in your proto file
+import "google/protobuf/descriptor.proto";
+
+extend google.protobuf.FileOptions {
+  string my_file_option = 50000;
+}
+
+extend google.protobuf.MessageOptions {
+  int32 my_message_option = 50001;
+}
+
+// Use custom options
+option (my_file_option) = "Hello, world!";
+
+message MyMessage {
+  option (my_message_option) = 42;
+  // ...
+}
+```
+
+SwiftProtoParser will correctly parse these custom options and include them in the generated descriptors as `UninterpretedOption` objects. The library supports:
+
+- Custom options at all levels (file, message, field, enum, enum value, service, method)
+- Nested fields using dot notation: `option (my_option).nested_field = value;`
+- All primitive value types (string, number, boolean, identifier)
+- Validation of option values against their defined types
+
 ## Requirements
 
 - Swift 5.9+

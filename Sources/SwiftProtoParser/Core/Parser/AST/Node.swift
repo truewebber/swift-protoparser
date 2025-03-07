@@ -59,24 +59,72 @@ public struct OptionNode: Node {
     case map([String: Value])
   }
 
+  /// Represents a part of a custom option path
+  public struct PathPart: Equatable {
+    /// The name of this path part
+    public let name: String
+    /// Whether this part is an extension field (enclosed in parentheses)
+    public let isExtension: Bool
+    
+    public init(name: String, isExtension: Bool = false) {
+      self.name = name
+      self.isExtension = isExtension
+    }
+  }
+
   public let location: SourceLocation
   public let leadingComments: [String]
   public let trailingComment: String?
   public let name: String
   public let value: Value
+  /// The path parts for this option (for custom options with nested fields)
+  public let pathParts: [PathPart]
+  /// Whether this is a custom option (extension option)
+  public let isCustomOption: Bool
 
   public init(
     location: SourceLocation,
     leadingComments: [String] = [],
     trailingComment: String? = nil,
     name: String,
-    value: Value
+    value: Value,
+    pathParts: [PathPart] = [],
+    isCustomOption: Bool = false
   ) {
     self.location = location
     self.leadingComments = leadingComments
     self.trailingComment = trailingComment
     self.name = name
     self.value = value
+    self.pathParts = pathParts
+    self.isCustomOption = isCustomOption
+  }
+  
+  /// Creates a custom option with the given extension name
+  public static func customOption(
+    location: SourceLocation,
+    leadingComments: [String] = [],
+    trailingComment: String? = nil,
+    extensionName: String,
+    value: Value,
+    nestedFields: [String] = []
+  ) -> OptionNode {
+    var parts: [PathPart] = [PathPart(name: extensionName, isExtension: true)]
+    
+    // Add any nested fields
+    for field in nestedFields {
+      parts.append(PathPart(name: field))
+    }
+    
+    return OptionNode(
+      location: location,
+      leadingComments: leadingComments,
+      trailingComment: trailingComment,
+      name: "(\(extensionName))" + (nestedFields.isEmpty ? "" : "." + nestedFields.joined(separator: ".")),
+      value: value,
+      pathParts: parts,
+      isCustomOption: true
+    )
   }
 }
 

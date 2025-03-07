@@ -23,6 +23,12 @@ class OptionValidator: OptionValidating {
         throw ValidationError.duplicateOption(option.name)
       }
 
+      // If it's a custom option, validate it but don't throw an error for unknown options
+      if option.isCustomOption {
+        try validateCustomOption(option, symbolTable: state.symbolTable)
+        continue
+      }
+
       switch option.name {
       case "java_package":
         guard case .string = option.value else {
@@ -50,11 +56,7 @@ class OptionValidator: OptionValidating {
         }
 
       default:
-        if option.name.hasPrefix("(") {
-          try validateCustomOption(option)
-        } else {
-          throw ValidationError.unknownOption(option.name)
-        }
+        throw ValidationError.unknownOption(option.name)
       }
     }
   }
@@ -63,31 +65,21 @@ class OptionValidator: OptionValidating {
   /// - Parameter options: The options to validate
   /// - Throws: ValidationError if validation fails
   func validateMessageOptions(_ options: [OptionNode]) throws {
-    var messageOptions = Set<String>()  // Track for duplicates
+    var seenOptions = Set<String>()  // Track options to prevent duplicates
 
     for option in options {
       // Check for duplicate options
-      if !messageOptions.insert(option.name).inserted {
+      if !seenOptions.insert(option.name).inserted {
         throw ValidationError.duplicateOption(option.name)
       }
 
+      // If it's a custom option, validate it but don't throw an error for unknown options
+      if option.isCustomOption {
+        try validateCustomOption(option, symbolTable: state.symbolTable)
+        continue
+      }
+
       switch option.name {
-      case "message_set_wire_format":
-        guard case .identifier(let value) = option.value,
-          value == "true" || value == "false"
-        else {
-          throw ValidationError.invalidOptionValue(
-            "message_set_wire_format must be a boolean")
-        }
-
-      case "no_standard_descriptor_accessor":
-        guard case .identifier(let value) = option.value,
-          value == "true" || value == "false"
-        else {
-          throw ValidationError.invalidOptionValue(
-            "no_standard_descriptor_accessor must be a boolean")
-        }
-
       case "deprecated":
         guard case .identifier(let value) = option.value,
           value == "true" || value == "false"
@@ -95,12 +87,15 @@ class OptionValidator: OptionValidating {
           throw ValidationError.invalidOptionValue("deprecated must be a boolean")
         }
 
-      default:
-        if option.name.hasPrefix("(") {
-          try validateCustomOption(option)
-        } else {
-          throw ValidationError.unknownOption(option.name)
+      case "map_entry":
+        guard case .identifier(let value) = option.value,
+          value == "true" || value == "false"
+        else {
+          throw ValidationError.invalidOptionValue("map_entry must be a boolean")
         }
+
+      default:
+        throw ValidationError.unknownOption(option.name)
       }
     }
   }
@@ -109,12 +104,18 @@ class OptionValidator: OptionValidating {
   /// - Parameter options: The options to validate
   /// - Throws: ValidationError if validation fails
   func validateFieldOptions(_ options: [OptionNode]) throws {
-    var seenOptions = Set<String>()  // Track for duplicates
+    var seenOptions = Set<String>()  // Track options to prevent duplicates
 
     for option in options {
       // Check for duplicate options
       if !seenOptions.insert(option.name).inserted {
         throw ValidationError.duplicateOption(option.name)
+      }
+
+      // If it's a custom option, validate it but don't throw an error for unknown options
+      if option.isCustomOption {
+        try validateCustomOption(option, symbolTable: state.symbolTable)
+        continue
       }
 
       switch option.name {
@@ -137,19 +138,8 @@ class OptionValidator: OptionValidating {
           throw ValidationError.invalidOptionValue("json_name must be a string")
         }
 
-      case "ctype":
-        guard case .identifier(let value) = option.value,
-          ["STRING", "CORD", "STRING_PIECE"].contains(value.uppercased())
-        else {
-          throw ValidationError.invalidOptionValue("ctype must be STRING, CORD, or STRING_PIECE")
-        }
-
       default:
-        if option.name.hasPrefix("(") {
-          try validateCustomOption(option)
-        } else {
-          throw ValidationError.unknownOption(option.name)
-        }
+        throw ValidationError.unknownOption(option.name)
       }
     }
   }
@@ -158,12 +148,18 @@ class OptionValidator: OptionValidating {
   /// - Parameter options: The options to validate
   /// - Throws: ValidationError if validation fails
   func validateEnumOptions(_ options: [OptionNode]) throws {
-    var enumOptions = Set<String>()  // Track for duplicates
+    var seenOptions = Set<String>()  // Track options to prevent duplicates
 
     for option in options {
       // Check for duplicate options
-      if !enumOptions.insert(option.name).inserted {
+      if !seenOptions.insert(option.name).inserted {
         throw ValidationError.duplicateOption(option.name)
+      }
+
+      // If it's a custom option, validate it but don't throw an error for unknown options
+      if option.isCustomOption {
+        try validateCustomOption(option, symbolTable: state.symbolTable)
+        continue
       }
 
       switch option.name {
@@ -182,11 +178,7 @@ class OptionValidator: OptionValidating {
         }
 
       default:
-        if option.name.hasPrefix("(") {
-          try validateCustomOption(option)
-        } else {
-          throw ValidationError.unknownOption(option.name)
-        }
+        throw ValidationError.unknownOption(option.name)
       }
     }
   }
@@ -195,12 +187,18 @@ class OptionValidator: OptionValidating {
   /// - Parameter options: The options to validate
   /// - Throws: ValidationError if validation fails
   func validateEnumValueOptions(_ options: [OptionNode]) throws {
-    var enumValueOptions = Set<String>()  // Track for duplicates
+    var seenOptions = Set<String>()  // Track options to prevent duplicates
 
     for option in options {
       // Check for duplicate options
-      if !enumValueOptions.insert(option.name).inserted {
+      if !seenOptions.insert(option.name).inserted {
         throw ValidationError.duplicateOption(option.name)
+      }
+
+      // If it's a custom option, validate it but don't throw an error for unknown options
+      if option.isCustomOption {
+        try validateCustomOption(option, symbolTable: state.symbolTable)
+        continue
       }
 
       switch option.name {
@@ -212,11 +210,7 @@ class OptionValidator: OptionValidating {
         }
 
       default:
-        if option.name.hasPrefix("(") {
-          try validateCustomOption(option)
-        } else {
-          throw ValidationError.unknownOption(option.name)
-        }
+        throw ValidationError.unknownOption(option.name)
       }
     }
   }
@@ -225,12 +219,18 @@ class OptionValidator: OptionValidating {
   /// - Parameter options: The options to validate
   /// - Throws: ValidationError if validation fails
   func validateServiceOptions(_ options: [OptionNode]) throws {
-    var serviceOptions = Set<String>()  // Track for duplicates
+    var seenOptions = Set<String>()  // Track options to prevent duplicates
 
     for option in options {
       // Check for duplicate options
-      if !serviceOptions.insert(option.name).inserted {
+      if !seenOptions.insert(option.name).inserted {
         throw ValidationError.duplicateOption(option.name)
+      }
+
+      // If it's a custom option, validate it but don't throw an error for unknown options
+      if option.isCustomOption {
+        try validateCustomOption(option, symbolTable: state.symbolTable)
+        continue
       }
 
       switch option.name {
@@ -242,11 +242,7 @@ class OptionValidator: OptionValidating {
         }
 
       default:
-        if option.name.hasPrefix("(") {
-          try validateCustomOption(option)
-        } else {
-          throw ValidationError.unknownOption(option.name)
-        }
+        throw ValidationError.unknownOption(option.name)
       }
     }
   }
@@ -255,12 +251,18 @@ class OptionValidator: OptionValidating {
   /// - Parameter options: The options to validate
   /// - Throws: ValidationError if validation fails
   func validateMethodOptions(_ options: [OptionNode]) throws {
-    var methodOptions = Set<String>()  // Track for duplicates
+    var seenOptions = Set<String>()  // Track options to prevent duplicates
 
     for option in options {
       // Check for duplicate options
-      if !methodOptions.insert(option.name).inserted {
+      if !seenOptions.insert(option.name).inserted {
         throw ValidationError.duplicateOption(option.name)
+      }
+
+      // If it's a custom option, validate it but don't throw an error for unknown options
+      if option.isCustomOption {
+        try validateCustomOption(option, symbolTable: state.symbolTable)
+        continue
       }
 
       switch option.name {
@@ -273,19 +275,14 @@ class OptionValidator: OptionValidating {
 
       case "idempotency_level":
         guard case .identifier(let value) = option.value,
-          ["IDEMPOTENCY_UNKNOWN", "NO_SIDE_EFFECTS", "IDEMPOTENT"].contains(value)
+          ["IDEMPOTENCY_UNKNOWN", "NO_SIDE_EFFECTS", "IDEMPOTENT"].contains(value.uppercased())
         else {
           throw ValidationError.invalidOptionValue(
-            "idempotency_level must be IDEMPOTENCY_UNKNOWN, NO_SIDE_EFFECTS, or IDEMPOTENT"
-          )
+            "idempotency_level must be IDEMPOTENCY_UNKNOWN, NO_SIDE_EFFECTS, or IDEMPOTENT")
         }
 
       default:
-        if option.name.hasPrefix("(") {
-          try validateCustomOption(option)
-        } else {
-          throw ValidationError.unknownOption(option.name)
-        }
+        throw ValidationError.unknownOption(option.name)
       }
     }
   }
@@ -293,9 +290,78 @@ class OptionValidator: OptionValidating {
   // MARK: - Private Helper Methods
 
   /// Validate a custom option
+  /// - Parameters:
+  ///   - option: The option to validate
+  ///   - symbolTable: The symbol table for type resolution
+  /// - Throws: ValidationError if validation fails
+  func validateCustomOption(_ option: OptionNode, symbolTable: SymbolTable?) throws {
+    // Basic syntax validation
+    try validateCustomOptionSyntax(option)
+    
+    // If we don't have a symbol table, we can't validate the option type
+    guard let symbolTable = symbolTable else {
+      return
+    }
+    
+    // Validate that the extension exists in the symbol table
+    if option.isCustomOption && !option.pathParts.isEmpty {
+      let extensionName = option.pathParts[0].name
+      
+      // Check if the extension exists
+      if !symbolTable.isExtension(extensionName) {
+        throw ValidationError.unknownOption("(\(extensionName))")
+      }
+      
+      // Validate the option value type against the extension field type
+      if let fieldType = symbolTable.resolveOptionType(for: extensionName) {
+        try validateOptionValueType(option.value, expectedType: fieldType, optionName: extensionName)
+      }
+    }
+  }
+  
+  /// Validate that an option value matches the expected type
+  /// - Parameters:
+  ///   - value: The option value
+  ///   - expectedType: The expected type
+  ///   - optionName: The name of the option for error messages
+  /// - Throws: ValidationError if the value doesn't match the expected type
+  private func validateOptionValueType(_ value: OptionNode.Value, expectedType: TypeNode, optionName: String) throws {
+    switch expectedType {
+    case .scalar(let scalarType):
+      switch scalarType {
+      case .string, .bytes:
+        guard case .string = value else {
+          throw ValidationError.invalidOptionValue("Option (\(optionName)) must be a string")
+        }
+        
+      case .int32, .int64, .uint32, .uint64, .sint32, .sint64, .fixed32, .fixed64, .sfixed32, .sfixed64, .float, .double:
+        guard case .number = value else {
+          throw ValidationError.invalidOptionValue("Option (\(optionName)) must be a number")
+        }
+        
+      case .bool:
+        guard case .identifier(let id) = value, id == "true" || id == "false" else {
+          throw ValidationError.invalidOptionValue("Option (\(optionName)) must be a boolean (true or false)")
+        }
+      }
+      
+    case .named(let typeName):
+      // For enum types, the value should be an identifier
+      if typeName.contains("Enum") || typeName.contains("ENUM") {
+        guard case .identifier = value else {
+          throw ValidationError.invalidOptionValue("Option (\(optionName)) must be an enum value")
+        }
+      }
+      
+    case .map:
+      throw ValidationError.invalidOptionValue("Map types are not supported for options")
+    }
+  }
+
+  /// Validate the syntax of a custom option
   /// - Parameter option: The option to validate
   /// - Throws: ValidationError if validation fails
-  private func validateCustomOption(_ option: OptionNode) throws {
+  private func validateCustomOptionSyntax(_ option: OptionNode) throws {
     // Custom option format must be (foo.bar.baz)
     let name = option.name.dropFirst().dropLast()  // Remove ( )
     let components = name.split(separator: ".")

@@ -8,12 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Planned support for custom options in Sprint 7
-- Planned completion of test coverage for all acceptance criteria from previous sprints
 
 ### Changed
-- Updated Sprint 7 plan to include both custom options support and test coverage completion
-- Updated Definition of Done for all sprints to include test coverage for all acceptance criteria
 
 ### Deprecated
 
@@ -22,6 +18,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Security
+
+## [0.2.0] - 2025-03-15
+
+### Added
+- Full support for custom options in proto3 files
+- Custom options at all levels (file, message, field, enum, enum value, service, method)
+- Support for nested fields in custom options using dot notation
+- Validation of option values against their defined types
+- Descriptor generation for custom options
+- Comprehensive test coverage for all acceptance criteria from previous sprints
+
+### Changed
+- Updated documentation to include custom options support
+- Enhanced symbol table to track option extensions
+- Improved validation for option values
 
 ## [0.1.0] - 2024-03-02
 

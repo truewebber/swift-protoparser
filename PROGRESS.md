@@ -13,7 +13,7 @@ This document tracks the progress of the SwiftProtoParser project through its de
 | Sprint 4 | Descriptor Generation | ✅ COMPLETED | March 2, 2024 |
 | Sprint 5 | Source Info and API Refinement | ✅ COMPLETED | March 2, 2024 |
 | Sprint 6 | Testing, Documentation, and Release | ✅ COMPLETED | March 2, 2024 |
-| Sprint 7 | Custom Options Support and Test Coverage Completion | 📅 PLANNED | TBD |
+| Sprint 7 | Custom Options Support and Test Coverage Completion | ✅ COMPLETED | March 15, 2025 |
 
 ## Detailed Sprint Progress
 
@@ -115,7 +115,7 @@ This document tracks the progress of the SwiftProtoParser project through its de
 | Refine the public API | ✅ COMPLETED | ProtoParser.swift implemented |
 | Provide both synchronous and asynchronous methods | ✅ COMPLETED | Implemented in ProtoParser.swift |
 | Use Swift error handling | ✅ COMPLETED | Implemented throughout the codebase |
-| Implement custom options support | ❌ NOT IMPLEMENTED | Moved to Sprint 7 |
+| Implement custom options support | ✅ COMPLETED | Moved to and completed in Sprint 7 |
 
 ### Sprint 6: Testing, Documentation, and Release ✅
 
@@ -136,28 +136,28 @@ This document tracks the progress of the SwiftProtoParser project through its de
 | Set up package registry publishing | ✅ COMPLETED | Package.swift configured for publishing |
 | Create release tags | ✅ COMPLETED | Ready for tagging v0.1.0 |
 
-### Sprint 7: Custom Options Support and Test Coverage Completion 📅
+### Sprint 7: Custom Options Support and Test Coverage Completion ✅
 
 | User Story | Status | Notes |
 |------------|--------|-------|
-| Define AST node types for custom options | 📅 PLANNED | Need to create option-specific AST nodes |
-| Extend Parser to handle option definitions | 📅 PLANNED | Update Parser.swift to handle custom option syntax |
-| Implement support for file-level options | 📅 PLANNED | Add support in FileNode and related validators |
-| Implement support for message-level options | 📅 PLANNED | Add support in MessageNode and related validators |
-| Implement support for field-level options | 📅 PLANNED | Add support in FieldNode and related validators |
-| Implement support for enum-level options | 📅 PLANNED | Add support in EnumNode and related validators |
-| Implement support for enum value-level options | 📅 PLANNED | Add support in EnumValueNode and related validators |
-| Implement support for service-level options | 📅 PLANNED | Add support in ServiceNode and related validators |
-| Implement support for method-level options | 📅 PLANNED | Add support in MethodNode and related validators |
-| Implement option type resolution | 📅 PLANNED | Add support for resolving option types |
-| Implement option value validation | 📅 PLANNED | Add validation for option values |
-| Update DescriptorGenerator for custom options | 📅 PLANNED | Modify DescriptorGenerator to handle custom options |
-| Add tests for custom options | 📅 PLANNED | Create comprehensive tests for custom options |
-| Update documentation for custom options | 📅 PLANNED | Update README and other docs to reflect custom options support |
-| Create Descriptor Generation Tests | 📅 PLANNED | Add tests for DescriptorGenerator from Sprint 4 |
-| Create Source Info Generation Tests | 📅 PLANNED | Add tests for SourceInfoGenerator from Sprint 5 |
-| Create Configuration Tests | 📅 PLANNED | Add tests for Configuration from Sprint 5 |
-| Create Public API Tests | 📅 PLANNED | Add tests for ProtoParser from Sprint 5 |
+| Define AST node types for custom options | ✅ COMPLETED | Extended OptionNode to support custom options |
+| Extend Parser to handle option definitions | ✅ COMPLETED | Updated Parser.swift to handle custom option syntax |
+| Implement support for file-level options | ✅ COMPLETED | Added support in FileNode and related validators |
+| Implement support for message-level options | ✅ COMPLETED | Added support in MessageNode and related validators |
+| Implement support for field-level options | ✅ COMPLETED | Added support in FieldNode and related validators |
+| Implement support for enum-level options | ✅ COMPLETED | Added support in EnumNode and related validators |
+| Implement support for enum value-level options | ✅ COMPLETED | Added support in EnumValueNode and related validators |
+| Implement support for service-level options | ✅ COMPLETED | Added support in ServiceNode and related validators |
+| Implement support for method-level options | ✅ COMPLETED | Added support in MethodNode and related validators |
+| Implement option type resolution | ✅ COMPLETED | Enhanced SymbolTable to track option extensions |
+| Implement option value validation | ✅ COMPLETED | Added validation for option values |
+| Update DescriptorGenerator for custom options | ✅ COMPLETED | Modified DescriptorGenerator to handle custom options |
+| Add tests for custom options | ✅ COMPLETED | Created CustomOptionsTests.swift |
+| Update documentation for custom options | ✅ COMPLETED | Updated README and other docs |
+| Create Descriptor Generation Tests | ✅ COMPLETED | Added DescriptorGeneratorTests.swift |
+| Create Source Info Generation Tests | ✅ COMPLETED | Added SourceInfoGeneratorTests.swift |
+| Create Configuration Tests | ✅ COMPLETED | Added ConfigurationTests.swift |
+| Create Public API Tests | ✅ COMPLETED | Added ProtoParserTests.swift |
 
 ## Legend
 

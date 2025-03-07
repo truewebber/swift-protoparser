@@ -1,5 +1,52 @@
 # Release Notes
 
+## Version 0.2.0 (Custom Options Support)
+
+We're excited to announce the release of SwiftProtoParser 0.2.0, which adds full support for custom options in proto3 files.
+
+### New Features
+
+- **Custom Options Support**: Parse and validate custom options at all levels (file, message, field, enum, enum value, service, method).
+- **Nested Fields Support**: Handle nested fields in custom options using dot notation.
+- **Type Resolution**: Resolve option types from the symbol table, including those from imported files.
+- **Value Validation**: Validate option values against their defined types, including repeated and map options.
+- **Descriptor Generation**: Generate UninterpretedOption objects for custom options in descriptors.
+
+### Improvements
+
+- **Enhanced Symbol Table**: Track option extensions for type resolution.
+- **Improved Validation**: Validate option values against their defined types.
+- **Comprehensive Test Coverage**: Added tests for all acceptance criteria from previous sprints.
+- **Updated Documentation**: Added examples and documentation for custom options.
+
+### Example Usage
+
+```swift
+// Define custom options in your proto file
+import "google/protobuf/descriptor.proto";
+
+extend google.protobuf.FileOptions {
+  string my_file_option = 50000;
+}
+
+extend google.protobuf.MessageOptions {
+  int32 my_message_option = 50001;
+}
+
+// Use custom options
+option (my_file_option) = "Hello, world!";
+
+message MyMessage {
+  option (my_message_option) = 42;
+  // ...
+}
+```
+
+### Requirements
+
+- Swift 5.9+
+- macOS 13.0+ or iOS 16.0+
+
 ## Version 0.1.0 (Initial Release)
 
 We're excited to announce the initial release of SwiftProtoParser, a Swift library for parsing Protocol Buffer (proto3) files into protocol buffer descriptors.

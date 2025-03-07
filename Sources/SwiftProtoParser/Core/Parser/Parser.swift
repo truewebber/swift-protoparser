@@ -584,27 +584,62 @@ public final class Parser {
     try expectToken(.option)
     let optionLocation = currentToken.location
 
-    let name = try parseOptionName()
-    try expectToken(.equals)
-    let value = try parseOptionValue()
-    try expectToken(.semicolon)
-
-    return OptionNode(
-      location: optionLocation,
-      leadingComments: currentToken.leadingComments,
-      trailingComment: currentToken.trailingComment,
-      name: name,
-      value: value
-    )
+    // Check if this is a custom option with parentheses
+    if check(.leftParen) {
+      try expectToken(.leftParen)
+      let extensionName = try parseQualifiedIdentifier()
+      try expectToken(.rightParen)
+      
+      // Check for nested fields (dot notation)
+      var nestedFields: [String] = []
+      while check(.period) {
+        try expectToken(.period)
+        let fieldName = try parseIdentifier()
+        nestedFields.append(fieldName)
+      }
+      
+      try expectToken(.equals)
+      let value = try parseOptionValue()
+      try expectToken(.semicolon)
+      
+      // Create path parts for the custom option
+      var pathParts: [OptionNode.PathPart] = [OptionNode.PathPart(name: extensionName, isExtension: true)]
+      
+      // Add nested fields as path parts
+      for field in nestedFields {
+        pathParts.append(OptionNode.PathPart(name: field, isExtension: false))
+      }
+      
+      // Create the option name string
+      let optionName = "(\(extensionName))" + (nestedFields.isEmpty ? "" : "." + nestedFields.joined(separator: "."))
+      
+      return OptionNode(
+        location: optionLocation,
+        leadingComments: currentToken.leadingComments,
+        trailingComment: currentToken.trailingComment,
+        name: optionName,
+        value: value,
+        pathParts: pathParts,
+        isCustomOption: true
+      )
+    } else {
+      // Regular option
+      let name = try parseOptionName()
+      try expectToken(.equals)
+      let value = try parseOptionValue()
+      try expectToken(.semicolon)
+      
+      return OptionNode(
+        location: optionLocation,
+        leadingComments: currentToken.leadingComments,
+        trailingComment: currentToken.trailingComment,
+        name: name,
+        value: value
+      )
+    }
   }
 
   private func parseOptionName() throws -> String {
-    if currentToken.type == .leftParen {
-      try expectToken(.leftParen)
-      let name = try parseQualifiedIdentifier()
-      try expectToken(.rightParen)
-      return "(\(name))"
-    }
     return try parseIdentifier()
   }
 
@@ -683,14 +718,38 @@ public final class Parser {
     // Handle custom options with parentheses
     if check(.leftParen) {
       try expectToken(.leftParen)
-      let name = try parseQualifiedIdentifier()
+      let extensionName = try parseQualifiedIdentifier()
       try expectToken(.rightParen)
+      
+      // Check for nested fields (dot notation)
+      var nestedFields: [String] = []
+      while check(.period) {
+        try expectToken(.period)
+        let fieldName = try parseIdentifier()
+        nestedFields.append(fieldName)
+      }
+      
       try expectToken(.equals)
       let value = try parseOptionValue()
+      
+      // Create path parts for the custom option
+      var pathParts: [OptionNode.PathPart] = [OptionNode.PathPart(name: extensionName, isExtension: true)]
+      
+      // Add nested fields as path parts
+      for field in nestedFields {
+        pathParts.append(OptionNode.PathPart(name: field, isExtension: false))
+      }
+      
+      // Create the option name string
+      let optionName = "(\(extensionName))" + (nestedFields.isEmpty ? "" : "." + nestedFields.joined(separator: "."))
+      
+      // Create a custom option with the extension name and any nested fields
       return OptionNode(
         location: currentToken.location,
-        name: "(\(name))",
-        value: value
+        name: optionName,
+        value: value,
+        pathParts: pathParts,
+        isCustomOption: true
       )
     }
 
@@ -698,7 +757,7 @@ public final class Parser {
     let name = try parseIdentifier()
     try expectToken(.equals)
     let value = try parseOptionValue()
-
+    
     return OptionNode(
       location: currentToken.location,
       name: name,

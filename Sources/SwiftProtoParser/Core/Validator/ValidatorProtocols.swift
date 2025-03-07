@@ -183,6 +183,13 @@ protocol OptionValidating {
   /// - Parameter options: The options to validate
   /// - Throws: ValidationError if validation fails
   func validateMethodOptions(_ options: [OptionNode]) throws
+  
+  /// Validate a custom option
+  /// - Parameters:
+  ///   - option: The option to validate
+  ///   - symbolTable: The symbol table for type resolution
+  /// - Throws: ValidationError if validation fails
+  func validateCustomOption(_ option: OptionNode, symbolTable: SymbolTable?) throws
 }
 
 // MARK: - Reference Validation

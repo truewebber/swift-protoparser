@@ -444,7 +444,7 @@ extension DescriptorGenerator {
         fileOptions.phpNamespace = value
 
       default:
-        if option.name.hasPrefix("(") {
+        if option.isCustomOption {
           try processCustomOption(option, into: &fileOptions)
         } else {
           throw DescriptorGeneratorError.unsupportedOption(option.name)
@@ -490,7 +490,7 @@ extension DescriptorGenerator {
         messageOptions.mapEntry = value == "true"
 
       default:
-        if option.name.hasPrefix("(") {
+        if option.isCustomOption {
           try processCustomOption(option, into: &messageOptions)
         } else {
           throw DescriptorGeneratorError.unsupportedOption(option.name)
@@ -564,7 +564,7 @@ extension DescriptorGenerator {
         fieldOptions.weak = value == "true"
 
       default:
-        if option.name.hasPrefix("(") {
+        if option.isCustomOption {
           try processCustomOption(option, into: &fieldOptions)
         } else {
           throw DescriptorGeneratorError.unsupportedOption(option.name)
@@ -596,7 +596,7 @@ extension DescriptorGenerator {
         enumOptions.deprecated = value == "true"
 
       default:
-        if option.name.hasPrefix("(") {
+        if option.isCustomOption {
           try processCustomOption(option, into: &enumOptions)
         } else {
           throw DescriptorGeneratorError.unsupportedOption(option.name)
@@ -622,7 +622,7 @@ extension DescriptorGenerator {
         enumValueOptions.deprecated = value == "true"
 
       default:
-        if option.name.hasPrefix("(") {
+        if option.isCustomOption {
           try processCustomOption(option, into: &enumValueOptions)
         } else {
           throw DescriptorGeneratorError.unsupportedOption(option.name)
@@ -648,7 +648,7 @@ extension DescriptorGenerator {
         serviceOptions.deprecated = value == "true"
 
       default:
-        if option.name.hasPrefix("(") {
+        if option.isCustomOption {
           try processCustomOption(option, into: &serviceOptions)
         } else {
           throw DescriptorGeneratorError.unsupportedOption(option.name)
@@ -691,7 +691,7 @@ extension DescriptorGenerator {
         }
 
       default:
-        if option.name.hasPrefix("(") {
+        if option.isCustomOption {
           try processCustomOption(option, into: &methodOptions)
         } else {
           throw DescriptorGeneratorError.unsupportedOption(option.name)
@@ -709,7 +709,7 @@ extension DescriptorGenerator {
     var oneofOptions = Google_Protobuf_OneofOptions()
 
     for option in options {
-      if option.name.hasPrefix("(") {
+      if option.isCustomOption {
         try processCustomOption(option, into: &oneofOptions)
       } else {
         throw DescriptorGeneratorError.unsupportedOption(option.name)
@@ -723,9 +723,126 @@ extension DescriptorGenerator {
     _ option: OptionNode,
     into options: inout T
   ) throws {
-    // Custom options processing would go here
-    // This requires additional work to handle extension fields
-    throw DescriptorGeneratorError.unsupportedOption("Custom options are not yet supported")
+    // Create an UninterpretedOption for the custom option
+    var uninterpretedOption = Google_Protobuf_UninterpretedOption()
+    
+    // Process the path parts
+    for part in option.pathParts {
+      var namePart = Google_Protobuf_UninterpretedOption.NamePart()
+      namePart.namePart = part.name
+      namePart.isExtension = part.isExtension
+      uninterpretedOption.name.append(namePart)
+    }
+    
+    // Set the value based on the option value type
+    switch option.value {
+    case .string(let stringValue):
+      uninterpretedOption.stringValue = stringValue.data(using: .utf8)!
+    case .number(let doubleValue):
+      if doubleValue.truncatingRemainder(dividingBy: 1) == 0 {
+        // It's an integer
+        if doubleValue >= 0 {
+          uninterpretedOption.positiveIntValue = UInt64(doubleValue)
+        } else {
+          uninterpretedOption.negativeIntValue = Int64(doubleValue)
+        }
+      } else {
+        // It's a floating point
+        uninterpretedOption.doubleValue = doubleValue
+      }
+    case .identifier(let identValue):
+      uninterpretedOption.identifierValue = identValue
+    case .array(let arrayValue):
+      // Serialize array values to a string representation
+      let serialized = try serializeArrayValue(arrayValue)
+      uninterpretedOption.stringValue = serialized.data(using: .utf8)!
+    case .map(let mapValue):
+      // Serialize map values to a string representation
+      let serialized = try serializeMapValue(mapValue)
+      uninterpretedOption.stringValue = serialized.data(using: .utf8)!
+    }
+    
+    // Add the uninterpreted option to the options
+    if var optionsMessage = options as? Google_Protobuf_FileOptions {
+      optionsMessage.uninterpretedOption.append(uninterpretedOption)
+      options = optionsMessage as! T
+    } else if var optionsMessage = options as? Google_Protobuf_MessageOptions {
+      optionsMessage.uninterpretedOption.append(uninterpretedOption)
+      options = optionsMessage as! T
+    } else if var optionsMessage = options as? Google_Protobuf_FieldOptions {
+      optionsMessage.uninterpretedOption.append(uninterpretedOption)
+      options = optionsMessage as! T
+    } else if var optionsMessage = options as? Google_Protobuf_EnumOptions {
+      optionsMessage.uninterpretedOption.append(uninterpretedOption)
+      options = optionsMessage as! T
+    } else if var optionsMessage = options as? Google_Protobuf_EnumValueOptions {
+      optionsMessage.uninterpretedOption.append(uninterpretedOption)
+      options = optionsMessage as! T
+    } else if var optionsMessage = options as? Google_Protobuf_ServiceOptions {
+      optionsMessage.uninterpretedOption.append(uninterpretedOption)
+      options = optionsMessage as! T
+    } else if var optionsMessage = options as? Google_Protobuf_MethodOptions {
+      optionsMessage.uninterpretedOption.append(uninterpretedOption)
+      options = optionsMessage as! T
+    } else if var optionsMessage = options as? Google_Protobuf_OneofOptions {
+      optionsMessage.uninterpretedOption.append(uninterpretedOption)
+      options = optionsMessage as! T
+    } else {
+      throw DescriptorGeneratorError.unsupportedOption("Unsupported options type: \(T.self)")
+    }
+  }
+  
+  // Helper method to serialize array values to a string
+  private func serializeArrayValue(_ array: [OptionNode.Value]) throws -> String {
+    var components: [String] = []
+    
+    for value in array {
+      switch value {
+      case .string(let stringValue):
+        components.append("\"\(stringValue.replacingOccurrences(of: "\"", with: "\\\""))\"")
+      case .number(let doubleValue):
+        components.append(String(doubleValue))
+      case .identifier(let identValue):
+        components.append(identValue)
+      case .array(let nestedArray):
+        let serialized = try serializeArrayValue(nestedArray)
+        components.append("[\(serialized)]")
+      case .map(let nestedMap):
+        let serialized = try serializeMapValue(nestedMap)
+        components.append("{\(serialized)}")
+      }
+    }
+    
+    return components.joined(separator: ", ")
+  }
+  
+  // Helper method to serialize map values to a string
+  private func serializeMapValue(_ map: [String: OptionNode.Value]) throws -> String {
+    var components: [String] = []
+    
+    for (key, value) in map {
+      let serializedKey = key
+      let serializedValue: String
+      
+      switch value {
+      case .string(let stringValue):
+        serializedValue = "\"\(stringValue.replacingOccurrences(of: "\"", with: "\\\""))\""
+      case .number(let doubleValue):
+        serializedValue = String(doubleValue)
+      case .identifier(let identValue):
+        serializedValue = identValue
+      case .array(let nestedArray):
+        let serialized = try serializeArrayValue(nestedArray)
+        serializedValue = "[\(serialized)]"
+      case .map(let nestedMap):
+        let serialized = try serializeMapValue(nestedMap)
+        serializedValue = "{\(serialized)}"
+      }
+      
+      components.append("\(serializedKey): \(serializedValue)")
+    }
+    
+    return components.joined(separator: ", ")
   }
 }
 

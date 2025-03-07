@@ -11,6 +11,7 @@ public final class Symbol {
     case enumValue
     case oneof
     case rpc
+    case extensionField
   }
 
   /// The fully qualified name of the symbol
@@ -30,6 +31,12 @@ public final class Symbol {
 
   /// Child symbols (for nested types)
   public private(set) var children: [Symbol] = []
+  
+  /// For extension symbols, this stores the field number
+  public let fieldNumber: Int?
+  
+  /// For extension symbols, this stores the target type being extended
+  public let extendedType: String?
 
   /// Initialize a new symbol
   /// - Parameters:
@@ -38,18 +45,24 @@ public final class Symbol {
   ///   - node: Associated node
   ///   - package: Package name
   ///   - parent: Parent symbol
+  ///   - fieldNumber: Field number (for extensions)
+  ///   - extendedType: Type being extended (for extensions)
   public init(
     fullName: String,
     kind: Kind,
     node: Node,
     package: String?,
-    parent: Symbol? = nil
+    parent: Symbol? = nil,
+    fieldNumber: Int? = nil,
+    extendedType: String? = nil
   ) {
     self.fullName = fullName
     self.kind = kind
     self.node = node
     self.package = package
     self.parent = parent
+    self.fieldNumber = fieldNumber
+    self.extendedType = extendedType
   }
 
   /// Add a child symbol
@@ -66,6 +79,9 @@ public final class SymbolTable {
 
   /// Map of package names to symbols in that package
   private var packageSymbols: [String: Set<Symbol>] = [:]
+  
+  /// Map of extended types to their extensions
+  private var extensions: [String: [Symbol]] = [:]
 
   /// Initialize a new symbol table
   public init() {}
@@ -111,6 +127,84 @@ public final class SymbolTable {
       packageSet.insert(symbol)
       packageSymbols[package] = packageSet
     }
+  }
+  
+  /// Add an extension field to the table
+  /// - Parameters:
+  ///   - field: The field node
+  ///   - extendedType: The type being extended
+  ///   - package: The package name
+  ///   - parent: The parent symbol, if any
+  /// - Throws: SymbolTableError if extension already exists
+  public func addExtension(
+    _ field: FieldNode,
+    extendedType: String,
+    package: String?,
+    parent: Symbol? = nil
+  ) throws {
+    let name = field.name
+    let fullName = package.map { "\($0).\(name)" } ?? name
+    
+    guard symbols[fullName] == nil else {
+      throw SymbolTableError.duplicateSymbol(fullName)
+    }
+    
+    // Create a symbol for the extension
+    let symbol = Symbol(
+      fullName: fullName,
+      kind: .extensionField,
+      node: field,
+      package: package,
+      parent: parent,
+      fieldNumber: field.number,
+      extendedType: extendedType
+    )
+    
+    // Add to symbols
+    symbols[fullName] = symbol
+    
+    // Add to extensions map
+    var extensionList = extensions[extendedType, default: []]
+    extensionList.append(symbol)
+    extensions[extendedType] = extensionList
+    
+    // Add to package symbols
+    if let package = package {
+      var packageSet = packageSymbols[package, default: Set()]
+      packageSet.insert(symbol)
+      packageSymbols[package] = packageSet
+    }
+  }
+  
+  /// Look up extensions for a specific type
+  /// - Parameter typeName: The fully qualified name of the type
+  /// - Returns: Array of extension symbols
+  public func lookupExtensions(for typeName: String) -> [Symbol] {
+    return extensions[typeName] ?? []
+  }
+  
+  /// Resolve an option extension name to its field type
+  /// - Parameter extensionName: The fully qualified name of the extension
+  /// - Returns: The field type if found
+  public func resolveOptionType(for extensionName: String) -> TypeNode? {
+    guard let symbol = symbols[extensionName], symbol.kind == .extensionField else {
+      return nil
+    }
+    
+    // Cast to FieldNode to get the type
+    if let fieldNode = symbol.node as? FieldNode {
+      return fieldNode.type
+    }
+    
+    return nil
+  }
+  
+  /// Check if a name is an extension field
+  /// - Parameter name: The name to check
+  /// - Returns: True if the name is an extension field
+  public func isExtension(_ name: String) -> Bool {
+    guard let symbol = symbols[name] else { return false }
+    return symbol.kind == .extensionField
   }
 
   /// Look up a symbol by its fully qualified name
@@ -165,6 +259,7 @@ public final class SymbolTable {
   public func clear() {
     symbols.removeAll()
     packageSymbols.removeAll()
+    extensions.removeAll()
   }
 
   // MARK: - Private Helper Methods
@@ -196,6 +291,8 @@ public enum SymbolTableError: Error, CustomStringConvertible {
   case duplicateSymbol(String)
   case invalidSymbolName(String)
   case undefinedSymbol(String)
+  case invalidExtension(String)
+  case invalidOptionType(String)
 
   public var description: String {
     switch self {
@@ -205,6 +302,10 @@ public enum SymbolTableError: Error, CustomStringConvertible {
       return "Invalid symbol name: \(name)"
     case .undefinedSymbol(let name):
       return "Undefined symbol: \(name)"
+    case .invalidExtension(let name):
+      return "Invalid extension: \(name)"
+    case .invalidOptionType(let name):
+      return "Invalid option type: \(name)"
     }
   }
 }
