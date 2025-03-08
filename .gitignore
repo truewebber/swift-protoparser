@@ -12,3 +12,5 @@ Package.resolved
 
 # Coverage files
 coverage.lcov
+# Coverage analysis reports
+Tools/CodeCoverage/analysis/
