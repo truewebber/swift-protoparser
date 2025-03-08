@@ -140,5 +140,5 @@ SwiftProtoParser is under active development. Check the [coverage tracking docum
 ---
 
 <div align="center">
-  <sub>Built with ❤️ by truewebber</sub>
+  <sub>Built with ❤️ by <a href="https://truewebber.com">truewebber</a></sub>
 </div>
