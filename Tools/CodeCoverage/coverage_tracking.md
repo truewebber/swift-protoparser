@@ -7,24 +7,24 @@ This document tracks the test coverage progress for each component of the SwiftP
 | Component | Initial Coverage | Current Coverage | Target Coverage | Status |
 |-----------|-----------------|------------------|----------------|--------|
 | Lexer | ~85% | 82.0% | 100% | ✅ Good Progress |
-| Parser | ~80% | 74.0% | 100% | ✅ Good Progress |
-| AST Nodes | ~50% | 52.8% | 100% | 🔄 In Progress |
-| - EnumNode | ~13% | 93.89% | 100% | ✅ Good Progress |
-| - ServiceNode | ~11% | 11.45% | 100% | 📅 Planned |
-| - ExtendNode | ~38% | 37.97% | 100% | 📅 Planned |
-| - FieldNode | ~35% | 34.60% | 100% | 📅 Planned |
-| - MessageNode | ~53% | 52.66% | 100% | 📅 Planned |
-| - FileNode | ~74% | 73.91% | 100% | 📅 Planned |
-| - Node | ~59% | 59.46% | 100% | 📅 Planned |
-| Validator | ~85% | 51.2% | 100% | 📅 Planned |
-| Symbol Resolution | ~80% | 94.7% | 100% | ✅ Good Progress |
+| Parser | ~80% | 74.2% | 100% | ✅ Good Progress |
+| AST Nodes | ~50% | 53.1% | 100% | 🔄 In Progress |
+| - EnumNode | ~13% | 96.6% | 100% | ✅ Good Progress |
+| - ServiceNode | ~11% | 15.3% | 100% | ✅ Started |
+| - ExtendNode | ~38% | 40.0% | 100% | 🔄 In Progress |
+| - FieldNode | ~35% | 37.2% | 100% | 🔄 In Progress |
+| - MessageNode | ~53% | 54.2% | 100% | 🔄 In Progress |
+| - FileNode | ~74% | 76.9% | 100% | ✅ Good Progress |
+| - Node | ~59% | 59.5% | 100% | 🔄 In Progress |
+| Validator | ~85% | 51.2% | 100% | 🔄 In Progress |
+| Symbol Resolution | ~80% | 95.3% | 100% | ✅ Good Progress |
 | Import Resolution | ~75% | 100.0% | 100% | ✅ Complete |
 | Descriptor Generation | ~85% | 68.8% | 100% | 🔄 In Progress |
 | Source Info Generation | ~80% | 89.8% | 100% | ✅ Good Progress |
 | Configuration | ~90% | 97.1% | 100% | ✅ Good Progress |
 | Public API | ~85% | 62.9% | 100% | 🔄 In Progress |
 | Error Handling | ~75% | 22.6% | 100% | ⚠️ Needs Attention |
-| Overall | ~82% | 40.3% | >95% | 🔄 In Progress |
+| Overall | ~82% | 42.8% | >95% | 🔄 In Progress |
 
 ## Detailed Coverage Analysis
 
@@ -67,7 +67,7 @@ This document tracks the test coverage progress for each component of the SwiftP
 ### ServiceNode
 
 #### Uncovered Code Areas
-- Most of the implementation (only 11.45% covered)
+- Most of the implementation (only 15.3% covered)
 - Method validation
 - Option validation
 
@@ -77,9 +77,12 @@ This document tracks the test coverage progress for each component of the SwiftP
 - Validation tests
 
 #### Action Items
-- [ ] Create comprehensive positive tests
-- [ ] Create comprehensive negative tests
-- [ ] Create comprehensive corner case tests
+- [x] Create basic initialization tests
+- [x] Create basic RPC method tests
+- [x] Create basic streaming RPC tests
+- [x] Create basic option tests
+- [ ] Create more comprehensive validation tests
+- [ ] Create more comprehensive error handling tests
 
 ### Parser
 
