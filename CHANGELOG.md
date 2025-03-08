@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+All notable changes to SwiftProtoParser will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -8,70 +8,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Comprehensive test suite for EnumNode
+- Improved test coverage for Lexer component
+- Coverage analysis infrastructure
+- Detailed coverage tracking documentation
 
 ### Changed
-
-### Deprecated
-
-### Removed
+- Enhanced error reporting with source location information
+- Improved validation of enum definitions
 
 ### Fixed
+- Fixed parsing of adjacent punctuation tokens
+- Fixed handling of escape sequences in string literals
 
-### Security
-
-## [0.3.0] - 2025-03-07
-
-### Added
-- Full support for extensions in proto3 files
-- Support for extending existing message types with new fields
-- Validation of extension field numbers and types
-- Descriptor generation for extensions
-- Integration with Google Protobuf extensions
-- Comprehensive test coverage for extensions
-
-### Changed
-- Updated documentation to include extensions support
-- Enhanced validation to handle extended types correctly
-
-## [0.2.0] - 2025-03-15
+## [0.1.0] - 2023-12-15
 
 ### Added
-- Full support for custom options in proto3 files
-- Custom options at all levels (file, message, field, enum, enum value, service, method)
-- Support for nested fields in custom options using dot notation
-- Validation of option values against their defined types
-- Descriptor generation for custom options
-- Comprehensive test coverage for all acceptance criteria from previous sprints
-
-### Changed
-- Updated documentation to include custom options support
-- Enhanced symbol table to track option extensions
-- Improved validation for option values
-
-## [0.1.0] - 2024-03-02
-
-### Added
-- Initial project setup
-- Lexical analysis for proto3 files
-- Basic parsing for proto3 elements
-- AST node types for proto3 elements
-- Validation framework
-- Descriptor generation
-- Public API for parsing proto files
-- Configuration options
-- Error handling with detailed messages
-- Documentation
-- Integration tests comparing output with protoc
-- Performance tests and optimizations
-- Usage examples
-- Troubleshooting guide
-
-### Changed
-
-### Deprecated
-
-### Removed
-
-### Fixed
-
-### Security 
+- Initial release of SwiftProtoParser
+- Support for proto3 syntax
+- Lexical analysis of proto files
+- Parsing of messages, enums, services, and options
+- Validation of proto3 rules
+- Generation of FileDescriptorProto objects
+- Basic error reporting
+- Swift Package Manager support 

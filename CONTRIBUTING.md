@@ -1,104 +1,81 @@
 # Contributing to SwiftProtoParser
 
-Thank you for your interest in contributing to SwiftProtoParser! This document provides guidelines and instructions for contributing to the project.
+Thank you for your interest in contributing to SwiftProtoParser! This document provides guidelines and instructions for contributing to this project.
 
 ## Code of Conduct
 
-Please be respectful and considerate of others when contributing to this project.
+By participating in this project, you agree to maintain a respectful and inclusive environment for everyone.
 
-## Getting Started
+## How to Contribute
+
+### Reporting Bugs
+
+If you find a bug, please create an issue with the following information:
+
+1. A clear, descriptive title
+2. Steps to reproduce the issue
+3. Expected behavior
+4. Actual behavior
+5. Any relevant logs or screenshots
+6. Your environment (Swift version, OS, etc.)
+
+### Suggesting Enhancements
+
+We welcome suggestions for enhancements! Please create an issue with:
+
+1. A clear, descriptive title
+2. A detailed description of the proposed enhancement
+3. Any relevant examples or use cases
+
+### Pull Requests
 
 1. Fork the repository
-2. Clone your fork: `git clone https://github.com/YOUR_USERNAME/swift-protoparser.git`
-3. Create a new branch for your feature or bugfix: `git checkout -b feature/your-feature-name`
-4. Make your changes
-5. Run tests to ensure everything works: `swift test`
-6. Commit your changes: `git commit -m "Add your feature"`
-7. Push to your fork: `git push origin feature/your-feature-name`
-8. Create a pull request
+2. Create a new branch (`git checkout -b feature/amazing-feature`)
+3. Make your changes
+4. Run the tests to ensure they pass (`swift test`)
+5. Commit your changes (`git commit -m 'Add some amazing feature'`)
+6. Push to the branch (`git push origin feature/amazing-feature`)
+7. Open a Pull Request
 
 ## Development Workflow
 
 ### Setting Up the Development Environment
 
-1. Make sure you have Xcode 15.0+ installed
-2. Install SwiftLint for code style checking
-3. Run `swift package resolve` to fetch dependencies
-
-### Building the Project
-
-```bash
-swift build
-```
+1. Clone the repository
+2. Run `swift package resolve` to fetch dependencies
+3. Open the package in Xcode or your preferred IDE
 
 ### Running Tests
 
 ```bash
+# Run all tests
 swift test
+
+# Run tests with code coverage
+swift test --enable-code-coverage
+
+# Generate coverage reports
+./Tools/CodeCoverage/run_coverage.sh
+./Tools/CodeCoverage/analyze_coverage.sh
 ```
 
-## Coding Guidelines
+### Coding Style
 
-### Swift Style Guide
+- Follow the Swift API Design Guidelines
+- Use meaningful variable and function names
+- Write clear comments for complex logic
+- Include documentation comments for public APIs
 
-- Follow the [Swift API Design Guidelines](https://swift.org/documentation/api-design-guidelines/)
-- Use Swift's native error handling with `throws`
-- Prefer value types over reference types when appropriate
-- Use clear, descriptive names for variables, functions, and types
+### Test Coverage
 
-### Documentation
+We aim for high test coverage. Please include tests for any new functionality or bug fixes. Check the current coverage status in the [coverage tracking document](Tools/CodeCoverage/coverage_tracking.md).
 
-- Document all public APIs using Swift's documentation comments
-- Include examples in documentation where helpful
-- Keep documentation up-to-date with code changes
+## Release Process
 
-### Testing
-
-- Write unit tests for all new functionality
-- Ensure existing tests pass with your changes
-- Aim for high test coverage
-
-## Pull Request Process
-
-1. Update the README.md or documentation with details of changes if appropriate
-2. Update the CHANGELOG.md with details of changes
-3. The PR should work on the main branch
-4. Include tests for new functionality
-5. Ensure the CI pipeline passes
-
-## Reporting Bugs
-
-When reporting bugs, please include:
-
-- A clear, descriptive title
-- Steps to reproduce the issue
-- Expected behavior
-- Actual behavior
-- Any relevant logs or error messages
-- Your environment (OS, Swift version, etc.)
-
-## Feature Requests
-
-Feature requests are welcome. Please provide:
-
-- A clear, descriptive title
-- A detailed description of the proposed feature
-- Any relevant examples or use cases
-- If possible, a rough implementation idea
-
-## Project Structure
-
-```
-SwiftProtoParser/
-├── Public/           # Public API
-├── Core/             # Core implementation
-│   ├── Lexer/        # Lexical analysis
-│   ├── Parser/       # Parsing
-│   │   └── AST/      # Abstract Syntax Tree
-│   ├── Validator/    # Validation
-│   └── Generator/    # Descriptor generation
-└── Models/           # Shared models
-```
+1. Update version numbers in relevant files
+2. Update the CHANGELOG.md
+3. Create a new GitHub release with release notes
+4. Tag the release with the version number
 
 ## License
 
