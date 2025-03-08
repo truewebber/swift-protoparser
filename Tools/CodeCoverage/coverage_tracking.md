@@ -17,7 +17,7 @@ This document tracks the test coverage progress for each component of the SwiftP
 | - FileNode | ~74% | 73.91% | 100% | 📅 Planned |
 | - Node | ~59% | 59.46% | 100% | 📅 Planned |
 | Validator | ~85% | 51.2% | 100% | 📅 Planned |
-| Symbol Resolution | ~80% | 1.9% | 100% | ⚠️ Needs Attention |
+| Symbol Resolution | ~80% | 94.7% | 100% | ✅ Good Progress |
 | Import Resolution | ~75% | 100.0% | 100% | ✅ Complete |
 | Descriptor Generation | ~85% | 68.8% | 100% | 🔄 In Progress |
 | Source Info Generation | ~80% | 89.8% | 100% | ✅ Good Progress |
@@ -115,17 +115,20 @@ This document tracks the test coverage progress for each component of the SwiftP
 ### Symbol Resolution
 
 #### Uncovered Code Areas
-- Almost the entire implementation (only 1.9% covered)
+- Small portions of the implementation (83.7% line coverage for SymbolTable.swift)
+- A few functions (91.1% function coverage for SymbolTable.swift)
 
 #### Test Gaps
-- Symbol lookup tests
-- Symbol resolution tests
-- Error handling tests
+- Some edge cases in symbol resolution
+- Some error handling paths
 
 #### Action Items
-- [ ] Create comprehensive positive tests
-- [ ] Create comprehensive negative tests
-- [ ] Create comprehensive corner case tests
+- [x] Create comprehensive positive tests
+- [x] Create comprehensive negative tests
+- [x] Create comprehensive tests for nested types
+- [x] Create comprehensive tests for extensions
+- [ ] Add tests for remaining edge cases
+- [ ] Add tests for remaining error handling paths
 
 ### Import Resolution
 
