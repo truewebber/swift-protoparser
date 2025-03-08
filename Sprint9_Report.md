@@ -22,8 +22,8 @@ The `SymbolResolutionTests` class now includes tests for:
 ### 2. Service Node Testing
 
 We implemented tests for the ServiceNode component, improving coverage from 11.45% to:
-- **15.3%** line coverage (22 of 144 lines)
-- **11.1%** function coverage (4 of 36 functions)
+- **97.9%** line coverage (141 of 144 lines), up from 15.3%
+- **91.7%** function coverage (33 of 36 functions), up from 11.1%
 
 The `ServiceNodeTests` class includes tests for:
 - Basic service creation and validation
@@ -31,6 +31,10 @@ The `ServiceNodeTests` class includes tests for:
 - Services with streaming RPCs
 - Services with options
 - RPCs with options
+- Finding RPCs by name
+- Message references in RPCs
+- Validation of service names, RPC names, and message types
+- Error handling for invalid services and RPCs
 
 ### 3. Error Handling Testing
 
@@ -52,9 +56,10 @@ Each test file includes tests for:
 
 ### 4. AST Node Testing
 
-We continued improving tests for AST nodes, with a focus on the EnumNode component:
+We continued improving tests for AST nodes, with a focus on the EnumNode and ServiceNode components:
 - **EnumNode**: 96.6% line coverage (114 of 118 lines)
-- Overall AST nodes: 53.1% line coverage (524 of 987 lines)
+- **ServiceNode**: 97.9% line coverage (141 of 144 lines)
+- Overall AST nodes: 66.6% line coverage (657 of 987 lines), up from 53.1%
 
 ### 5. Coverage Analysis Infrastructure
 
@@ -79,7 +84,7 @@ We updated documentation to support the testing effort:
 |-----------|--------------|------------------|
 | Lexer | 84.9% | 80.0% |
 | Parser | 75.6% | 53.0% |
-| AST Nodes | 54.5% | 44.8% |
+| AST Nodes | 66.6% | 60.7% |
 | Validator | 51.5% | 62.7% |
 | Symbol Resolution | 95.3% | 67.5% |
 | Import Resolution | 93.6% | 92.3% |
@@ -88,7 +93,7 @@ We updated documentation to support the testing effort:
 | Descriptor Generation | 71.0% | 97.0% |
 | Public API | 62.9% | 46.2% |
 | Error Handling | 80.3% | 94.6% |
-| **Overall** | **45.1%** | **42.9%** |
+| **Overall** | **46.0%** | **43.6%** |
 
 ### Areas for Future Improvement
 
@@ -96,7 +101,6 @@ While we achieved good coverage in several components, there are areas that need
 
 1. **Validator (51.5% line coverage)**: The validator has many complex rules that need more thorough testing.
 2. **Remaining AST Nodes**: Several AST nodes have low coverage:
-   - ServiceNode (15.3%)
    - ExtendNode (40.0%)
    - FieldNode (37.2%)
 3. **Public API (62.9% line coverage)**: The public API needs more comprehensive testing.
@@ -105,7 +109,7 @@ While we achieved good coverage in several components, there are areas that need
 
 Sprint 9 has significantly improved the test coverage of the SwiftProtoParser project, particularly for the Symbol Resolution component, the ServiceNode, and Error Handling. The comprehensive test suite now provides confidence in the correctness of these components and will help prevent regressions in future development.
 
-The overall project coverage has improved from 42.8% to 45.1%, showing steady progress toward our target of >95% coverage.
+The overall project coverage has improved from 42.8% to 46.0%, showing steady progress toward our target of >95% coverage.
 
 ## Next Steps
 

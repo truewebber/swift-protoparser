@@ -137,6 +137,13 @@ final class ServiceNodeTests: XCTestCase {
         
         XCTAssertTrue(serviceNode.rpcs[2].clientStreaming, "Chat should have client streaming")
         XCTAssertTrue(serviceNode.rpcs[2].serverStreaming, "Chat should have server streaming")
+        
+        // Test streamingRPCs method
+        let streamingRPCs = serviceNode.streamingRPCs()
+        XCTAssertEqual(streamingRPCs.count, 3, "All RPCs should be streaming")
+        XCTAssertTrue(streamingRPCs.contains { $0.name == "StreamUsers" }, "StreamUsers should be in streaming RPCs")
+        XCTAssertTrue(streamingRPCs.contains { $0.name == "UploadUsers" }, "UploadUsers should be in streaming RPCs")
+        XCTAssertTrue(streamingRPCs.contains { $0.name == "Chat" }, "Chat should be in streaming RPCs")
     }
     
     /**
@@ -242,6 +249,469 @@ final class ServiceNodeTests: XCTestCase {
             XCTAssertEqual(value, 30.5, "Timeout option value should match")
         } else {
             XCTFail("Expected number value")
+        }
+    }
+    
+    // MARK: - RPC Management Tests
+    
+    /**
+     * Test finding an RPC by name
+     *
+     * This test verifies that an RPC can be found by name.
+     */
+    func testFindRPCByName() throws {
+        // Create RPC methods
+        let getUser = RPCNode(
+            location: SourceLocation(line: 2, column: 3),
+            name: "GetUser",
+            inputType: "GetUserRequest",
+            outputType: "GetUserResponse"
+        )
+        
+        let createUser = RPCNode(
+            location: SourceLocation(line: 3, column: 3),
+            name: "CreateUser",
+            inputType: "CreateUserRequest",
+            outputType: "CreateUserResponse"
+        )
+        
+        // Create a service with RPCs
+        let serviceNode = ServiceNode(
+            location: SourceLocation(line: 1, column: 1),
+            name: "UserService",
+            rpcs: [getUser, createUser],
+            options: []
+        )
+        
+        // Test finding RPCs
+        let foundRPC = serviceNode.findRPC(named: "GetUser")
+        XCTAssertNotNil(foundRPC, "Should find the RPC")
+        XCTAssertEqual(foundRPC?.name, "GetUser", "Found RPC name should match")
+        
+        let notFoundRPC = serviceNode.findRPC(named: "NonExistentRPC")
+        XCTAssertNil(notFoundRPC, "Should not find a non-existent RPC")
+    }
+    
+    /**
+     * Test getting message references from RPCs
+     *
+     * This test verifies that message references can be extracted from RPCs.
+     */
+    func testMessageReferences() throws {
+        // Create RPC methods
+        let getUser = RPCNode(
+            location: SourceLocation(line: 2, column: 3),
+            name: "GetUser",
+            inputType: "GetUserRequest",
+            outputType: "GetUserResponse"
+        )
+        
+        let createUser = RPCNode(
+            location: SourceLocation(line: 3, column: 3),
+            name: "CreateUser",
+            inputType: "CreateUserRequest",
+            outputType: "GetUserResponse" // Intentionally reusing the same output type
+        )
+        
+        // Create a service with RPCs
+        let serviceNode = ServiceNode(
+            location: SourceLocation(line: 1, column: 1),
+            name: "UserService",
+            rpcs: [getUser, createUser],
+            options: []
+        )
+        
+        // Test message references
+        let references = serviceNode.messageReferences
+        XCTAssertEqual(references.count, 3, "Should have 3 unique message references")
+        XCTAssertTrue(references.contains("GetUserRequest"), "Should contain GetUserRequest")
+        XCTAssertTrue(references.contains("GetUserResponse"), "Should contain GetUserResponse")
+        XCTAssertTrue(references.contains("CreateUserRequest"), "Should contain CreateUserRequest")
+    }
+    
+    // MARK: - Validation Tests
+    
+    /**
+     * Test validating a valid service
+     *
+     * This test verifies that a valid service passes validation.
+     */
+    func testValidServiceValidation() throws {
+        // Create a valid RPC
+        let getUser = RPCNode(
+            location: SourceLocation(line: 2, column: 3),
+            name: "GetUser",
+            inputType: "GetUserRequest",
+            outputType: "GetUserResponse"
+        )
+        
+        // Create a valid service
+        let serviceNode = ServiceNode(
+            location: SourceLocation(line: 1, column: 1),
+            name: "UserService",
+            rpcs: [getUser],
+            options: []
+        )
+        
+        // Validation should not throw
+        XCTAssertNoThrow(try serviceNode.validate(), "Valid service should pass validation")
+    }
+    
+    /**
+     * Test validating a service with an invalid name
+     *
+     * This test verifies that a service with an invalid name fails validation.
+     */
+    func testInvalidServiceNameValidation() throws {
+        // Create services with invalid names
+        let invalidNames = ["lowercase", "123Service", "Service-Name", ""]
+        
+        for invalidName in invalidNames {
+            let serviceNode = ServiceNode(
+                location: SourceLocation(line: 1, column: 1),
+                name: invalidName,
+                rpcs: [
+                    RPCNode(
+                        location: SourceLocation(line: 2, column: 3),
+                        name: "GetUser",
+                        inputType: "GetUserRequest",
+                        outputType: "GetUserResponse"
+                    )
+                ],
+                options: []
+            )
+            
+            // Validation should throw
+            XCTAssertThrowsError(try serviceNode.validate()) { error in
+                guard let parserError = error as? ParserError else {
+                    XCTFail("Expected ParserError")
+                    return
+                }
+                
+                if case .invalidServiceName(let name) = parserError {
+                    XCTAssertEqual(name, invalidName, "Error should contain the invalid name")
+                } else {
+                    XCTFail("Expected invalidServiceName error")
+                }
+            }
+        }
+    }
+    
+    /**
+     * Test validating an empty service
+     *
+     * This test verifies that a service with no RPCs fails validation.
+     */
+    func testEmptyServiceValidation() throws {
+        // Create an empty service
+        let serviceNode = ServiceNode(
+            location: SourceLocation(line: 1, column: 1),
+            name: "UserService",
+            rpcs: [],
+            options: []
+        )
+        
+        // Validation should throw
+        XCTAssertThrowsError(try serviceNode.validate()) { error in
+            guard let parserError = error as? ParserError else {
+                XCTFail("Expected ParserError")
+                return
+            }
+            
+            if case .custom(let message) = parserError {
+                XCTAssertTrue(message.contains("UserService"), "Error should mention the service name")
+                XCTAssertTrue(message.contains("at least one RPC"), "Error should mention the need for RPCs")
+            } else {
+                XCTFail("Expected custom error for empty service")
+            }
+        }
+    }
+    
+    /**
+     * Test validating a service with invalid RPC names
+     *
+     * This test verifies that a service with invalid RPC names fails validation.
+     */
+    func testInvalidRPCNameValidation() throws {
+        // Create invalid RPC names
+        let invalidNames = ["lowercase", "123Method", "Method-Name", ""]
+        
+        for invalidName in invalidNames {
+            let serviceNode = ServiceNode(
+                location: SourceLocation(line: 1, column: 1),
+                name: "UserService",
+                rpcs: [
+                    RPCNode(
+                        location: SourceLocation(line: 2, column: 3),
+                        name: invalidName,
+                        inputType: "GetUserRequest",
+                        outputType: "GetUserResponse"
+                    )
+                ],
+                options: []
+            )
+            
+            // Validation should throw
+            XCTAssertThrowsError(try serviceNode.validate()) { error in
+                guard let parserError = error as? ParserError else {
+                    XCTFail("Expected ParserError")
+                    return
+                }
+                
+                if case .invalidRPCName(let name) = parserError {
+                    XCTAssertEqual(name, invalidName, "Error should contain the invalid name")
+                } else {
+                    XCTFail("Expected invalidRPCName error")
+                }
+            }
+        }
+    }
+    
+    /**
+     * Test validating a service with duplicate RPC names
+     *
+     * This test verifies that a service with duplicate RPC names fails validation.
+     */
+    func testDuplicateRPCNameValidation() throws {
+        // Create RPCs with duplicate names
+        let serviceNode = ServiceNode(
+            location: SourceLocation(line: 1, column: 1),
+            name: "UserService",
+            rpcs: [
+                RPCNode(
+                    location: SourceLocation(line: 2, column: 3),
+                    name: "GetUser",
+                    inputType: "GetUserRequest",
+                    outputType: "GetUserResponse"
+                ),
+                RPCNode(
+                    location: SourceLocation(line: 3, column: 3),
+                    name: "GetUser", // Duplicate name
+                    inputType: "GetUserRequest2",
+                    outputType: "GetUserResponse2"
+                )
+            ],
+            options: []
+        )
+        
+        // Validation should throw
+        XCTAssertThrowsError(try serviceNode.validate()) { error in
+            guard let parserError = error as? ParserError else {
+                XCTFail("Expected ParserError")
+                return
+            }
+            
+            if case .custom(let message) = parserError {
+                XCTAssertTrue(message.contains("Duplicate RPC method name"), "Error should mention duplicate name")
+                XCTAssertTrue(message.contains("GetUser"), "Error should mention the duplicate name")
+            } else {
+                XCTFail("Expected custom error for duplicate RPC name")
+            }
+        }
+    }
+    
+    /**
+     * Test validating a service with invalid message types
+     *
+     * This test verifies that a service with invalid message types fails validation.
+     */
+    func testInvalidMessageTypeValidation() throws {
+        // Create RPCs with invalid message types
+        let invalidInputType = ServiceNode(
+            location: SourceLocation(line: 1, column: 1),
+            name: "UserService",
+            rpcs: [
+                RPCNode(
+                    location: SourceLocation(line: 2, column: 3),
+                    name: "GetUser",
+                    inputType: "", // Invalid input type
+                    outputType: "GetUserResponse"
+                )
+            ],
+            options: []
+        )
+        
+        // Validation should throw for invalid input type
+        XCTAssertThrowsError(try invalidInputType.validate()) { error in
+            guard let parserError = error as? ParserError else {
+                XCTFail("Expected ParserError")
+                return
+            }
+            
+            if case .custom(let message) = parserError {
+                XCTAssertTrue(message.contains("Invalid message type"), "Error should mention invalid type")
+            } else {
+                XCTFail("Expected custom error for invalid message type")
+            }
+        }
+        
+        // Create RPCs with invalid output types
+        let invalidOutputType = ServiceNode(
+            location: SourceLocation(line: 1, column: 1),
+            name: "UserService",
+            rpcs: [
+                RPCNode(
+                    location: SourceLocation(line: 2, column: 3),
+                    name: "GetUser",
+                    inputType: "GetUserRequest",
+                    outputType: "" // Invalid output type
+                )
+            ],
+            options: []
+        )
+        
+        // Validation should throw for invalid output type
+        XCTAssertThrowsError(try invalidOutputType.validate()) { error in
+            guard let parserError = error as? ParserError else {
+                XCTFail("Expected ParserError")
+                return
+            }
+            
+            if case .custom(let message) = parserError {
+                XCTAssertTrue(message.contains("Invalid message type"), "Error should mention invalid type")
+            } else {
+                XCTFail("Expected custom error for invalid message type")
+            }
+        }
+    }
+    
+    /**
+     * Test validating RPC options
+     *
+     * This test verifies that RPC options are validated correctly.
+     */
+    func testRPCOptionValidation() throws {
+        // Create an RPC with a valid timeout option
+        let validTimeoutOption = ServiceNode(
+            location: SourceLocation(line: 1, column: 1),
+            name: "UserService",
+            rpcs: [
+                RPCNode(
+                    location: SourceLocation(line: 2, column: 3),
+                    name: "GetUser",
+                    inputType: "GetUserRequest",
+                    outputType: "GetUserResponse",
+                    options: [
+                        OptionNode(
+                            location: SourceLocation(line: 3, column: 5),
+                            name: "timeout",
+                            value: .string("30s"),
+                            pathParts: []
+                        )
+                    ]
+                )
+            ],
+            options: []
+        )
+        
+        // Validation should not throw for valid timeout
+        XCTAssertNoThrow(try validTimeoutOption.validate(), "Valid timeout option should pass validation")
+        
+        // Create an RPC with an invalid timeout option (missing unit)
+        let invalidTimeoutOption = ServiceNode(
+            location: SourceLocation(line: 1, column: 1),
+            name: "UserService",
+            rpcs: [
+                RPCNode(
+                    location: SourceLocation(line: 2, column: 3),
+                    name: "GetUser",
+                    inputType: "GetUserRequest",
+                    outputType: "GetUserResponse",
+                    options: [
+                        OptionNode(
+                            location: SourceLocation(line: 3, column: 5),
+                            name: "timeout",
+                            value: .string("30"), // Missing unit
+                            pathParts: []
+                        )
+                    ]
+                )
+            ],
+            options: []
+        )
+        
+        // Validation should throw for invalid timeout
+        XCTAssertThrowsError(try invalidTimeoutOption.validate()) { error in
+            guard let parserError = error as? ParserError else {
+                XCTFail("Expected ParserError")
+                return
+            }
+            
+            if case .custom(let message) = parserError {
+                XCTAssertTrue(message.contains("Invalid RPC option"), "Error should mention invalid option")
+                XCTAssertTrue(message.contains("timeout"), "Error should mention the option name")
+            } else {
+                XCTFail("Expected custom error for invalid RPC option")
+            }
+        }
+    }
+    
+    /**
+     * Test validating service options
+     *
+     * This test verifies that service options are validated correctly.
+     */
+    func testServiceOptionValidation() throws {
+        // Create a service with a valid deprecated option
+        let validDeprecatedOption = ServiceNode(
+            location: SourceLocation(line: 1, column: 1),
+            name: "UserService",
+            rpcs: [
+                RPCNode(
+                    location: SourceLocation(line: 2, column: 3),
+                    name: "GetUser",
+                    inputType: "GetUserRequest",
+                    outputType: "GetUserResponse"
+                )
+            ],
+            options: [
+                OptionNode(
+                    location: SourceLocation(line: 3, column: 5),
+                    name: "deprecated",
+                    value: .identifier("true"),
+                    pathParts: []
+                )
+            ]
+        )
+        
+        // Validation should not throw for valid deprecated option
+        XCTAssertNoThrow(try validDeprecatedOption.validate(), "Valid deprecated option should pass validation")
+        
+        // Create a service with an invalid deprecated option
+        let invalidDeprecatedOption = ServiceNode(
+            location: SourceLocation(line: 1, column: 1),
+            name: "UserService",
+            rpcs: [
+                RPCNode(
+                    location: SourceLocation(line: 2, column: 3),
+                    name: "GetUser",
+                    inputType: "GetUserRequest",
+                    outputType: "GetUserResponse"
+                )
+            ],
+            options: [
+                OptionNode(
+                    location: SourceLocation(line: 3, column: 5),
+                    name: "deprecated",
+                    value: .string("yes"), // Invalid value type
+                    pathParts: []
+                )
+            ]
+        )
+        
+        // Validation should throw for invalid deprecated option
+        XCTAssertThrowsError(try invalidDeprecatedOption.validate()) { error in
+            guard let parserError = error as? ParserError else {
+                XCTFail("Expected ParserError")
+                return
+            }
+            
+            if case .custom(let message) = parserError {
+                XCTAssertTrue(message.contains("Invalid service option"), "Error should mention invalid option")
+                XCTAssertTrue(message.contains("deprecated"), "Error should mention the option name")
+            } else {
+                XCTFail("Expected custom error for invalid service option")
+            }
         }
     }
 } 

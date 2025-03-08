@@ -8,9 +8,9 @@ This document tracks the test coverage progress for each component of the SwiftP
 |-----------|-----------------|------------------|----------------|--------|
 | Lexer | ~85% | 82.0% | 100% | ✅ Good Progress |
 | Parser | ~80% | 74.2% | 100% | ✅ Good Progress |
-| AST Nodes | ~50% | 53.1% | 100% | 🔄 In Progress |
+| AST Nodes | ~50% | 66.6% | 100% | 🔄 In Progress |
 | - EnumNode | ~13% | 96.6% | 100% | ✅ Good Progress |
-| - ServiceNode | ~11% | 15.3% | 100% | ✅ Started |
+| - ServiceNode | ~11% | 97.9% | 100% | ✅ Good Progress |
 | - ExtendNode | ~38% | 40.0% | 100% | 🔄 In Progress |
 | - FieldNode | ~35% | 37.2% | 100% | 🔄 In Progress |
 | - MessageNode | ~53% | 54.2% | 100% | 🔄 In Progress |
@@ -24,7 +24,7 @@ This document tracks the test coverage progress for each component of the SwiftP
 | Configuration | ~90% | 97.1% | 100% | ✅ Good Progress |
 | Public API | ~85% | 62.9% | 100% | 🔄 In Progress |
 | Error Handling | 22.6% | 80.3% | 100% | ✅ Good Progress |
-| Overall | ~82% | 45.1% | >95% | 🔄 In Progress |
+| Overall | ~82% | 46.0% | >95% | 🔄 In Progress |
 
 ## Detailed Coverage Analysis
 
@@ -67,22 +67,19 @@ This document tracks the test coverage progress for each component of the SwiftP
 ### ServiceNode
 
 #### Uncovered Code Areas
-- Most of the implementation (only 15.3% covered)
-- Method validation
-- Option validation
+- A few error handling paths (97.9% line coverage)
+- A few functions (91.7% function coverage)
 
 #### Test Gaps
-- Initialization tests
-- Method management tests
-- Validation tests
+- Some edge cases in error handling
 
 #### Action Items
 - [x] Create basic initialization tests
 - [x] Create basic RPC method tests
 - [x] Create basic streaming RPC tests
 - [x] Create basic option tests
-- [ ] Create more comprehensive validation tests
-- [ ] Create more comprehensive error handling tests
+- [x] Create comprehensive validation tests
+- [x] Create comprehensive error handling tests
 
 ### Parser
 
