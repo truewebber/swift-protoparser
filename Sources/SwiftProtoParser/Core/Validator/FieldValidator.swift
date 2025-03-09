@@ -1,21 +1,21 @@
 import Foundation
 
-/// Implementation of field-level validation
+/// Implementation of field-level validation.
 class FieldValidator: FieldValidating {
   // Reference to the shared validation state
   private let state: ValidationState
 
-  /// Initialize with a validation state
-  /// - Parameter state: The validation state
+  /// Initialize with a validation state.
+  /// - Parameter state: The validation state.
   init(state: ValidationState) {
     self.state = state
   }
 
-  /// Validate a field
-  /// - Parameters:
-  ///   - field: The field node to validate
-  ///   - message: The message containing the field
-  /// - Throws: ValidationError if validation fails
+  /// Validate a field.
+  /// - Parameters:.
+  ///   - field: The field node to validate.
+  ///   - message: The message containing the field.
+  /// - Throws: ValidationError if validation fails.
   func validateField(_ field: FieldNode, inMessage message: MessageNode) throws {
     // Validate field number
     try validateFieldNumber(field.number, location: field.location)
@@ -46,11 +46,11 @@ class FieldValidator: FieldValidating {
     try validateProto3Rules(field)
   }
 
-  /// Validate field number
-  /// - Parameters:
-  ///   - number: The field number
-  ///   - location: The source location
-  /// - Throws: ValidationError if the field number is invalid
+  /// Validate field number.
+  /// - Parameters:.
+  ///   - number: The field number.
+  ///   - location: The source location.
+  /// - Throws: ValidationError if the field number is invalid.
   func validateFieldNumber(_ number: Int, location: SourceLocation) throws {
     // Check basic range
     guard number > 0 else {
@@ -67,11 +67,11 @@ class FieldValidator: FieldValidating {
     }
   }
 
-  /// Validate field name
-  /// - Parameters:
-  ///   - name: The field name
-  ///   - message: The message containing the field
-  /// - Throws: ValidationError if the field name is invalid
+  /// Validate field name.
+  /// - Parameters:.
+  ///   - name: The field name.
+  ///   - message: The message containing the field.
+  /// - Throws: ValidationError if the field name is invalid.
   func validateFieldName(_ name: String, inMessage message: MessageNode) throws {
     // Check name format
     guard isValidFieldName(name) else {
@@ -84,11 +84,11 @@ class FieldValidator: FieldValidating {
     }
   }
 
-  /// Validate field type
-  /// - Parameters:
-  ///   - type: The field type
-  ///   - field: The field node
-  /// - Throws: ValidationError if the field type is invalid
+  /// Validate field type.
+  /// - Parameters:.
+  ///   - type: The field type.
+  ///   - field: The field node.
+  /// - Throws: ValidationError if the field type is invalid.
   func validateFieldType(_ type: TypeNode, field: FieldNode) throws {
     switch type {
     case .scalar:
@@ -108,9 +108,9 @@ class FieldValidator: FieldValidating {
     }
   }
 
-  /// Validate map key type
-  /// - Parameter keyType: The map key type
-  /// - Throws: ValidationError if the map key type is invalid
+  /// Validate map key type.
+  /// - Parameter keyType: The map key type.
+  /// - Throws: ValidationError if the map key type is invalid.
   func validateMapKeyType(_ keyType: TypeNode.ScalarType) throws {
     // Only certain scalar types can be used as map keys
     switch keyType {
@@ -123,11 +123,11 @@ class FieldValidator: FieldValidating {
     }
   }
 
-  /// Validate oneof field
-  /// - Parameters:
-  ///   - oneof: The oneof node
-  ///   - message: The message containing the oneof
-  /// - Throws: ValidationError if the oneof is invalid
+  /// Validate oneof field.
+  /// - Parameters:.
+  ///   - oneof: The oneof node.
+  ///   - message: The message containing the oneof.
+  /// - Throws: ValidationError if the oneof is invalid.
   func validateOneof(_ oneof: OneofNode, in message: MessageNode) throws {
     var fieldNames = Set<String>()
     var fieldNumbers = Set<Int>()
@@ -139,22 +139,24 @@ class FieldValidator: FieldValidating {
 
       if !fieldNumbers.insert(field.number).inserted {
         throw ValidationError.custom(
-          "Duplicate field number \(field.number) in oneof '\(oneof.name)'")
+          "Duplicate field number \(field.number) in oneof '\(oneof.name)'"
+        )
       }
 
       // Oneof fields cannot be repeated
       if field.isRepeated {
         throw ValidationError.custom(
-          "Field '\(field.name)' in oneof '\(oneof.name)' cannot be repeated")
+          "Field '\(field.name)' in oneof '\(oneof.name)' cannot be repeated"
+        )
       }
     }
   }
 
   // MARK: - Private Helper Methods
 
-  /// Validate Proto3 specific rules for a field
-  /// - Parameter field: The field to validate
-  /// - Throws: ValidationError if validation fails
+  /// Validate Proto3 specific rules for a field.
+  /// - Parameter field: The field to validate.
+  /// - Throws: ValidationError if validation fails.
   private func validateProto3Rules(_ field: FieldNode) throws {
     // Handle scalar fields
     if case .scalar(let scalarType) = field.type {
@@ -192,9 +194,9 @@ class FieldValidator: FieldValidating {
     }
   }
 
-  /// Check if a field name is valid
-  /// - Parameter name: The field name to check
-  /// - Returns: True if the field name is valid
+  /// Check if a field name is valid.
+  /// - Parameter name: The field name to check.
+  /// - Returns: True if the field name is valid.
   private func isValidFieldName(_ name: String) -> Bool {
     guard !name.isEmpty else { return false }
 

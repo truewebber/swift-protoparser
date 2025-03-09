@@ -1,38 +1,38 @@
 import Foundation
 
-/// Represents a field in a message or oneof
+/// Represents a field in a message or oneof.
 public final class FieldNode: Node {
-  /// Source location of this field
+  /// Source location of this field.
   public let location: SourceLocation
 
-  /// Comments that appear before this field
+  /// Comments that appear before this field.
   public let leadingComments: [String]
 
-  /// Comment that appears after the field definition
+  /// Comment that appears after the field definition.
   public let trailingComment: String?
 
-  /// Name of the field
+  /// Name of the field.
   public let name: String
 
-  /// Type of the field
+  /// Type of the field.
   public let type: TypeNode
 
-  /// Field number
+  /// Field number.
   public let number: Int
 
-  /// Whether the field is repeated
+  /// Whether the field is repeated.
   public let isRepeated: Bool
 
-  /// Whether the field is optional (proto3 field presence)
+  /// Whether the field is optional (proto3 field presence).
   public let isOptional: Bool
 
-  /// The oneof this field belongs to, if any
+  /// The oneof this field belongs to, if any.
   public private(set) weak var oneof: OneofNode?
 
-  /// Options applied to this field
+  /// Options applied to this field.
   public let options: [OptionNode]
 
-  /// JSON name for this field (can be explicitly set via option)
+  /// JSON name for this field (can be explicitly set via option).
   public let jsonName: String?
 
   public init(
@@ -63,8 +63,8 @@ public final class FieldNode: Node {
 
   // MARK: - Field Validation
 
-  /// Validates the field according to proto3 rules
-  /// - Throws: ParserError if validation fails
+  /// Validates the field according to proto3 rules.
+  /// - Throws: ParserError if validation fails.
   public func validate() throws {
     // Validate field name
     guard isValidFieldName(name) else {
@@ -148,11 +148,16 @@ public final class FieldNode: Node {
         if case .scalar = type {
           guard isRepeated else {
             throw ParserError.invalidFieldOption(
-              option.name, "can only be specified for repeated scalar fields")
+              option.name,
+              "can only be specified for repeated scalar fields"
+            )
           }
-        } else {
+        }
+        else {
           throw ParserError.invalidFieldOption(
-            option.name, "can only be specified for scalar types")
+            option.name,
+            "can only be specified for scalar types"
+          )
         }
 
       case "json_name":
@@ -182,24 +187,24 @@ public final class FieldNode: Node {
   }
 }
 
-/// Represents a oneof definition in a message
+/// Represents a oneof definition in a message.
 public final class OneofNode: Node {
-  /// Source location of this oneof
+  /// Source location of this oneof.
   public let location: SourceLocation
 
-  /// Comments that appear before this oneof
+  /// Comments that appear before this oneof.
   public let leadingComments: [String]
 
-  /// Comment that appears after the oneof name
+  /// Comment that appears after the oneof name.
   public let trailingComment: String?
 
-  /// Name of the oneof
+  /// Name of the oneof.
   public let name: String
 
-  /// Fields in this oneof
+  /// Fields in this oneof.
   public private(set) var fields: [FieldNode]
 
-  /// Options applied to this oneof
+  /// Options applied to this oneof.
   public let options: [OptionNode]
 
   public init(
@@ -220,8 +225,8 @@ public final class OneofNode: Node {
 
   // MARK: - Oneof Validation
 
-  /// Validates the oneof according to proto3 rules
-  /// - Throws: ParserError if validation fails
+  /// Validates the oneof according to proto3 rules.
+  /// - Throws: ParserError if validation fails.
   public func validate() throws {
     // Validate oneof name
     guard isValidOneofName(name) else {

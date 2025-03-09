@@ -2,7 +2,7 @@ import XCTest
 
 @testable import SwiftProtoParser
 
-/// Tests for Proto3 reference validation rules
+/// Tests for Proto3 reference validation rules.
 final class ReferenceValidationTests: XCTestCase {
   // Test validator
   private var validator: ValidatorV2!

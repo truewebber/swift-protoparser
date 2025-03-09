@@ -1,19 +1,19 @@
 import Foundation
 
-/// Implementation of semantic validation
+/// Implementation of semantic validation.
 class SemanticValidator: SemanticValidating {
   // Reference to the shared validation state
   private let state: ValidationState
 
-  /// Initialize with a validation state
-  /// - Parameter state: The validation state
+  /// Initialize with a validation state.
+  /// - Parameter state: The validation state.
   init(state: ValidationState) {
     self.state = state
   }
 
-  /// Validate semantic rules for a file
-  /// - Parameter file: The file node
-  /// - Throws: ValidationError if validation fails
+  /// Validate semantic rules for a file.
+  /// - Parameter file: The file node.
+  /// - Throws: ValidationError if validation fails.
   func validateSemanticRules(_ file: FileNode) throws {
     // Validate syntax version
     if file.syntax != "proto3" {
@@ -38,9 +38,9 @@ class SemanticValidator: SemanticValidating {
 
   // MARK: - Private Helper Methods
 
-  /// Validate enum semantics
-  /// - Parameter enumType: The enum node to validate
-  /// - Throws: ValidationError if validation fails
+  /// Validate enum semantics.
+  /// - Parameter enumType: The enum node to validate.
+  /// - Throws: ValidationError if validation fails.
   private func validateEnumSemantics(_ enumType: EnumNode) throws {
     // Must have at least one value
     guard !enumType.values.isEmpty else {
@@ -60,16 +60,14 @@ class SemanticValidator: SemanticValidating {
     }
 
     var usedNumbers = Set<Int>()
-    for value in enumType.values {
-      if !allowAlias && !usedNumbers.insert(value.number).inserted {
-        throw ValidationError.duplicateEnumValue(value.name, value: value.number)
-      }
+    for value in enumType.values where !allowAlias && !usedNumbers.insert(value.number).inserted {
+      throw ValidationError.duplicateEnumValue(value.name, value: value.number)
     }
   }
 
-  /// Validate message semantics
-  /// - Parameter message: The message node to validate
-  /// - Throws: ValidationError if validation fails
+  /// Validate message semantics.
+  /// - Parameter message: The message node to validate.
+  /// - Throws: ValidationError if validation fails.
   private func validateMessageSemantics(_ message: MessageNode) throws {
     // Check empty oneof
     for oneof in message.oneofs {
@@ -115,16 +113,14 @@ class SemanticValidator: SemanticValidating {
     }
   }
 
-  /// Validate service semantics
-  /// - Parameter service: The service node to validate
-  /// - Throws: ValidationError if validation fails
+  /// Validate service semantics.
+  /// - Parameter service: The service node to validate.
+  /// - Throws: ValidationError if validation fails.
   private func validateServiceSemantics(_ service: ServiceNode) throws {
     // Check duplicate method names
     var methodNames = Set<String>()
-    for rpc in service.rpcs {
-      if !methodNames.insert(rpc.name).inserted {
-        throw ValidationError.duplicateMethodName(rpc.name)
-      }
+    for rpc in service.rpcs where !methodNames.insert(rpc.name).inserted {
+      throw ValidationError.duplicateMethodName(rpc.name)
     }
 
     // Input/output type validation will be done later during type resolution

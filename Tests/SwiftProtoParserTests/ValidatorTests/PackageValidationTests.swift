@@ -2,7 +2,7 @@ import XCTest
 
 @testable import SwiftProtoParser
 
-/// Tests for Proto3 package validation rules
+/// Tests for Proto3 package validation rules.
 final class PackageValidationTests: XCTestCase {
   // Test validator
   private var validator: ValidatorV2!
@@ -46,7 +46,9 @@ final class PackageValidationTests: XCTestCase {
 
       // This should not throw
       XCTAssertNoThrow(
-        try validator.validate(file), "Package name '\(packageName)' should be valid")
+        try validator.validate(file),
+        "Package name '\(packageName)' should be valid"
+      )
     }
   }
 
@@ -101,7 +103,8 @@ final class PackageValidationTests: XCTestCase {
 
       // This should throw an invalidPackageName error
       XCTAssertThrowsError(
-        try validator.validate(file), "Package name '\(packageName)' should be invalid"
+        try validator.validate(file),
+        "Package name '\(packageName)' should be invalid"
       ) { error in
         guard let validationError = error as? ValidationError else {
           XCTFail("Expected ValidationError for package '\(packageName)'")

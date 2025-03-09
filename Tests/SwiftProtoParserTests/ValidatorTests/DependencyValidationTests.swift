@@ -2,7 +2,7 @@ import XCTest
 
 @testable import SwiftProtoParser
 
-/// A mock ValidationState for testing
+/// A mock ValidationState for testing.
 class MockValidationState {
   var currentPackage: String?
   private var definedTypes: [String: DefinitionNode] = [:]
@@ -33,7 +33,7 @@ class MockValidationState {
   }
 }
 
-/// Tests for Proto3 dependency validation rules
+/// Tests for Proto3 dependency validation rules.
 final class DependencyValidationTests: XCTestCase {
   // Test validator
   private var validator: ValidatorV2!

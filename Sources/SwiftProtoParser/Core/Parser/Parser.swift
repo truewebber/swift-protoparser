@@ -1,6 +1,6 @@
 import Foundation
 
-/// Errors that can occur during parsing
+/// Errors that can occur during parsing.
 public enum ParserError: Error, CustomStringConvertible {
   case unexpectedToken(expected: TokenType, got: Token)
   case unexpectedEOF(expected: TokenType)
@@ -58,25 +58,25 @@ public enum ParserError: Error, CustomStringConvertible {
   }
 }
 
-/// Parser for proto3 files
+/// Parser for proto3 files.
 public final class Parser {
-  /// The lexer providing tokens
+  /// The lexer providing tokens.
   private let lexer: Lexer
 
-  /// Current token under examination
+  /// Current token under examination.
   private var currentToken: Token
 
-  /// Next token to be examined
+  /// Next token to be examined.
   private var peekToken: Token
 
-  /// Stack of package names for nested definitions
+  /// Stack of package names for nested definitions.
   private var packageStack: [String] = []
 
-  /// Set of used field numbers per message
+  /// Set of used field numbers per message.
   private var usedFieldNumbers: Set<Int> = []
 
-  /// Creates a new parser with the given lexer
-  /// - Parameter lexer: The lexer to use for tokenization
+  /// Creates a new parser with the given lexer.
+  /// - Parameter lexer: The lexer to use for tokenization.
   public init(lexer: Lexer) throws {
     self.lexer = lexer
     // Initialize current and peek tokens
@@ -84,10 +84,10 @@ public final class Parser {
     self.peekToken = try lexer.nextToken()
   }
 
-  /// Parses a complete proto file
-  /// - Parameter filePath: Optional path to the file being parsed
-  /// - Returns: A FileNode representing the parsed file
-  /// - Throws: ParserError if parsing fails
+  /// Parses a complete proto file.
+  /// - Parameter filePath: Optional path to the file being parsed.
+  /// - Returns: A FileNode representing the parsed file.
+  /// - Throws: ParserError if parsing fails.
   public func parseFile(filePath: String? = nil) throws -> FileNode {
     // Track the current location for error reporting
     let location = currentToken.location
@@ -307,7 +307,8 @@ public final class Parser {
             throw ParserError.duplicateFieldNumber(field.number, messageName: name)
           }
           fields.append(field)
-        } else {
+        }
+        else {
           // Handle other message elements (options, nested types, etc.)
           switch currentToken.type {
           case .option:
@@ -429,7 +430,8 @@ public final class Parser {
     while !check(.rightBrace) {
       if currentToken.type == .option {
         options.append(try parseOption())
-      } else {
+      }
+      else {
         values.append(try parseEnumValue())
       }
     }
@@ -476,7 +478,8 @@ public final class Parser {
         options.append(try parseOption())
       }
       try expectToken(.rightBrace)
-    } else {
+    }
+    else {
       try expectToken(.semicolon)
     }
 
@@ -509,9 +512,11 @@ public final class Parser {
     while !check(.rightBrace) {
       if currentToken.type == .option {
         options.append(try parseOption())
-      } else if currentToken.type == .rpc {
+      }
+      else if currentToken.type == .rpc {
         rpcs.append(try parseRPC())
-      } else {
+      }
+      else {
         throw ParserError.unexpectedToken(expected: .rpc, got: currentToken)
       }
     }
@@ -537,7 +542,8 @@ public final class Parser {
   private func expectToken(_ type: TokenType) throws {
     if currentToken.type == type {
       try advanceToken()
-    } else {
+    }
+    else {
       throw ParserError.unexpectedToken(expected: type, got: currentToken)
     }
   }
@@ -589,7 +595,7 @@ public final class Parser {
       try expectToken(.leftParen)
       let extensionName = try parseQualifiedIdentifier()
       try expectToken(.rightParen)
-      
+
       // Check for nested fields (dot notation)
       var nestedFields: [String] = []
       while check(.period) {
@@ -597,22 +603,26 @@ public final class Parser {
         let fieldName = try parseIdentifier()
         nestedFields.append(fieldName)
       }
-      
+
       try expectToken(.equals)
       let value = try parseOptionValue()
       try expectToken(.semicolon)
-      
+
       // Create path parts for the custom option
-      var pathParts: [OptionNode.PathPart] = [OptionNode.PathPart(name: extensionName, isExtension: true)]
-      
+      var pathParts: [OptionNode.PathPart] = [
+        OptionNode.PathPart(name: extensionName, isExtension: true)
+      ]
+
       // Add nested fields as path parts
       for field in nestedFields {
         pathParts.append(OptionNode.PathPart(name: field, isExtension: false))
       }
-      
+
       // Create the option name string
-      let optionName = "(\(extensionName))" + (nestedFields.isEmpty ? "" : "." + nestedFields.joined(separator: "."))
-      
+      let optionName =
+        "(\(extensionName))"
+        + (nestedFields.isEmpty ? "" : "." + nestedFields.joined(separator: "."))
+
       return OptionNode(
         location: optionLocation,
         leadingComments: currentToken.leadingComments,
@@ -622,13 +632,14 @@ public final class Parser {
         pathParts: pathParts,
         isCustomOption: true
       )
-    } else {
+    }
+    else {
       // Regular option
       let name = try parseOptionName()
       try expectToken(.equals)
       let value = try parseOptionValue()
       try expectToken(.semicolon)
-      
+
       return OptionNode(
         location: optionLocation,
         leadingComments: currentToken.leadingComments,
@@ -720,7 +731,7 @@ public final class Parser {
       try expectToken(.leftParen)
       let extensionName = try parseQualifiedIdentifier()
       try expectToken(.rightParen)
-      
+
       // Check for nested fields (dot notation)
       var nestedFields: [String] = []
       while check(.period) {
@@ -728,21 +739,25 @@ public final class Parser {
         let fieldName = try parseIdentifier()
         nestedFields.append(fieldName)
       }
-      
+
       try expectToken(.equals)
       let value = try parseOptionValue()
-      
+
       // Create path parts for the custom option
-      var pathParts: [OptionNode.PathPart] = [OptionNode.PathPart(name: extensionName, isExtension: true)]
-      
+      var pathParts: [OptionNode.PathPart] = [
+        OptionNode.PathPart(name: extensionName, isExtension: true)
+      ]
+
       // Add nested fields as path parts
       for field in nestedFields {
         pathParts.append(OptionNode.PathPart(name: field, isExtension: false))
       }
-      
+
       // Create the option name string
-      let optionName = "(\(extensionName))" + (nestedFields.isEmpty ? "" : "." + nestedFields.joined(separator: "."))
-      
+      let optionName =
+        "(\(extensionName))"
+        + (nestedFields.isEmpty ? "" : "." + nestedFields.joined(separator: "."))
+
       // Create a custom option with the extension name and any nested fields
       return OptionNode(
         location: currentToken.location,
@@ -757,7 +772,7 @@ public final class Parser {
     let name = try parseIdentifier()
     try expectToken(.equals)
     let value = try parseOptionValue()
-    
+
     return OptionNode(
       location: currentToken.location,
       name: name,
@@ -855,7 +870,8 @@ public final class Parser {
     while !check(.rightBrace) {
       if currentToken.type == .option {
         options.append(try parseOption())
-      } else {
+      }
+      else {
         fields.append(try parseField())
       }
     }
@@ -891,7 +907,8 @@ public final class Parser {
           try advanceToken()
         }
       }
-    } else {
+    }
+    else {
       // Parse reserved numbers
       while currentToken.type == .intLiteral {
         let range = try parseReservedRange()
@@ -1057,7 +1074,7 @@ public final class Parser {
   //    }
   //  }
 
-  /// Entry point for field parsing
+  /// Entry point for field parsing.
   private func parseField() throws -> FieldNode {
     let fieldLocation = currentToken.location
     let leadingComments = currentToken.leadingComments
@@ -1068,7 +1085,8 @@ public final class Parser {
     if currentToken.type == .repeated {
       isRepeated = true
       try advanceToken()
-    } else if currentToken.type == .optional {
+    }
+    else if currentToken.type == .optional {
       isOptional = true
       try advanceToken()
     }
@@ -1086,10 +1104,13 @@ public final class Parser {
     let name: String
     if currentToken.type.isAbsolutelyReserved {
       throw ParserError.invalidFieldName(
-        "Cannot use reserved keyword '\(currentToken.literal)' as field name")
-    } else if currentToken.type == .identifier {
+        "Cannot use reserved keyword '\(currentToken.literal)' as field name"
+      )
+    }
+    else if currentToken.type == .identifier {
       name = try parseIdentifier()
-    } else {
+    }
+    else {
       // Any other keyword can be used as identifier
       name = currentToken.literal
       try advanceToken()
@@ -1149,29 +1170,30 @@ public final class Parser {
       if isType(currentToken) {
         // Parse extension field
         let field = try parseField()
-        
+
         // Extension fields must have explicit field numbers
         if field.number <= 0 {
           throw ParserError.invalidFieldNumber(field.number, location: field.location)
         }
-        
+
         // Check for valid extension field numbers (ranges 1-536,870,911 except 19000-19999)
         if field.number > 536_870_911 {
           throw ParserError.invalidFieldNumber(field.number, location: field.location)
         }
-        
+
         if (19000...19999).contains(field.number) {
           throw ParserError.invalidFieldNumber(field.number, location: field.location)
         }
-        
+
         fields.append(field)
-      } else {
+      }
+      else {
         throw ParserError.unexpectedToken(expected: .identifier, got: currentToken)
       }
     }
 
     try expectToken(.rightBrace)
-    
+
     // Ensure there's at least one field in the extension
     if fields.isEmpty {
       throw ParserError.custom("Extension must contain at least one field")

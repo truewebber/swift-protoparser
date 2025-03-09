@@ -11,7 +11,7 @@ DerivedData/
 Package.resolved
 
 # Coverage files
-coverage.lcov
+*.lcov
 # Coverage analysis reports
 Tools/CodeCoverage/analysis/
 # Coverage HTML reports

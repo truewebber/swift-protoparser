@@ -1,19 +1,19 @@
 import Foundation
 
-/// Implementation of enum-level validation
+/// Implementation of enum-level validation.
 class EnumValidator: EnumValidating {
   // Reference to the shared validation state
   private let state: ValidationState
 
-  /// Initialize with a validation state
-  /// - Parameter state: The validation state
+  /// Initialize with a validation state.
+  /// - Parameter state: The validation state.
   init(state: ValidationState) {
     self.state = state
   }
 
-  /// Validate enum semantics
-  /// - Parameter enumType: The enum node to validate
-  /// - Throws: ValidationError if validation fails
+  /// Validate enum semantics.
+  /// - Parameter enumType: The enum node to validate.
+  /// - Throws: ValidationError if validation fails.
   func validateEnumSemantics(_ enumType: EnumNode) throws {
     // Must have at least one value
     guard !enumType.values.isEmpty else {
@@ -38,16 +38,14 @@ class EnumValidator: EnumValidating {
     }
 
     var usedNumbers = Set<Int>()
-    for value in enumType.values {
-      if !allowAlias && !usedNumbers.insert(value.number).inserted {
-        throw ValidationError.duplicateEnumValue(value.name, value: value.number)
-      }
+    for value in enumType.values where !allowAlias && !usedNumbers.insert(value.number).inserted {
+      throw ValidationError.duplicateEnumValue(value.name, value: value.number)
     }
   }
 
-  /// Validate enum value semantics
-  /// - Parameter enumType: The enum node to validate
-  /// - Throws: ValidationError if validation fails
+  /// Validate enum value semantics.
+  /// - Parameter enumType: The enum node to validate.
+  /// - Throws: ValidationError if validation fails.
   func validateEnumValueSemantics(_ enumType: EnumNode) throws {
     // Must have at least one value
     guard !enumType.values.isEmpty else {
@@ -83,9 +81,9 @@ class EnumValidator: EnumValidating {
     }
   }
 
-  /// Validate enum values uniqueness
-  /// - Parameter enumType: The enum node to validate
-  /// - Throws: ValidationError if validation fails
+  /// Validate enum values uniqueness.
+  /// - Parameter enumType: The enum node to validate.
+  /// - Throws: ValidationError if validation fails.
   func validateEnumValuesUniqueness(_ enumType: EnumNode) throws {
     var usedNames = Set<String>()
     var valueToNames: [Int: Set<String>] = [:]  // Track all names for each value number
@@ -124,9 +122,9 @@ class EnumValidator: EnumValidating {
     // (Removing the restriction on value 0)
   }
 
-  /// Validate an enum node
-  /// - Parameter enumType: The enum node to validate
-  /// - Throws: ValidationError if validation fails
+  /// Validate an enum node.
+  /// - Parameter enumType: The enum node to validate.
+  /// - Throws: ValidationError if validation fails.
   func validateEnum(_ enumType: EnumNode) throws {
     // Must have at least one value
     guard !enumType.values.isEmpty else {
@@ -163,9 +161,9 @@ class EnumValidator: EnumValidating {
 
   // MARK: - Private Helper Methods
 
-  /// Check if an enum value name is valid
-  /// - Parameter name: The enum value name to check
-  /// - Returns: True if the enum value name is valid
+  /// Check if an enum value name is valid.
+  /// - Parameter name: The enum value name to check.
+  /// - Returns: True if the enum value name is valid.
   private func isValidEnumValueName(_ name: String) -> Bool {
     guard !name.isEmpty else { return false }
 
@@ -180,9 +178,9 @@ class EnumValidator: EnumValidating {
     return name.allSatisfy { $0.isUppercase || $0.isNumber || $0 == "_" }
   }
 
-  /// Check if an enum name is valid
-  /// - Parameter name: The enum name to check
-  /// - Returns: True if the enum name is valid
+  /// Check if an enum name is valid.
+  /// - Parameter name: The enum name to check.
+  /// - Returns: True if the enum name is valid.
   private func isValidEnumName(_ name: String) -> Bool {
     guard !name.isEmpty else { return false }
 

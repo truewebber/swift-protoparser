@@ -1,9 +1,9 @@
 import Foundation
 import SwiftProtobuf
 
-/// Generates source code information for proto descriptors
+/// Generates source code information for proto descriptors.
 public final class SourceInfoGenerator {
-  /// Information about a location in the source
+  /// Information about a location in the source.
   private struct LocationInfo {
     let path: [Int32]
     let span: Google_Protobuf_SourceCodeInfo.Location.Span
@@ -12,18 +12,18 @@ public final class SourceInfoGenerator {
     let leadingDetachedComments: [String]
   }
 
-  /// The current path in the descriptor tree
+  /// The current path in the descriptor tree.
   private var currentPath: [Int32] = []
 
-  /// All collected locations
+  /// All collected locations.
   private var locations: [LocationInfo] = []
 
-  /// Initialize a new source info generator
+  /// Initialize a new source info generator.
   public init() {}
 
-  /// Generates source code info for a file descriptor
-  /// - Parameter file: The file node to process
-  /// - Returns: Source code info for the file
+  /// Generates source code info for a file descriptor.
+  /// - Parameter file: The file node to process.
+  /// - Returns: Source code info for the file.
   public func generateSourceInfo(_ file: FileNode) -> Google_Protobuf_SourceCodeInfo {
     // Reset state
     currentPath.removeAll()
@@ -234,7 +234,7 @@ public final class SourceInfoGenerator {
   private func processExtendNode(_ extend: ExtendNode) {
     // Record extension location
     addLocation(for: extend)
-    
+
     // Process extension fields
     for (index, field) in extend.fields.enumerated() {
       withPath(2, Int32(index)) {  // extension fields = 2
@@ -292,7 +292,7 @@ public final class SourceInfoGenerator {
 // MARK: - Span Extension
 
 extension Google_Protobuf_SourceCodeInfo.Location {
-  /// Represents a source code span
+  /// Represents a source code span.
   struct Span {
     let start: Int
     let end: Int

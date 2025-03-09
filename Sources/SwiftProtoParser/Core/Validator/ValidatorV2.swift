@@ -1,7 +1,8 @@
 import Foundation
 
-/// Main validator class that coordinates the validation process
-/// This class serves as the entry point for validation and delegates to specialized components
+/// Main validator class that coordinates the validation process.
+///
+/// This class serves as the entry point for validation and delegates to specialized components.
 public final class ValidatorV2 {
   // State management
   private var state: ValidationState
@@ -17,7 +18,7 @@ public final class ValidatorV2 {
   private let dependencyValidator: DependencyValidating
   private let semanticValidator: SemanticValidating
 
-  /// Initialize a new validator
+  /// Initialize a new validator.
   public init() {
     self.state = ValidationState()
 
@@ -33,17 +34,17 @@ public final class ValidatorV2 {
     self.semanticValidator = SemanticValidator(state: state)
   }
 
-  /// Set imported types in the validation state
-  /// - Parameter types: Dictionary mapping type names to their import paths
+  /// Set imported types in the validation state.
+  /// - Parameter types: Dictionary mapping type names to their import paths.
   public func setImportedTypes(_ types: [String: String]) {
     for (typeName, importPath) in types {
       state.importedTypes[typeName] = importPath
     }
   }
 
-  /// Validates a proto file according to proto3 rules
-  /// - Parameter file: The file node to validate
-  /// - Throws: ValidationError if validation fails
+  /// Validates a proto file according to proto3 rules.
+  /// - Parameter file: The file node to validate.
+  /// - Throws: ValidationError if validation fails.
   public func validate(_ file: FileNode) throws {
     // Reset state
     state.reset()

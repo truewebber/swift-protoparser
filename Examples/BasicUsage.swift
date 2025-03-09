@@ -7,7 +7,7 @@ import SwiftProtobuf
 
 // MARK: - Basic Parsing
 
-/// Parse a proto file and print its contents
+/// Parse a proto file and print its contents.
 func parseProtoFile() {
   // Create a parser with default configuration
   let parser = ProtoParser()
@@ -38,14 +38,15 @@ func parseProtoFile() {
     for service in descriptor.service {
       printService(service, indent: 2)
     }
-  } catch {
+  }
+  catch {
     print("Error parsing proto file: \(error)")
   }
 }
 
 // MARK: - Custom Configuration
 
-/// Parse a proto file with custom configuration
+/// Parse a proto file with custom configuration.
 func parseWithCustomConfiguration() {
   // Create a configuration using the builder pattern
   let config = Configuration.builder()
@@ -63,14 +64,15 @@ func parseWithCustomConfiguration() {
 
     // Use the descriptor...
     print("Successfully parsed with custom configuration")
-  } catch {
+  }
+  catch {
     print("Error parsing proto file: \(error)")
   }
 }
 
 // MARK: - Parsing from String
 
-/// Parse proto content from a string
+/// Parse proto content from a string.
 func parseFromString() {
   let protoContent = """
     syntax = "proto3";
@@ -92,14 +94,15 @@ func parseFromString() {
 
     // Use the descriptor...
     print("Successfully parsed from string")
-  } catch {
+  }
+  catch {
     print("Error parsing proto content: \(error)")
   }
 }
 
 // MARK: - Helper Functions
 
-/// Print a message descriptor
+/// Print a message descriptor.
 func printMessage(_ message: Google_Protobuf_DescriptorProto, indent: Int) {
   let indentation = String(repeating: " ", count: indent)
   print("\(indentation)Message: \(message.name)")
@@ -120,7 +123,7 @@ func printMessage(_ message: Google_Protobuf_DescriptorProto, indent: Int) {
   }
 }
 
-/// Print an enum descriptor
+/// Print an enum descriptor.
 func printEnum(_ enumType: Google_Protobuf_EnumDescriptorProto, indent: Int) {
   let indentation = String(repeating: " ", count: indent)
   print("\(indentation)Enum: \(enumType.name)")
@@ -131,7 +134,7 @@ func printEnum(_ enumType: Google_Protobuf_EnumDescriptorProto, indent: Int) {
   }
 }
 
-/// Print a service descriptor
+/// Print a service descriptor.
 func printService(_ service: Google_Protobuf_ServiceDescriptorProto, indent: Int) {
   let indentation = String(repeating: " ", count: indent)
   print("\(indentation)Service: \(service.name)")

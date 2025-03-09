@@ -19,13 +19,13 @@ help:
 ## Lint the Swift code (non-destructive check)
 lint:
 	@echo "Running swift-format in lint mode..."
-	$(SWIFT_FORMAT) lint --recursive ./
+	$(SWIFT_FORMAT) lint --configuration .swift-format.json --recursive ./
 	@echo "Lint complete."
 
 ## Format the Swift code in-place
 format:
 	@echo "Running swift-format in format mode..."
-	$(SWIFT_FORMAT) --recursive -i ./
+	$(SWIFT_FORMAT) --configuration .swift-format.json --recursive -i ./
 	@echo "Format complete."
 
 ## Run tests

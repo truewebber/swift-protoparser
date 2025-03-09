@@ -1,19 +1,19 @@
 import Foundation
 
-/// Implementation of message-level validation
+/// Implementation of message-level validation.
 class MessageValidator: MessageValidating {
   // Reference to the shared validation state
   private let state: ValidationState
 
-  /// Initialize with a validation state
-  /// - Parameter state: The validation state
+  /// Initialize with a validation state.
+  /// - Parameter state: The validation state.
   init(state: ValidationState) {
     self.state = state
   }
 
-  /// Validate message semantics
-  /// - Parameter message: The message node to validate
-  /// - Throws: ValidationError if validation fails
+  /// Validate message semantics.
+  /// - Parameter message: The message node to validate.
+  /// - Throws: ValidationError if validation fails.
   func validateMessageSemantics(_ message: MessageNode) throws {
     // Validate message name format (CamelCase)
     guard isValidMessageName(message.name) else {
@@ -66,41 +66,33 @@ class MessageValidator: MessageValidating {
     }
   }
 
-  /// Validate nested message
-  /// - Parameter message: The message node to validate
-  /// - Throws: ValidationError if validation fails
+  /// Validate nested message.
+  /// - Parameter message: The message node to validate.
+  /// - Throws: ValidationError if validation fails.
   func validateNestedMessage(_ message: MessageNode) throws {
     // Track names used in this scope
     var usedNames = Set<String>()
 
     // Check nested message names
-    for nestedMessage in message.messages {
-      if !usedNames.insert(nestedMessage.name).inserted {
-        throw ValidationError.duplicateNestedTypeName(nestedMessage.name)
-      }
+    for nestedMessage in message.messages where !usedNames.insert(nestedMessage.name).inserted {
+      throw ValidationError.duplicateNestedTypeName(nestedMessage.name)
     }
 
     // Check nested enum names
-    for nestedEnum in message.enums {
-      if !usedNames.insert(nestedEnum.name).inserted {
-        throw ValidationError.duplicateNestedTypeName(nestedEnum.name)
-      }
+    for nestedEnum in message.enums where !usedNames.insert(nestedEnum.name).inserted {
+      throw ValidationError.duplicateNestedTypeName(nestedEnum.name)
     }
 
     // Check field names
     var usedFieldNames = Set<String>()
-    for field in message.fields {
-      if !usedFieldNames.insert(field.name).inserted {
-        throw ValidationError.duplicateFieldName(field.name, inType: message.name)
-      }
+    for field in message.fields where !usedFieldNames.insert(field.name).inserted {
+      throw ValidationError.duplicateFieldName(field.name, inType: message.name)
     }
 
     // Check oneof field names
     for oneof in message.oneofs {
-      for field in oneof.fields {
-        if !usedFieldNames.insert(field.name).inserted {
-          throw ValidationError.duplicateFieldName(field.name, inType: message.name)
-        }
+      for field in oneof.fields where !usedFieldNames.insert(field.name).inserted {
+        throw ValidationError.duplicateFieldName(field.name, inType: message.name)
       }
     }
 
@@ -110,9 +102,9 @@ class MessageValidator: MessageValidating {
     }
   }
 
-  /// Validate a message node
-  /// - Parameter message: The message node to validate
-  /// - Throws: ValidationError if validation fails
+  /// Validate a message node.
+  /// - Parameter message: The message node to validate.
+  /// - Throws: ValidationError if validation fails.
   func validateMessage(_ message: MessageNode) throws {
     // Validate fields
     for field in message.fields {
@@ -130,9 +122,9 @@ class MessageValidator: MessageValidating {
     }
   }
 
-  /// Validate reserved fields in a message
-  /// - Parameter message: The message node to validate
-  /// - Throws: ValidationError if validation fails
+  /// Validate reserved fields in a message.
+  /// - Parameter message: The message node to validate.
+  /// - Throws: ValidationError if validation fails.
   func validateReservedFields(_ message: MessageNode) throws {
     var allReservedNumbers = Set<Int>()
     var allReservedNames = Set<String>()
@@ -184,9 +176,9 @@ class MessageValidator: MessageValidating {
     }
   }
 
-  /// Validate extension rules for a message
-  /// - Parameter message: The message node to validate
-  /// - Throws: ValidationError if validation fails
+  /// Validate extension rules for a message.
+  /// - Parameter message: The message node to validate.
+  /// - Throws: ValidationError if validation fails.
   func validateExtensionRules(_ message: MessageNode) throws {
     // In proto3, extensions are only allowed in the following contexts:
     // 1. Custom options (extending google.protobuf.*)
@@ -199,11 +191,11 @@ class MessageValidator: MessageValidating {
 
   // MARK: - Private Helper Methods
 
-  /// Validate a field within a message
-  /// - Parameters:
-  ///   - field: The field to validate
-  ///   - message: The containing message
-  /// - Throws: ValidationError if validation fails
+  /// Validate a field within a message.
+  /// - Parameters:.
+  ///   - field: The field to validate.
+  ///   - message: The containing message.
+  /// - Throws: ValidationError if validation fails.
   private func validateField(_ field: FieldNode, inMessage message: MessageNode) throws {
     // This would typically delegate to a FieldValidator
     // For now, just implement basic validation
@@ -224,11 +216,11 @@ class MessageValidator: MessageValidating {
     }
   }
 
-  /// Validate a oneof field
-  /// - Parameters:
-  ///   - oneof: The oneof to validate
-  ///   - message: The containing message
-  /// - Throws: ValidationError if validation fails
+  /// Validate a oneof field.
+  /// - Parameters:.
+  ///   - oneof: The oneof to validate.
+  ///   - message: The containing message.
+  /// - Throws: ValidationError if validation fails.
   private func validateOneof(_ oneof: OneofNode, in message: MessageNode) throws {
     // Check that oneof has at least one field
     guard !oneof.fields.isEmpty else {
@@ -255,9 +247,9 @@ class MessageValidator: MessageValidating {
     }
   }
 
-  /// Check if a message name is valid
-  /// - Parameter name: The message name to check
-  /// - Returns: True if the message name is valid
+  /// Check if a message name is valid.
+  /// - Parameter name: The message name to check.
+  /// - Returns: True if the message name is valid.
   private func isValidMessageName(_ name: String) -> Bool {
     guard !name.isEmpty else { return false }
 
@@ -278,9 +270,9 @@ class MessageValidator: MessageValidating {
     return name.allSatisfy { $0.isLetter || $0.isNumber || $0 == "_" }
   }
 
-  /// Check if a field name is valid
-  /// - Parameter name: The field name to check
-  /// - Returns: True if the field name is valid
+  /// Check if a field name is valid.
+  /// - Parameter name: The field name to check.
+  /// - Returns: True if the field name is valid.
   private func isValidFieldName(_ name: String) -> Bool {
     guard !name.isEmpty else { return false }
 

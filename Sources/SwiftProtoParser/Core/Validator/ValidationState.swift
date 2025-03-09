@@ -1,7 +1,8 @@
 import Foundation
 
-/// Manages the state of the validation process
-/// This class is shared among all validator components
+/// Manages the state of the validation process.
+///
+/// This class is shared among all validator components.
 class ValidationState {
   // Current package being validated
   var currentPackage: String?
@@ -29,10 +30,10 @@ class ValidationState {
   // Track dependencies between types
   var dependencies: [String: Set<String>] = [:]
 
-  /// Initialize a new validation state
+  /// Initialize a new validation state.
   init() {}
 
-  /// Reset the validation state
+  /// Reset the validation state.
   func reset() {
     currentPackage = nil
     definedTypes.removeAll()
@@ -42,27 +43,27 @@ class ValidationState {
     dependencies.removeAll()
   }
 
-  /// Push a definition node onto the scope stack
-  /// - Parameter node: The definition node to push
+  /// Push a definition node onto the scope stack.
+  /// - Parameter node: The definition node to push.
   func pushScope(_ node: DefinitionNode) {
     let typeName = getFullyQualifiedName(node.name)
     scopeStack.append(Scope(typeName: typeName, node: node))
   }
 
-  /// Pop the top scope from the stack
+  /// Pop the top scope from the stack.
   func popScope() {
     _ = scopeStack.popLast()
   }
 
-  /// Get the current scope
-  /// - Returns: The current scope or nil if the stack is empty
+  /// Get the current scope.
+  /// - Returns: The current scope or nil if the stack is empty.
   func currentScope() -> Scope? {
     return scopeStack.last
   }
 
-  /// Get the fully qualified name for a type
-  /// - Parameter name: The type name
-  /// - Returns: The fully qualified name
+  /// Get the fully qualified name for a type.
+  /// - Parameter name: The type name.
+  /// - Returns: The fully qualified name.
   func getFullyQualifiedName(_ name: String) -> String {
     if name.hasPrefix(".") {
       return String(name.dropFirst())
@@ -79,11 +80,11 @@ class ValidationState {
     return name
   }
 
-  /// Register a type in the defined types dictionary
-  /// - Parameters:
-  ///   - name: The type name
-  ///   - node: The definition node
-  /// - Throws: ValidationError if the type is already defined
+  /// Register a type in the defined types dictionary.
+  /// - Parameters:.
+  ///   - name: The type name.
+  ///   - node: The definition node.
+  /// - Throws: ValidationError if the type is already defined.
   func registerType(_ name: String, node: DefinitionNode) throws {
     let fullName = getFullyQualifiedName(name)
     if definedTypes[fullName] != nil {

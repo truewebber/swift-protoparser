@@ -2,15 +2,15 @@
 
 ## Overview
 
-Sprint 9 focused on improving test coverage for the SwiftProtoParser project, with a particular emphasis on the Symbol Resolution and Service components. The goal was to achieve comprehensive test coverage to ensure the reliability and correctness of these critical components of the parser.
+Sprint 9 focused on improving test coverage for the SwiftProtoParser project, with a particular emphasis on the Symbol Resolution, Service, and Extension components. The goal was to achieve comprehensive test coverage to ensure the reliability and correctness of these critical components of the parser.
 
 ## Achievements
 
 ### 1. Symbol Resolution Testing
 
 We successfully implemented a comprehensive test suite for the Symbol Resolution component, achieving:
-- **95.3%** line coverage (1,184 of 1,243 lines)
-- **67.5%** function coverage (280 of 415 functions)
+- **94.6%** line coverage (up from 83.7%)
+- **69.6%** function coverage (up from 67.5%)
 
 The `SymbolResolutionTests` class now includes tests for:
 - Adding and resolving extension nodes
@@ -36,10 +36,26 @@ The `ServiceNodeTests` class includes tests for:
 - Validation of service names, RPC names, and message types
 - Error handling for invalid services and RPCs
 
-### 3. FieldNode Testing
+### 3. ExtendNode Testing
+
+We implemented comprehensive tests for the ExtendNode component, dramatically improving coverage from 38.0% to:
+- **97.3%** line coverage (75 of 77 lines), up from 38.0%
+- **100%** function coverage (13 of 13 functions), up from 38.5%
+
+The `ExtendNodeTests` class includes tests for:
+- Basic extension creation and validation
+- Extensions with multiple fields
+- Extensions with message type fields
+- Extensions with different type name formats (relative, fully qualified, dotted)
+- Nested extensions
+- Deeply nested extensions
+- Validation of type names
+- Error handling for invalid extensions
+
+### 4. FieldNode Testing
 
 We implemented comprehensive tests for the FieldNode component, improving coverage from 37.2% to:
-- **67.9%** line coverage (146 of 215 lines), up from 37.2%
+- **68.6%** line coverage (151 of 220 lines), up from 37.2%
 - **52.6%** function coverage (20 of 38 functions), up from 35.0%
 
 The `FieldNodeTests` class includes tests for:
@@ -53,10 +69,22 @@ The `FieldNodeTests` class includes tests for:
 - Validation of reserved field names and numbers
 - Error handling for invalid fields
 
-### 4. Error Handling Testing
+### 5. Parser Testing
+
+We significantly improved the Parser component coverage:
+- **87.7%** line coverage (966 of 996 lines), up from 74.2%
+- **72.5%** function coverage (49 of 64 functions), up from 53.0%
+
+The enhanced `ParserTests` class now includes comprehensive tests for:
+- Parsing all proto3 syntax elements
+- Error handling for invalid syntax
+- Edge cases in parsing complex structures
+- Whitespace and comment handling
+
+### 6. Error Handling Testing
 
 We significantly improved the Error Handling component, which was previously identified as a critical gap:
-- **80.3%** line coverage (1,246 of 1,552 lines), up from 22.6%
+- **81.2%** line coverage (1,323 of 1,629 lines), up from 22.6%
 - **94.6%** function coverage (422 of 446 functions), up from 4.2%
 
 We created comprehensive test files for all error types:
@@ -71,15 +99,18 @@ Each test file includes tests for:
 - Error description formatting
 - Error handling in relevant components
 
-### 5. AST Node Testing
+### 7. AST Node Testing
 
-We continued improving tests for AST nodes, with a focus on the EnumNode, ServiceNode, and FieldNode components:
+We continued improving tests for AST nodes, with significant improvements across all components:
 - **EnumNode**: 96.6% line coverage (114 of 118 lines)
 - **ServiceNode**: 97.9% line coverage (141 of 144 lines)
-- **FieldNode**: 67.9% line coverage (146 of 215 lines)
-- Overall AST nodes: 66.6% line coverage (657 of 987 lines), up from 53.1%
+- **ExtendNode**: 97.3% line coverage (75 of 77 lines), up from 40.0%
+- **FieldNode**: 68.6% line coverage (151 of 220 lines)
+- **Node**: 72.0% line coverage (54 of 75 lines), up from 59.5%
+- **FileNode**: 78.6% line coverage (136 of 173 lines), up from 76.9%
+- Overall AST nodes: 78.4% line coverage (784 of 1,000 lines), up from 66.6%
 
-### 6. Coverage Analysis Infrastructure
+### 8. Coverage Analysis Infrastructure
 
 We established a robust coverage analysis infrastructure:
 - Created scripts for generating detailed coverage reports
@@ -87,7 +118,7 @@ We established a robust coverage analysis infrastructure:
 - Implemented HTML report generation for visual coverage analysis
 - Documented coverage gaps and action items
 
-### 7. Documentation
+### 9. Documentation
 
 We updated documentation to support the testing effort:
 - `Tools/CodeCoverage/coverage_tracking.md`: Updated with latest coverage metrics and action items
@@ -100,47 +131,45 @@ We updated documentation to support the testing effort:
 
 | Component | Line Coverage | Function Coverage |
 |-----------|--------------|------------------|
-| Lexer | 84.9% | 80.0% |
-| Parser | 75.6% | 53.0% |
-| AST Nodes | 66.6% | 60.7% |
+| Lexer | 84.7% | 80.0% |
+| Parser | 87.7% | 72.5% |
+| AST Nodes | 78.4% | 71.0% |
 | - EnumNode | 96.6% | 86.2% |
 | - ServiceNode | 97.9% | 91.7% |
-| - ExtendNode | 40.0% | 38.5% |
-| - FieldNode | 67.9% | 52.6% |
-| - MessageNode | 54.2% | 58.1% |
-| - FileNode | 76.9% | 53.8% |
-| - Node | 59.5% | 70.0% |
-| Validator | 51.5% | 62.7% |
-| Symbol Resolution | 95.3% | 67.5% |
-| Import Resolution | 93.6% | 92.3% |
-| Source Info Generation | 89.8% | 72.7% |
-| Configuration | 97.1% | 67.7% |
-| Descriptor Generation | 71.0% | 97.0% |
-| Public API | 62.9% | 46.2% |
-| Error Handling | 80.3% | 94.6% |
-| **Overall** | **46.0%** | **43.6%** |
+| - ExtendNode | 97.3% | 100.0% |
+| - FieldNode | 68.6% | 52.6% |
+| - MessageNode | 58.5% | 58.1% |
+| - FileNode | 78.6% | 53.8% |
+| - Node | 72.0% | 70.0% |
+| Validator | 50.9% | 62.7% |
+| Symbol Resolution | 94.6% | 69.6% |
+| Import Resolution | 93.8% | 92.3% |
+| Source Info Generation | 90.3% | 72.7% |
+| Configuration | 97.4% | 67.7% |
+| Descriptor Generation | 70.5% | 97.0% |
+| Public API | 64.4% | 46.2% |
+| Error Handling | 81.2% | 94.6% |
+| **Overall** | **48.8%** | **45.1%** |
 
 ### Areas for Future Improvement
 
 While we achieved good coverage in several components, there are areas that need attention in future sprints:
 
-1. **Validator (51.5% line coverage)**: The validator has many complex rules that need more thorough testing.
-2. **Remaining AST Nodes**: Several AST nodes still have lower coverage:
-   - ExtendNode (40.0%)
-   - MessageNode (54.2%)
-3. **Public API (62.9% line coverage)**: The public API needs more comprehensive testing.
+1. **Validator (50.9% line coverage)**: The validator has many complex rules that need more thorough testing.
+2. **MessageNode (58.5% line coverage)**: This AST node still has lower coverage and needs more comprehensive tests.
+3. **Public API (64.4% line coverage)**: The public API needs more comprehensive testing.
 
 ## Conclusion
 
-Sprint 9 has significantly improved the test coverage of the SwiftProtoParser project, particularly for the Symbol Resolution component, the ServiceNode, FieldNode, and Error Handling. The comprehensive test suite now provides confidence in the correctness of these components and will help prevent regressions in future development.
+Sprint 9 has significantly improved the test coverage of the SwiftProtoParser project, particularly for the Symbol Resolution component, the ServiceNode, ExtendNode, and Error Handling. The comprehensive test suite now provides confidence in the correctness of these components and will help prevent regressions in future development.
 
-The overall project coverage has improved from 42.8% to 46.0%, showing steady progress toward our target of >95% coverage.
+The overall project coverage has improved from 46.0% to 48.8%, showing steady progress toward our target of >95% coverage.
 
 ## Next Steps
 
 For future sprints, we recommend:
-1. Focusing on the components with the lowest coverage (ExtendNode, MessageNode)
-2. Improving the coverage of the Validator component
-3. Enhancing the Public API test coverage
-4. Adding tests for error recovery mechanisms
+1. Focusing on the components with the lowest coverage (MessageNode, Validator)
+2. Improving the coverage of the Public API component
+3. Adding tests for error recovery mechanisms
+4. Implementing performance tests for large files
 5. Setting up continuous integration to automatically run tests and report coverage 

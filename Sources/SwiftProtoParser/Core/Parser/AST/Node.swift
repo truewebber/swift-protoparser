@@ -1,24 +1,24 @@
 import Foundation
 
-/// Base protocol for all AST nodes
+/// Base protocol for all AST nodes.
 public protocol Node {
-  /// The source location of this node
+  /// The source location of this node.
   var location: SourceLocation { get }
 
-  /// Comments that appear before this node
+  /// Comments that appear before this node.
   var leadingComments: [String] { get }
 
-  /// Comment that appears on the same line after this node
+  /// Comment that appears on the same line after this node.
   var trailingComment: String? { get }
 }
 
-/// Base protocol for all definition nodes (message, enum, service)
+/// Base protocol for all definition nodes (message, enum, service).
 public protocol DefinitionNode: Node {
-  /// The name of the definition
+  /// The name of the definition.
   var name: String { get }
 }
 
-/// Represents an import statement with its modifier
+/// Represents an import statement with its modifier.
 public struct ImportNode: Node {
   public enum Modifier {
     case none
@@ -49,7 +49,7 @@ public struct ImportNode: Node {
 
 public typealias ImportModifier = ImportNode.Modifier
 
-/// Represents a proto option
+/// Represents a proto option.
 public struct OptionNode: Node {
   public enum Value: Equatable {
     case string(String)
@@ -59,13 +59,13 @@ public struct OptionNode: Node {
     case map([String: Value])
   }
 
-  /// Represents a part of a custom option path
+  /// Represents a part of a custom option path.
   public struct PathPart: Equatable {
     /// The name of this path part
     public let name: String
-    /// Whether this part is an extension field (enclosed in parentheses)
+    /// Whether this part is an extension field (enclosed in parentheses).
     public let isExtension: Bool
-    
+
     public init(name: String, isExtension: Bool = false) {
       self.name = name
       self.isExtension = isExtension
@@ -77,9 +77,9 @@ public struct OptionNode: Node {
   public let trailingComment: String?
   public let name: String
   public let value: Value
-  /// The path parts for this option (for custom options with nested fields)
+  /// The path parts for this option (for custom options with nested fields).
   public let pathParts: [PathPart]
-  /// Whether this is a custom option (extension option)
+  /// Whether this is a custom option (extension option).
   public let isCustomOption: Bool
 
   public init(
@@ -99,8 +99,8 @@ public struct OptionNode: Node {
     self.pathParts = pathParts
     self.isCustomOption = isCustomOption
   }
-  
-  /// Creates a custom option with the given extension name
+
+  /// Creates a custom option with the given extension name.
   public static func customOption(
     location: SourceLocation,
     leadingComments: [String] = [],
@@ -110,17 +110,18 @@ public struct OptionNode: Node {
     nestedFields: [String] = []
   ) -> OptionNode {
     var parts: [PathPart] = [PathPart(name: extensionName, isExtension: true)]
-    
+
     // Add any nested fields
     for field in nestedFields {
       parts.append(PathPart(name: field))
     }
-    
+
     return OptionNode(
       location: location,
       leadingComments: leadingComments,
       trailingComment: trailingComment,
-      name: "(\(extensionName))" + (nestedFields.isEmpty ? "" : "." + nestedFields.joined(separator: ".")),
+      name: "(\(extensionName))"
+        + (nestedFields.isEmpty ? "" : "." + nestedFields.joined(separator: ".")),
       value: value,
       pathParts: parts,
       isCustomOption: true
@@ -128,16 +129,16 @@ public struct OptionNode: Node {
   }
 }
 
-/// Represents a field type in proto
+/// Represents a field type in proto.
 public enum TypeNode: Equatable {
-  /// Built-in scalar types
+  /// Built-in scalar types.
   case scalar(ScalarType)
-  /// Message or enum type reference
+  /// Message or enum type reference.
   case named(String)
-  /// Map type with key and value types
+  /// Map type with key and value types.
   indirect case map(key: ScalarType, value: TypeNode)
 
-  /// All available scalar types in proto3
+  /// All available scalar types in proto3.
   public enum ScalarType: String {
     case double
     case float
@@ -155,7 +156,7 @@ public enum TypeNode: Equatable {
     case string
     case bytes
 
-    /// Whether this type can be used as a map key
+    /// Whether this type can be used as a map key.
     public var canBeMapKey: Bool {
       switch self {
       case .int32, .int64, .uint32, .uint64,
@@ -169,7 +170,7 @@ public enum TypeNode: Equatable {
   }
 }
 
-/// Represents a reserved statement in a message
+/// Represents a reserved statement in a message.
 public struct ReservedNode: Node {
   public enum Range: Equatable {
     case single(Int)
@@ -195,26 +196,26 @@ public struct ReservedNode: Node {
   }
 }
 
-/// Common protocol for nodes that can have options
+/// Common protocol for nodes that can have options.
 public protocol OptionContainer {
   var options: [OptionNode] { get }
 }
 
-/// Common protocol for nodes that can have nested definitions
+/// Common protocol for nodes that can have nested definitions.
 public protocol DefinitionContainer {
   var messages: [MessageNode] { get }
   var enums: [EnumNode] { get }
 }
 
-/// Extension to provide default implementations
+/// Extension to provide default implementations.
 extension Node {
   public var leadingComments: [String] { [] }
   public var trailingComment: String? { nil }
 }
 
-/// Extension to provide common functionality for definition nodes
+/// Extension to provide common functionality for definition nodes.
 extension DefinitionNode {
-  /// The fully qualified name of this definition, including package name
+  /// The fully qualified name of this definition, including package name.
   public func fullName(inPackage package: String?) -> String {
     if let package = package, !package.isEmpty {
       return "\(package).\(name)"
@@ -223,9 +224,9 @@ extension DefinitionNode {
   }
 }
 
-/// Extension to provide common functionality for definition containers
+/// Extension to provide common functionality for definition containers.
 extension DefinitionContainer {
-  /// Returns all nested definitions recursively
+  /// Returns all nested definitions recursively.
   public var allNestedDefinitions: [DefinitionNode] {
     var results: [DefinitionNode] = []
     results.append(contentsOf: messages as [DefinitionNode])

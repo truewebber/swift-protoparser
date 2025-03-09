@@ -1,32 +1,32 @@
 import Foundation
 
-/// Represents an RPC method in a service
+/// Represents an RPC method in a service.
 public struct RPCNode: Node {
-  /// Source location of this RPC
+  /// Source location of this RPC.
   public let location: SourceLocation
 
-  /// Comments that appear before this RPC
+  /// Comments that appear before this RPC.
   public let leadingComments: [String]
 
-  /// Comment that appears after the RPC definition
+  /// Comment that appears after the RPC definition.
   public let trailingComment: String?
 
-  /// Name of the RPC method
+  /// Name of the RPC method.
   public let name: String
 
-  /// Input message type
+  /// Input message type.
   public let inputType: String
 
-  /// Output message type
+  /// Output message type.
   public let outputType: String
 
-  /// Whether the input is a stream
+  /// Whether the input is a stream.
   public let clientStreaming: Bool
 
-  /// Whether the output is a stream
+  /// Whether the output is a stream.
   public let serverStreaming: Bool
 
-  /// Options applied to this RPC
+  /// Options applied to this RPC.
   public let options: [OptionNode]
 
   public init(
@@ -52,24 +52,24 @@ public struct RPCNode: Node {
   }
 }
 
-/// Represents a service definition in a proto file
+/// Represents a service definition in a proto file.
 public final class ServiceNode: DefinitionNode {
-  /// Source location of this service
+  /// Source location of this service.
   public let location: SourceLocation
 
-  /// Comments that appear before this service
+  /// Comments that appear before this service.
   public let leadingComments: [String]
 
-  /// Comment that appears after the service name
+  /// Comment that appears after the service name.
   public let trailingComment: String?
 
-  /// Name of the service
+  /// Name of the service.
   public let name: String
 
-  /// RPC methods defined in this service
+  /// RPC methods defined in this service.
   public private(set) var rpcs: [RPCNode]
 
-  /// Options applied to this service
+  /// Options applied to this service.
   public private(set) var options: [OptionNode]
 
   public init(
@@ -92,12 +92,12 @@ public final class ServiceNode: DefinitionNode {
 // MARK: - RPC Management
 
 extension ServiceNode {
-  /// Gets all RPC method names in this service
+  /// Gets all RPC method names in this service.
   public var methodNames: Set<String> {
     return Set(rpcs.map { $0.name })
   }
 
-  /// Gets all message types referenced by RPCs in this service
+  /// Gets all message types referenced by RPCs in this service.
   public var messageReferences: Set<String> {
     var references = Set<String>()
     for rpc in rpcs {
@@ -107,15 +107,15 @@ extension ServiceNode {
     return references
   }
 
-  /// Finds an RPC by name
-  /// - Parameter name: The name to look for
-  /// - Returns: The RPC if found
+  /// Finds an RPC by name.
+  /// - Parameter name: The name to look for.
+  /// - Returns: The RPC if found.
   public func findRPC(named name: String) -> RPCNode? {
     return rpcs.first { $0.name == name }
   }
 
-  /// Returns streaming RPCs
-  /// - Returns: Array of RPCs that use streaming
+  /// Returns streaming RPCs.
+  /// - Returns: Array of RPCs that use streaming.
   public func streamingRPCs() -> [RPCNode] {
     return rpcs.filter { $0.clientStreaming || $0.serverStreaming }
   }
@@ -124,8 +124,8 @@ extension ServiceNode {
 // MARK: - Validation
 
 extension ServiceNode {
-  /// Validates the service according to proto3 rules
-  /// - Throws: ParserError if validation fails
+  /// Validates the service according to proto3 rules.
+  /// - Throws: ParserError if validation fails.
   public func validate() throws {
     // Validate service name
     guard isValidServiceName(name) else {

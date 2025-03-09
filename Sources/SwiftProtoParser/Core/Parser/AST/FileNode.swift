@@ -1,51 +1,51 @@
 import Foundation
 
-/// Represents a complete proto file
+/// Represents a complete proto file.
 public final class FileNode: Node, DefinitionContainer {
-  /// The location in source where this file node begins
+  /// The location in source where this file node begins.
   public let location: SourceLocation
 
-  /// Comments that appear at the start of the file
+  /// Comments that appear at the start of the file.
   public let leadingComments: [String]
 
   /// The syntax version specified in the file (e.g., "proto3")
   public let syntax: String
 
-  /// The package name specified in the file
+  /// The package name specified in the file.
   public let package: String?
 
-  /// The path to the file
+  /// The path to the file.
   public let filePath: String?
 
-  /// The list of import statements
+  /// The list of import statements.
   public let imports: [ImportNode]
 
-  /// The list of file-level options
+  /// The list of file-level options.
   public let options: [OptionNode]
 
-  /// All top-level message definitions
+  /// All top-level message definitions.
   public private(set) var messages: [MessageNode]
 
-  /// All top-level enum definitions
+  /// All top-level enum definitions.
   public private(set) var enums: [EnumNode]
 
-  /// All service definitions
+  /// All service definitions.
   public private(set) var services: [ServiceNode]
 
-  /// All extend statements
+  /// All extend statements.
   public private(set) var extensions: [ExtendNode]
 
-  /// Creates a new file node
-  /// - Parameters:
-  ///   - location: The source location where this file begins
-  ///   - leadingComments: Any comments at the start of the file
-  ///   - syntax: The syntax version specified
-  ///   - package: The optional package name
-  ///   - filePath: The path to the file
-  ///   - imports: List of import statements
-  ///   - options: List of file-level options
-  ///   - definitions: List of top-level definitions
-  ///   - extensions: List of extend statements
+  /// Creates a new file node.
+  /// - Parameters:.
+  ///   - location: The source location where this file begins.
+  ///   - leadingComments: Any comments at the start of the file.
+  ///   - syntax: The syntax version specified.
+  ///   - package: The optional package name.
+  ///   - filePath: The path to the file.
+  ///   - imports: List of import statements.
+  ///   - options: List of file-level options.
+  ///   - definitions: List of top-level definitions.
+  ///   - extensions: List of extend statements.
   public init(
     location: SourceLocation = SourceLocation(line: 1, column: 1),
     leadingComments: [String] = [],
@@ -90,14 +90,14 @@ public final class FileNode: Node, DefinitionContainer {
     self.services = services
   }
 
-  /// The trailingComment for a file node is always nil as it represents a complete file
+  /// The trailingComment for a file node is always nil as it represents a complete file.
   public var trailingComment: String? {
     return nil
   }
 
   // MARK: - Helper Methods
 
-  /// Returns all types defined in this file, including nested types
+  /// Returns all types defined in this file, including nested types.
   public var allDefinedTypes: [DefinitionNode] {
     var types: [DefinitionNode] = []
 
@@ -111,7 +111,7 @@ public final class FileNode: Node, DefinitionContainer {
     return types
   }
 
-  /// Returns a map of fully qualified names to their definitions
+  /// Returns a map of fully qualified names to their definitions.
   public var typeMap: [String: DefinitionNode] {
     var map: [String: DefinitionNode] = [:]
 
@@ -122,12 +122,12 @@ public final class FileNode: Node, DefinitionContainer {
     return map
   }
 
-  /// Returns all imported file paths
+  /// Returns all imported file paths.
   public var importedFiles: [String] {
     return imports.map { $0.path }
   }
 
-  /// Returns all public imported file paths
+  /// Returns all public imported file paths.
   public var publicImports: [String] {
     return
       imports
@@ -135,7 +135,7 @@ public final class FileNode: Node, DefinitionContainer {
       .map { $0.path }
   }
 
-  /// Returns all weak imported file paths
+  /// Returns all weak imported file paths.
   public var weakImports: [String] {
     return
       imports
@@ -143,24 +143,24 @@ public final class FileNode: Node, DefinitionContainer {
       .map { $0.path }
   }
 
-  /// Checks if this file has a specific option
-  /// - Parameter name: The name of the option to check for
-  /// - Returns: The option's value if found, nil otherwise
+  /// Checks if this file has a specific option.
+  /// - Parameter name: The name of the option to check for.
+  /// - Returns: The option's value if found, nil otherwise.
   public func hasOption(_ name: String) -> OptionNode.Value? {
     return options.first { $0.name == name }?.value
   }
 
-  /// Returns a type definition by its fully qualified name
-  /// - Parameter name: The fully qualified name of the type
-  /// - Returns: The type definition if found, nil otherwise
+  /// Returns a type definition by its fully qualified name.
+  /// - Parameter name: The fully qualified name of the type.
+  /// - Returns: The type definition if found, nil otherwise.
   public func findType(_ name: String) -> DefinitionNode? {
     return typeMap[name]
   }
 
   // MARK: - Validation
 
-  /// Validates the file node according to proto3 rules
-  /// - Throws: ParserError if validation fails
+  /// Validates the file node according to proto3 rules.
+  /// - Throws: ParserError if validation fails.
   public func validate() throws {
     // Validate syntax version
     guard syntax == "proto3" else {
@@ -187,9 +187,11 @@ public final class FileNode: Node, DefinitionContainer {
       let extendedTypeName = ext.typeName
       if extendedTypeName.contains(".") {
         extendedTypeNames.insert(extendedTypeName)
-      } else if let package = package, !package.isEmpty {
+      }
+      else if let package = package, !package.isEmpty {
         extendedTypeNames.insert("\(package).\(extendedTypeName)")
-      } else {
+      }
+      else {
         extendedTypeNames.insert(extendedTypeName)
       }
     }
@@ -198,12 +200,12 @@ public final class FileNode: Node, DefinitionContainer {
     var seenTypes: Set<String> = []
     for type in allDefinedTypes {
       let fullName = type.fullName(inPackage: package)
-      
+
       // Skip the check if this is an extended type
       if extendedTypeNames.contains(fullName) {
         continue
       }
-      
+
       guard !seenTypes.contains(fullName) else {
         throw ParserError.duplicateTypeName(fullName)
       }
@@ -224,16 +226,16 @@ public final class FileNode: Node, DefinitionContainer {
     for svc in services {
       try svc.validate()
     }
-    
+
     // Validate all extensions
     for ext in extensions {
       try validateExtension(ext)
     }
   }
-  
-  /// Validates an extension
-  /// - Parameter extension: The extension to validate
-  /// - Throws: ParserError if validation fails
+
+  /// Validates an extension.
+  /// - Parameter extension: The extension to validate.
+  /// - Throws: ParserError if validation fails.
   private func validateExtension(_ extension: ExtendNode) throws {
     // Validate that the extended type is a valid identifier
     let components = `extension`.typeName.split(separator: ".")
@@ -245,12 +247,14 @@ public final class FileNode: Node, DefinitionContainer {
         throw ParserError.custom("Invalid extended type name: \(`extension`.typeName)")
       }
     }
-    
+
     // Validate that there is at least one field
     guard !`extension`.fields.isEmpty else {
-      throw ParserError.custom("Extension of \(`extension`.typeName) must contain at least one field")
+      throw ParserError.custom(
+        "Extension of \(`extension`.typeName) must contain at least one field"
+      )
     }
-    
+
     // Validate each field
     for field in `extension`.fields {
       try field.validate()

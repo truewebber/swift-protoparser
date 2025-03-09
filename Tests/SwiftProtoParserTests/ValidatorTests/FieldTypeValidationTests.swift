@@ -2,7 +2,7 @@ import XCTest
 
 @testable import SwiftProtoParser
 
-/// A mock ReferenceValidator that doesn't validate type references
+/// A mock ReferenceValidator that doesn't validate type references.
 class MockReferenceValidator: ReferenceValidating {
   private let state: ValidationState
 
@@ -23,7 +23,7 @@ class MockReferenceValidator: ReferenceValidating {
   }
 }
 
-/// Tests for Proto3 field type validation rules
+/// Tests for Proto3 field type validation rules.
 final class FieldTypeValidationTests: XCTestCase {
   // Test validator
   private var validator: ValidatorV2!
@@ -177,7 +177,8 @@ final class FieldTypeValidationTests: XCTestCase {
     for keyType in invalidKeyTypes {
       // This should throw an invalidMapKeyType error
       XCTAssertThrowsError(
-        try fieldValidator.validateMapKeyType(keyType), "Map key type \(keyType) should be invalid"
+        try fieldValidator.validateMapKeyType(keyType),
+        "Map key type \(keyType) should be invalid"
       ) { error in
         guard let validationError = error as? ValidationError else {
           XCTFail("Expected ValidationError for map key type \(keyType)")
@@ -341,7 +342,9 @@ final class FieldTypeValidationTests: XCTestCase {
 
     // This should not throw
     XCTAssertNoThrow(
-      try validator.validate(fileWithMessageValueType), "Message type as map value should be valid")
+      try validator.validate(fileWithMessageValueType),
+      "Message type as map value should be valid"
+    )
   }
 
   func testMapFieldModifiers() throws {
@@ -478,7 +481,9 @@ final class FieldTypeValidationTests: XCTestCase {
 
       // This should not throw
       XCTAssertNoThrow(
-        try validator.validate(file), "Repeated scalar field of type \(scalarType) should be valid")
+        try validator.validate(file),
+        "Repeated scalar field of type \(scalarType) should be valid"
+      )
     }
 
     // Test repeated message fields using direct field validation
@@ -508,12 +513,14 @@ final class FieldTypeValidationTests: XCTestCase {
     // This should not throw when using our mock validator
     XCTAssertNoThrow(
       try fieldValidator.validateField(field, inMessage: messageNode),
-      "Repeated message field should be valid")
+      "Repeated message field should be valid"
+    )
 
     // Verify that the mock reference validator doesn't throw
     XCTAssertNoThrow(
       try mockReferenceValidator.validateTypeReference("OtherMessage", inMessage: messageNode),
-      "Mock reference validator should not throw")
+      "Mock reference validator should not throw"
+    )
   }
 
   func testOptionalFields() throws {
@@ -572,7 +579,9 @@ final class FieldTypeValidationTests: XCTestCase {
 
       // This should not throw
       XCTAssertNoThrow(
-        try validator.validate(file), "Optional scalar field of type \(scalarType) should be valid")
+        try validator.validate(file),
+        "Optional scalar field of type \(scalarType) should be valid"
+      )
     }
 
     // Test optional message fields using direct field validation
@@ -602,11 +611,13 @@ final class FieldTypeValidationTests: XCTestCase {
     // This should not throw when using our mock validator
     XCTAssertNoThrow(
       try fieldValidator.validateField(field, inMessage: messageNode),
-      "Optional message field should be valid")
+      "Optional message field should be valid"
+    )
 
     // Verify that the mock reference validator doesn't throw
     XCTAssertNoThrow(
       try mockReferenceValidator.validateTypeReference("OtherMessage", inMessage: messageNode),
-      "Mock reference validator should not throw")
+      "Mock reference validator should not throw"
+    )
   }
 }

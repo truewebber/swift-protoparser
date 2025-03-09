@@ -1,28 +1,28 @@
 import Foundation
 
-/// Implementation of file-level validation
+/// Implementation of file-level validation.
 class FileValidator: FileValidating {
   // Reference to the shared validation state
   private let state: ValidationState
 
-  /// Initialize with a validation state
-  /// - Parameter state: The validation state
+  /// Initialize with a validation state.
+  /// - Parameter state: The validation state.
   init(state: ValidationState) {
     self.state = state
   }
 
-  /// Validate the syntax version of a proto file
-  /// - Parameter syntax: The syntax version string
-  /// - Throws: ValidationError if the syntax version is invalid
+  /// Validate the syntax version of a proto file.
+  /// - Parameter syntax: The syntax version string.
+  /// - Throws: ValidationError if the syntax version is invalid.
   func validateSyntaxVersion(_ syntax: String) throws {
     guard syntax == "proto3" else {
       throw ValidationError.invalidSyntaxVersion(syntax)
     }
   }
 
-  /// Validate a file node
-  /// - Parameter file: The file node to validate
-  /// - Throws: ValidationError if validation fails
+  /// Validate a file node.
+  /// - Parameter file: The file node to validate.
+  /// - Throws: ValidationError if validation fails.
   func validateFile(_ file: FileNode) throws {
     // Validate package name if present
     if let package = file.package {
@@ -35,9 +35,9 @@ class FileValidator: FileValidating {
     }
   }
 
-  /// Validate package name
-  /// - Parameter package: The package name
-  /// - Throws: ValidationError if the package name is invalid
+  /// Validate package name.
+  /// - Parameter package: The package name.
+  /// - Throws: ValidationError if the package name is invalid.
   func validatePackageName(_ package: String) throws {
     // If package is nil, it's valid (no package)
     guard !package.isEmpty else {
@@ -85,8 +85,8 @@ class FileValidator: FileValidating {
   }
 
   /// Validate import statement
-  /// - Parameter imp: The import node
-  /// - Throws: ValidationError if the import is invalid
+  /// - Parameter imp: The import node.
+  /// - Throws: ValidationError if the import is invalid.
   func validateImport(_ imp: ImportNode) throws {
     // Import path must be a valid string
     guard !imp.path.isEmpty else {
@@ -103,9 +103,9 @@ class FileValidator: FileValidating {
 
   // MARK: - Helper Methods
 
-  /// Check if a string is a valid identifier
-  /// - Parameter identifier: The string to check
-  /// - Returns: True if the string is a valid identifier
+  /// Check if a string is a valid identifier.
+  /// - Parameter identifier: The string to check.
+  /// - Returns: True if the string is a valid identifier.
   private func isValidIdentifier(_ identifier: String) -> Bool {
     guard !identifier.isEmpty else { return false }
 

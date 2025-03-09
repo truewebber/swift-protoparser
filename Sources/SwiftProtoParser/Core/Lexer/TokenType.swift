@@ -1,137 +1,137 @@
 import Foundation
 
-/// Represents all possible token types in a proto3 file
+/// Represents all possible token types in a proto3 file.
 public enum TokenType: Equatable {
   // MARK: - Special Tokens
 
-  /// End of file marker
+  /// End of file marker.
   case eof
-  /// Invalid token
+  /// Invalid token.
   case illegal
 
   // MARK: - Identifiers and Literals
 
   /// An identifier token (variable names, type names, etc.)
   case identifier
-  /// An integer literal
+  /// An integer literal.
   case intLiteral
-  /// A floating point literal
+  /// A floating point literal.
   case floatLiteral
-  /// A string literal
+  /// A string literal.
   case stringLiteral
 
   // MARK: - Operators and Punctuation
 
-  /// Equal sign '='
+  /// Equal sign '='.
   case equals
-  /// Colon ':'
+  /// Colon ':'.
   case colon
-  /// Semicolon ';'
+  /// Semicolon ';'.
   case semicolon
-  /// Left brace '{'
+  /// Left brace '{'.
   case leftBrace
-  /// Right brace '}'
+  /// Right brace '}'.
   case rightBrace
-  /// Left parenthesis '('
+  /// Left parenthesis '('.
   case leftParen
-  /// Right parenthesis ')'
+  /// Right parenthesis ')'.
   case rightParen
-  /// Left angle bracket '<'
+  /// Left angle bracket '<'.
   case leftAngle
-  /// Right angle bracket '>'
+  /// Right angle bracket '>'.
   case rightAngle
-  /// Left square bracket '['
+  /// Left square bracket '['.
   case leftBracket
-  /// Right square bracket ']'
+  /// Right square bracket ']'.
   case rightBracket
-  /// Comma ','
+  /// Comma ','.
   case comma
   /// Period '.'
   case period
-  /// Minus sign '-'
+  /// Minus sign '-'.
   case minus
-  /// Plus sign '+'
+  /// Plus sign '+'.
   case plus
 
   // MARK: - Keywords
 
-  /// 'syntax' keyword
+  /// 'syntax' keyword.
   case syntax
-  /// 'import' keyword
+  /// 'import' keyword.
   case `import`
-  /// 'weak' keyword
+  /// 'weak' keyword.
   case weak
-  /// 'public' keyword
+  /// 'public' keyword.
   case `public`
-  /// 'package' keyword
+  /// 'package' keyword.
   case package
-  /// 'option' keyword
+  /// 'option' keyword.
   case option
-  /// 'extend' keyword
+  /// 'extend' keyword.
   case extend
-  /// 'message' keyword
+  /// 'message' keyword.
   case message
-  /// 'enum' keyword
+  /// 'enum' keyword.
   case `enum`
-  /// 'service' keyword
+  /// 'service' keyword.
   case service
-  /// 'rpc' keyword
+  /// 'rpc' keyword.
   case rpc
-  /// 'returns' keyword
+  /// 'returns' keyword.
   case returns
-  /// 'stream' keyword
+  /// 'stream' keyword.
   case stream
-  /// 'repeated' keyword
+  /// 'repeated' keyword.
   case repeated
-  /// 'optional' keyword
+  /// 'optional' keyword.
   case optional
-  /// 'reserved' keyword
+  /// 'reserved' keyword.
   case reserved
-  /// 'to' keyword (used in ranges)
+  /// 'to' keyword (used in ranges).
   case to
-  /// 'map' keyword
+  /// 'map' keyword.
   case map
-  /// 'oneof' keyword
+  /// 'oneof' keyword.
   case oneof
 
   // MARK: - Built-in Types
 
-  /// 'double' type
+  /// 'double' type.
   case double
-  /// 'float' type
+  /// 'float' type.
   case float
-  /// 'int32' type
+  /// 'int32' type.
   case int32
-  /// 'int64' type
+  /// 'int64' type.
   case int64
-  /// 'uint32' type
+  /// 'uint32' type.
   case uint32
-  /// 'uint64' type
+  /// 'uint64' type.
   case uint64
-  /// 'sint32' type
+  /// 'sint32' type.
   case sint32
-  /// 'sint64' type
+  /// 'sint64' type.
   case sint64
-  /// 'fixed32' type
+  /// 'fixed32' type.
   case fixed32
-  /// 'fixed64' type
+  /// 'fixed64' type.
   case fixed64
-  /// 'sfixed32' type
+  /// 'sfixed32' type.
   case sfixed32
-  /// 'sfixed64' type
+  /// 'sfixed64' type.
   case sfixed64
-  /// 'bool' type
+  /// 'bool' type.
   case bool
-  /// 'string' type
+  /// 'string' type.
   case string
-  /// 'bytes' type
+  /// 'bytes' type.
   case bytes
 }
 
 // MARK: - Keyword Mapping
 
 extension TokenType {
-  /// Maps string literals to their corresponding keyword token types
+  /// Maps string literals to their corresponding keyword token types.
   static let keywords: [String: TokenType] = [
     "syntax": .syntax,
     "import": .import,
@@ -171,9 +171,9 @@ extension TokenType {
     "bytes": .bytes,
   ]
 
-  /// Checks if a string is a keyword
-  /// - Parameter identifier: The string to check
-  /// - Returns: The corresponding token type if it's a keyword, nil otherwise
+  /// Checks if a string is a keyword.
+  /// - Parameter identifier: The string to check.
+  /// - Returns: The corresponding token type if it's a keyword, nil otherwise.
   static func keyword(from identifier: String) -> TokenType? {
     return keywords[identifier]
   }
@@ -253,8 +253,8 @@ extension TokenType: CustomStringConvertible {
 }
 
 extension TokenType {
-  /// Checks if this token type represents an absolutely reserved keyword
-  /// .extend - has to be added
+  /// Checks if this token type represents an absolutely reserved keyword.
+  /// .extend - has to be added.
   var isAbsolutelyReserved: Bool {
     switch self {
     case .syntax, .import, .package, .option, .extend,

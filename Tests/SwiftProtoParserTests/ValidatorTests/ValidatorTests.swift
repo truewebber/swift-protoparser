@@ -175,7 +175,9 @@ final class ValidatorTests: XCTestCase {
         message Test {
             string field = 1;
         }
-        """))
+        """
+      )
+    )
 
     // Test maximum valid field number
     XCTAssertNoThrow(
@@ -184,7 +186,9 @@ final class ValidatorTests: XCTestCase {
         message Test {
             string field = 536870911;
         }
-        """))
+        """
+      )
+    )
 
     // Test invalid field numbers
     let invalidNumbers = [
@@ -239,6 +243,8 @@ final class ValidatorTests: XCTestCase {
             string before = 18999;
             string after = 20000;
         }
-        """))
+        """
+      )
+    )
   }
 }

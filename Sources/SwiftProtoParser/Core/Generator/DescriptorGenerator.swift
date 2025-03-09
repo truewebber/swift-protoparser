@@ -1,26 +1,25 @@
 import Foundation
 import SwiftProtobuf
 
-/// Generates Swift Protobuf descriptors from AST nodes
+/// Generates Swift Protobuf descriptors from AST nodes.
 public final class DescriptorGenerator {
-  /// Current package being processed
+  /// Current package being processed.
   private var currentPackage: String?
 
-  /// Map of fully qualified names to descriptors
+  /// Map of fully qualified names to descriptors.
   private var descriptorMap: [String: Any] = [:]
 
-  /// File options being collected
+  /// File options being collected.
   private var fileOptions: [String: Any] = [:]
 
-  /// Initialize a new descriptor generator
+  /// Initialize a new descriptor generator.
   public init() {}
 
-  /// Generates a file descriptor from a FileNode
+  /// Generates a file descriptor from a FileNode.
   /// - Parameter file: The file node to convert
-  /// - Returns: A FileDescriptorProto representing the file
-  /// - Throws: DescriptorGeneratorError if generation fails
-  public func generateFileDescriptor(_ file: FileNode) throws -> Google_Protobuf_FileDescriptorProto
-  {
+  /// - Returns: A FileDescriptorProto representing the file.
+  /// - Throws: DescriptorGeneratorError if generation fails.
+  public func generateFileDescriptor(_ file: FileNode) throws -> Google_Protobuf_FileDescriptorProto {
     // Reset state
     descriptorMap.removeAll()
     fileOptions.removeAll()
@@ -76,7 +75,9 @@ public final class DescriptorGenerator {
 
   // MARK: - Message Generation
 
-  private func generateMessageDescriptor(_ message: MessageNode) throws
+  private func generateMessageDescriptor(
+    _ message: MessageNode
+  ) throws
     -> Google_Protobuf_DescriptorProto
   {
     var descriptor = Google_Protobuf_DescriptorProto()
@@ -137,7 +138,9 @@ public final class DescriptorGenerator {
 
   // MARK: - Field Generation
 
-  private func generateFieldDescriptor(_ field: FieldNode) throws
+  private func generateFieldDescriptor(
+    _ field: FieldNode
+  ) throws
     -> Google_Protobuf_FieldDescriptorProto
   {
     var descriptor = Google_Protobuf_FieldDescriptorProto()
@@ -148,9 +151,11 @@ public final class DescriptorGenerator {
 
     if field.isRepeated {
       descriptor.label = .repeated
-    } else if field.isOptional {
+    }
+    else if field.isOptional {
       descriptor.label = .optional
-    } else {
+    }
+    else {
       descriptor.proto3Optional = field.isOptional
     }
 
@@ -174,7 +179,9 @@ public final class DescriptorGenerator {
 
   // MARK: - Enum Generation
 
-  private func generateEnumDescriptor(_ enumType: EnumNode) throws
+  private func generateEnumDescriptor(
+    _ enumType: EnumNode
+  ) throws
     -> Google_Protobuf_EnumDescriptorProto
   {
     var descriptor = Google_Protobuf_EnumDescriptorProto()
@@ -201,7 +208,9 @@ public final class DescriptorGenerator {
 
   // MARK: - Service Generation
 
-  private func generateServiceDescriptor(_ service: ServiceNode) throws
+  private func generateServiceDescriptor(
+    _ service: ServiceNode
+  ) throws
     -> Google_Protobuf_ServiceDescriptorProto
   {
     var descriptor = Google_Protobuf_ServiceDescriptorProto()
@@ -232,7 +241,9 @@ public final class DescriptorGenerator {
 
   // MARK: - Helper Methods
 
-  private func generateOneofDescriptor(_ oneof: OneofNode) throws
+  private func generateOneofDescriptor(
+    _ oneof: OneofNode
+  ) throws
     -> Google_Protobuf_OneofDescriptorProto
   {
     var descriptor = Google_Protobuf_OneofDescriptorProto()
@@ -293,7 +304,9 @@ public final class DescriptorGenerator {
     return descriptor
   }
 
-  private func mapScalarType(_ type: TypeNode.ScalarType) throws
+  private func mapScalarType(
+    _ type: TypeNode.ScalarType
+  ) throws
     -> Google_Protobuf_FieldDescriptorProto.TypeEnum
   {
     switch type {
@@ -330,26 +343,30 @@ public final class DescriptorGenerator {
     return first.uppercased() + str.dropFirst()
   }
 
-  /// Processes an extension node and generates field descriptors for its fields
-  /// - Parameter extension: The extension node to process
-  /// - Returns: An array of FieldDescriptorProto objects for the extension fields
-  /// - Throws: DescriptorGeneratorError if processing fails
-  private func processExtension(_ extension: ExtendNode) throws -> [Google_Protobuf_FieldDescriptorProto] {
+  /// Processes an extension node and generates field descriptors for its fields.
+  /// - Parameter extension: The extension node to process.
+  /// - Returns: An array of FieldDescriptorProto objects for the extension fields.
+  /// - Throws: DescriptorGeneratorError if processing fails.
+  private func processExtension(
+    _ extension: ExtendNode
+  ) throws
+    -> [Google_Protobuf_FieldDescriptorProto]
+  {
     var extensionFields: [Google_Protobuf_FieldDescriptorProto] = []
-    
+
     // Get the fully qualified name of the extended type
     let extendedType = `extension`.fullExtendedName(inPackage: currentPackage)
-    
+
     // Process each field in the extension
     for field in `extension`.fields {
       var fieldDescriptor = try generateFieldDescriptor(field)
-      
+
       // Set the extendee field to indicate this is an extension
       fieldDescriptor.extendee = extendedType
-      
+
       extensionFields.append(fieldDescriptor)
     }
-    
+
     return extensionFields
   }
 }
@@ -386,7 +403,8 @@ extension DescriptorGenerator {
       case "java_generate_equals_and_hash":
         guard case .identifier(let value) = option.value else {
           throw DescriptorGeneratorError.invalidOptionValue(
-            "java_generate_equals_and_hash must be a boolean")
+            "java_generate_equals_and_hash must be a boolean"
+          )
         }
         fileOptions.javaGenerateEqualsAndHash = value == "true"
 
@@ -420,7 +438,8 @@ extension DescriptorGenerator {
       case "java_generic_services":
         guard case .identifier(let value) = option.value else {
           throw DescriptorGeneratorError.invalidOptionValue(
-            "java_generic_services must be a boolean")
+            "java_generic_services must be a boolean"
+          )
         }
         fileOptions.javaGenericServices = value == "true"
 
@@ -475,7 +494,8 @@ extension DescriptorGenerator {
       default:
         if option.isCustomOption {
           try processCustomOption(option, into: &fileOptions)
-        } else {
+        }
+        else {
           throw DescriptorGeneratorError.unsupportedOption(option.name)
         }
       }
@@ -495,14 +515,16 @@ extension DescriptorGenerator {
       case "message_set_wire_format":
         guard case .identifier(let value) = option.value else {
           throw DescriptorGeneratorError.invalidOptionValue(
-            "message_set_wire_format must be a boolean")
+            "message_set_wire_format must be a boolean"
+          )
         }
         messageOptions.messageSetWireFormat = value == "true"
 
       case "no_standard_descriptor_accessor":
         guard case .identifier(let value) = option.value else {
           throw DescriptorGeneratorError.invalidOptionValue(
-            "no_standard_descriptor_accessor must be a boolean")
+            "no_standard_descriptor_accessor must be a boolean"
+          )
         }
         messageOptions.noStandardDescriptorAccessor = value == "true"
 
@@ -521,7 +543,8 @@ extension DescriptorGenerator {
       default:
         if option.isCustomOption {
           try processCustomOption(option, into: &messageOptions)
-        } else {
+        }
+        else {
           throw DescriptorGeneratorError.unsupportedOption(option.name)
         }
       }
@@ -595,7 +618,8 @@ extension DescriptorGenerator {
       default:
         if option.isCustomOption {
           try processCustomOption(option, into: &fieldOptions)
-        } else {
+        }
+        else {
           throw DescriptorGeneratorError.unsupportedOption(option.name)
         }
       }
@@ -627,7 +651,8 @@ extension DescriptorGenerator {
       default:
         if option.isCustomOption {
           try processCustomOption(option, into: &enumOptions)
-        } else {
+        }
+        else {
           throw DescriptorGeneratorError.unsupportedOption(option.name)
         }
       }
@@ -653,7 +678,8 @@ extension DescriptorGenerator {
       default:
         if option.isCustomOption {
           try processCustomOption(option, into: &enumValueOptions)
-        } else {
+        }
+        else {
           throw DescriptorGeneratorError.unsupportedOption(option.name)
         }
       }
@@ -679,7 +705,8 @@ extension DescriptorGenerator {
       default:
         if option.isCustomOption {
           try processCustomOption(option, into: &serviceOptions)
-        } else {
+        }
+        else {
           throw DescriptorGeneratorError.unsupportedOption(option.name)
         }
       }
@@ -705,7 +732,8 @@ extension DescriptorGenerator {
       case "idempotency_level":
         guard case .identifier(let value) = option.value else {
           throw DescriptorGeneratorError.invalidOptionValue(
-            "idempotency_level must be an identifier")
+            "idempotency_level must be an identifier"
+          )
         }
         switch value.uppercased() {
         case "IDEMPOTENCY_UNKNOWN":
@@ -716,13 +744,15 @@ extension DescriptorGenerator {
           methodOptions.idempotencyLevel = .idempotent
         default:
           throw DescriptorGeneratorError.invalidOptionValue(
-            "Invalid idempotency_level value: \(value)")
+            "Invalid idempotency_level value: \(value)"
+          )
         }
 
       default:
         if option.isCustomOption {
           try processCustomOption(option, into: &methodOptions)
-        } else {
+        }
+        else {
           throw DescriptorGeneratorError.unsupportedOption(option.name)
         }
       }
@@ -740,7 +770,8 @@ extension DescriptorGenerator {
     for option in options {
       if option.isCustomOption {
         try processCustomOption(option, into: &oneofOptions)
-      } else {
+      }
+      else {
         throw DescriptorGeneratorError.unsupportedOption(option.name)
       }
     }
@@ -754,7 +785,7 @@ extension DescriptorGenerator {
   ) throws {
     // Create an UninterpretedOption for the custom option
     var uninterpretedOption = Google_Protobuf_UninterpretedOption()
-    
+
     // Process the path parts
     for part in option.pathParts {
       var namePart = Google_Protobuf_UninterpretedOption.NamePart()
@@ -762,7 +793,7 @@ extension DescriptorGenerator {
       namePart.isExtension = part.isExtension
       uninterpretedOption.name.append(namePart)
     }
-    
+
     // Set the value based on the option value type
     switch option.value {
     case .string(let stringValue):
@@ -772,10 +803,12 @@ extension DescriptorGenerator {
         // It's an integer
         if doubleValue >= 0 {
           uninterpretedOption.positiveIntValue = UInt64(doubleValue)
-        } else {
+        }
+        else {
           uninterpretedOption.negativeIntValue = Int64(doubleValue)
         }
-      } else {
+      }
+      else {
         // It's a floating point
         uninterpretedOption.doubleValue = doubleValue
       }
@@ -790,41 +823,49 @@ extension DescriptorGenerator {
       let serialized = try serializeMapValue(mapValue)
       uninterpretedOption.stringValue = serialized.data(using: .utf8)!
     }
-    
+
     // Add the uninterpreted option to the options
     if var optionsMessage = options as? Google_Protobuf_FileOptions {
       optionsMessage.uninterpretedOption.append(uninterpretedOption)
       options = optionsMessage as! T
-    } else if var optionsMessage = options as? Google_Protobuf_MessageOptions {
+    }
+    else if var optionsMessage = options as? Google_Protobuf_MessageOptions {
       optionsMessage.uninterpretedOption.append(uninterpretedOption)
       options = optionsMessage as! T
-    } else if var optionsMessage = options as? Google_Protobuf_FieldOptions {
+    }
+    else if var optionsMessage = options as? Google_Protobuf_FieldOptions {
       optionsMessage.uninterpretedOption.append(uninterpretedOption)
       options = optionsMessage as! T
-    } else if var optionsMessage = options as? Google_Protobuf_EnumOptions {
+    }
+    else if var optionsMessage = options as? Google_Protobuf_EnumOptions {
       optionsMessage.uninterpretedOption.append(uninterpretedOption)
       options = optionsMessage as! T
-    } else if var optionsMessage = options as? Google_Protobuf_EnumValueOptions {
+    }
+    else if var optionsMessage = options as? Google_Protobuf_EnumValueOptions {
       optionsMessage.uninterpretedOption.append(uninterpretedOption)
       options = optionsMessage as! T
-    } else if var optionsMessage = options as? Google_Protobuf_ServiceOptions {
+    }
+    else if var optionsMessage = options as? Google_Protobuf_ServiceOptions {
       optionsMessage.uninterpretedOption.append(uninterpretedOption)
       options = optionsMessage as! T
-    } else if var optionsMessage = options as? Google_Protobuf_MethodOptions {
+    }
+    else if var optionsMessage = options as? Google_Protobuf_MethodOptions {
       optionsMessage.uninterpretedOption.append(uninterpretedOption)
       options = optionsMessage as! T
-    } else if var optionsMessage = options as? Google_Protobuf_OneofOptions {
+    }
+    else if var optionsMessage = options as? Google_Protobuf_OneofOptions {
       optionsMessage.uninterpretedOption.append(uninterpretedOption)
       options = optionsMessage as! T
-    } else {
+    }
+    else {
       throw DescriptorGeneratorError.unsupportedOption("Unsupported options type: \(T.self)")
     }
   }
-  
+
   // Helper method to serialize array values to a string
   private func serializeArrayValue(_ array: [OptionNode.Value]) throws -> String {
     var components: [String] = []
-    
+
     for value in array {
       switch value {
       case .string(let stringValue):
@@ -841,18 +882,18 @@ extension DescriptorGenerator {
         components.append("{\(serialized)}")
       }
     }
-    
+
     return components.joined(separator: ", ")
   }
-  
+
   // Helper method to serialize map values to a string
   private func serializeMapValue(_ map: [String: OptionNode.Value]) throws -> String {
     var components: [String] = []
-    
+
     for (key, value) in map {
       let serializedKey = key
       let serializedValue: String
-      
+
       switch value {
       case .string(let stringValue):
         serializedValue = "\"\(stringValue.replacingOccurrences(of: "\"", with: "\\\""))\""
@@ -867,17 +908,17 @@ extension DescriptorGenerator {
         let serialized = try serializeMapValue(nestedMap)
         serializedValue = "{\(serialized)}"
       }
-      
+
       components.append("\(serializedKey): \(serializedValue)")
     }
-    
+
     return components.joined(separator: ", ")
   }
 }
 
 // MARK: - Errors
 
-/// Errors that can occur during descriptor generation
+/// Errors that can occur during descriptor generation.
 public enum DescriptorGeneratorError: Error, CustomStringConvertible {
   case nestedMapNotAllowed
   case invalidOptionValue(String)

@@ -2,7 +2,7 @@ import XCTest
 
 @testable import SwiftProtoParser
 
-/// Tests for Proto3 service validation rules
+/// Tests for Proto3 service validation rules.
 final class ServiceValidationTests: XCTestCase {
   // Test validator
   private var validator: ValidatorV2!
@@ -25,7 +25,7 @@ final class ServiceValidationTests: XCTestCase {
 
   // MARK: - Service Name Format Tests
 
-  /// Check if a service name is valid (similar to how method names are validated)
+  /// Check if a service name is valid (similar to how method names are validated).
   private func isValidServiceName(_ name: String) -> Bool {
     guard !name.isEmpty else { return false }
 
@@ -116,7 +116,8 @@ final class ServiceValidationTests: XCTestCase {
       // This should not throw
       XCTAssertNoThrow(
         try serviceValidator.validateMethodUniqueness(service),
-        "Method name '\(name)' should be valid")
+        "Method name '\(name)' should be valid"
+      )
     }
 
     // Invalid method names
@@ -253,7 +254,8 @@ final class ServiceValidationTests: XCTestCase {
       // This should not throw
       XCTAssertNoThrow(
         try serviceValidator.validateStreamingRules(rpc),
-        "\(config.description) method should be valid")
+        "\(config.description) method should be valid"
+      )
     }
   }
 
@@ -307,7 +309,8 @@ final class ServiceValidationTests: XCTestCase {
     // Verify that registering the same type again throws an error
     XCTAssertThrowsError(
       try state.registerType("test.TestRequest", node: requestMessage),
-      "Registering the same type twice should throw an error")
+      "Registering the same type twice should throw an error"
+    )
 
     // Verify that registering a different type doesn't throw
     let responseMessage = MessageNode(
@@ -321,7 +324,8 @@ final class ServiceValidationTests: XCTestCase {
     )
     XCTAssertNoThrow(
       try state.registerType("test.TestResponse", node: responseMessage),
-      "Registering a different type should not throw")
+      "Registering a different type should not throw"
+    )
   }
 
   // MARK: - RPC Options Validation Tests
@@ -373,11 +377,15 @@ final class ServiceValidationTests: XCTestCase {
     XCTAssertEqual(serviceWithValidRPCOptions.rpcs.count, 1, "Service should have 1 RPC")
     XCTAssertEqual(serviceWithValidRPCOptions.rpcs[0].options.count, 2, "RPC should have 2 options")
     XCTAssertEqual(
-      serviceWithValidRPCOptions.rpcs[0].options[0].name, "deprecated",
-      "First option should be 'deprecated'")
+      serviceWithValidRPCOptions.rpcs[0].options[0].name,
+      "deprecated",
+      "First option should be 'deprecated'"
+    )
     XCTAssertEqual(
-      serviceWithValidRPCOptions.rpcs[0].options[1].name, "idempotency_level",
-      "Second option should be 'idempotency_level'")
+      serviceWithValidRPCOptions.rpcs[0].options[1].name,
+      "idempotency_level",
+      "Second option should be 'idempotency_level'"
+    )
 
     // Create an RPC with invalid options (for demonstration purposes)
     let invalidRPCOptions = [
@@ -415,10 +423,15 @@ final class ServiceValidationTests: XCTestCase {
     // Verify that the service has the expected RPC options
     XCTAssertEqual(serviceWithInvalidRPCOptions.rpcs.count, 1, "Service should have 1 RPC")
     XCTAssertEqual(
-      serviceWithInvalidRPCOptions.rpcs[0].options.count, 1, "RPC should have 1 option")
+      serviceWithInvalidRPCOptions.rpcs[0].options.count,
+      1,
+      "RPC should have 1 option"
+    )
     XCTAssertEqual(
-      serviceWithInvalidRPCOptions.rpcs[0].options[0].name, "invalid_option",
-      "Option should be 'invalid_option'")
+      serviceWithInvalidRPCOptions.rpcs[0].options[0].name,
+      "invalid_option",
+      "Option should be 'invalid_option'"
+    )
   }
 
   // MARK: - Service Options Validation Tests
@@ -449,7 +462,10 @@ final class ServiceValidationTests: XCTestCase {
     // Verify that the service has the expected options
     XCTAssertEqual(serviceWithValidOptions.options.count, 1, "Service should have 1 option")
     XCTAssertEqual(
-      serviceWithValidOptions.options[0].name, "deprecated", "Option should be 'deprecated'")
+      serviceWithValidOptions.options[0].name,
+      "deprecated",
+      "Option should be 'deprecated'"
+    )
 
     // Create a service with invalid options (for demonstration purposes)
     let invalidServiceOptions = [
@@ -474,7 +490,9 @@ final class ServiceValidationTests: XCTestCase {
     // Verify that the service has the expected options
     XCTAssertEqual(serviceWithInvalidOptions.options.count, 1, "Service should have 1 option")
     XCTAssertEqual(
-      serviceWithInvalidOptions.options[0].name, "invalid_option",
-      "Option should be 'invalid_option'")
+      serviceWithInvalidOptions.options[0].name,
+      "invalid_option",
+      "Option should be 'invalid_option'"
+    )
   }
 }

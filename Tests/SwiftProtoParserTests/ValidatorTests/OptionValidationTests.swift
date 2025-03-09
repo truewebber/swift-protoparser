@@ -2,7 +2,7 @@ import XCTest
 
 @testable import SwiftProtoParser
 
-/// Tests for Proto3 option validation rules
+/// Tests for Proto3 option validation rules.
 final class OptionValidationTests: XCTestCase {
   // Test validator
   private var validator: ValidatorV2!
@@ -115,7 +115,8 @@ final class OptionValidationTests: XCTestCase {
         switch validationError {
         case .invalidOptionValue(let message):
           XCTAssertTrue(
-            message.contains(option.errorType), "Error message should mention '\(option.errorType)'"
+            message.contains(option.errorType),
+            "Error message should mention '\(option.errorType)'"
           )
         case .unknownOption(let name):
           XCTAssertEqual(name, option.name)
@@ -230,7 +231,9 @@ final class OptionValidationTests: XCTestCase {
 
       // This should not throw
       XCTAssertNoThrow(
-        try validator.validate(file), "Message option '\(option.name)' should be valid")
+        try validator.validate(file),
+        "Message option '\(option.name)' should be valid"
+      )
     }
   }
 
@@ -296,7 +299,9 @@ final class OptionValidationTests: XCTestCase {
 
       // This should not throw
       XCTAssertNoThrow(
-        try validator.validate(file), "Field option '\(option.name)' should be valid")
+        try validator.validate(file),
+        "Field option '\(option.name)' should be valid"
+      )
     }
   }
 
@@ -418,7 +423,8 @@ final class OptionValidationTests: XCTestCase {
         switch validationError {
         case .invalidOptionValue(let message):
           XCTAssertTrue(
-            message.contains(option.errorType), "Error message should mention '\(option.errorType)'"
+            message.contains(option.errorType),
+            "Error message should mention '\(option.errorType)'"
           )
         case .unknownOption(let name):
           XCTAssertEqual(name, option.name)
@@ -462,6 +468,7 @@ final class OptionValidationTests: XCTestCase {
     // Custom options should pass validation without errors
     XCTAssertNoThrow(
       try validator.validate(fileWithCustomOption),
-      "Custom options should be allowed without validation")
+      "Custom options should be allowed without validation"
+    )
   }
 }

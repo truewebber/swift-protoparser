@@ -2,7 +2,7 @@ import XCTest
 
 @testable import SwiftProtoParser
 
-/// Tests for Proto3 syntax validation rules
+/// Tests for Proto3 syntax validation rules.
 final class SyntaxValidationTests: XCTestCase {
   // Test validator
   private var validator: ValidatorV2!

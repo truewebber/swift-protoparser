@@ -2,7 +2,7 @@ import XCTest
 
 @testable import SwiftProtoParser
 
-/// Tests for Proto3 import validation rules
+/// Tests for Proto3 import validation rules.
 final class ImportValidationTests: XCTestCase {
   // Test validator
   private var validator: ValidatorV2!
@@ -167,7 +167,8 @@ final class ImportValidationTests: XCTestCase {
     // This test is adjusted to match the actual behavior
     XCTAssertNoThrow(
       try validator.validate(file),
-      "Duplicate imports should be allowed in the current implementation")
+      "Duplicate imports should be allowed in the current implementation"
+    )
   }
 
   // MARK: - Conflicting Modifier Tests

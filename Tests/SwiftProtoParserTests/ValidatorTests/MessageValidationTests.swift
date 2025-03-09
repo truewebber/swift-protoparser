@@ -2,7 +2,7 @@ import XCTest
 
 @testable import SwiftProtoParser
 
-/// Tests for Proto3 message validation rules
+/// Tests for Proto3 message validation rules.
 final class MessageValidationTests: XCTestCase {
   // Test validator
   private var validator: ValidatorV2!
@@ -70,7 +70,9 @@ final class MessageValidationTests: XCTestCase {
 
       // This should not throw
       XCTAssertNoThrow(
-        try validator.validate(file), "Message name '\(messageName)' should be valid")
+        try validator.validate(file),
+        "Message name '\(messageName)' should be valid"
+      )
     }
   }
 
@@ -142,7 +144,8 @@ final class MessageValidationTests: XCTestCase {
 
       // This should throw an invalidMessageName error
       XCTAssertThrowsError(
-        try validator.validate(file), "Message name '\(messageName)' should be invalid"
+        try validator.validate(file),
+        "Message name '\(messageName)' should be invalid"
       ) { error in
         guard let validationError = error as? ValidationError else {
           XCTFail("Expected ValidationError for message name '\(messageName)'")
@@ -308,7 +311,8 @@ final class MessageValidationTests: XCTestCase {
 
       // This should throw an invalidFieldNumber error
       XCTAssertThrowsError(
-        try validator.validate(file), "Field number \(fieldNumber) should be invalid"
+        try validator.validate(file),
+        "Field number \(fieldNumber) should be invalid"
       ) { error in
         guard let validationError = error as? ValidationError else {
           XCTFail("Expected ValidationError for field number \(fieldNumber)")
@@ -363,7 +367,8 @@ final class MessageValidationTests: XCTestCase {
 
       // This should throw an invalidFieldNumber error
       XCTAssertThrowsError(
-        try validator.validate(file), "Field number \(fieldNumber) should be invalid (reserved)"
+        try validator.validate(file),
+        "Field number \(fieldNumber) should be invalid (reserved)"
       ) { error in
         guard let validationError = error as? ValidationError else {
           XCTFail("Expected ValidationError for field number \(fieldNumber)")
@@ -505,7 +510,8 @@ final class MessageValidationTests: XCTestCase {
 
       // This should throw an invalidFieldName error
       XCTAssertThrowsError(
-        try validator.validate(file), "Field name '\(fieldName)' should be invalid"
+        try validator.validate(file),
+        "Field name '\(fieldName)' should be invalid"
       ) { error in
         guard let validationError = error as? ValidationError else {
           XCTFail("Expected ValidationError for field name '\(fieldName)'")

@@ -1,12 +1,12 @@
 import Foundation
 
-/// Errors that can occur during lexical analysis
+/// Errors that can occur during lexical analysis.
 public enum LexerError: Error, CustomStringConvertible {
-  /// Encountered an invalid character
+  /// Encountered an invalid character.
   case invalidCharacter(Character, location: SourceLocation)
-  /// Unterminated string literal
+  /// Unterminated string literal.
   case unterminatedString(location: SourceLocation)
-  /// Invalid escape sequence in string
+  /// Invalid escape sequence in string.
   case invalidEscapeSequence(String, location: SourceLocation)
   /// Invalid number format
   case invalidNumber(String, location: SourceLocation)
@@ -29,39 +29,40 @@ public enum LexerError: Error, CustomStringConvertible {
   }
 }
 
-/// A lexical analyzer for proto3 files
+/// A lexical analyzer for proto3 files.
 public final class Lexer {
-  /// The input string being tokenized
+  /// The input string being tokenized.
   private let input: String
 
-  /// The current position in input (points to current char)
+  /// The current position in input (points to current char).
   private var position: String.Index
 
-  /// Current reading position in input (after current char)
+  /// Current reading position in input (after current char).
   private var readPosition: String.Index
 
-  /// Current character under examination
+  /// Current character under examination.
   private var ch: Character
 
-  /// Current line number (1-based)
+  /// Current line number (1-based).
   private var line: Int = 1
 
-  /// Current column number (1-based)
+  /// Current column number (1-based).
   private var column: Int = 0
 
-  /// Accumulated comments that appear before the next token
+  /// Accumulated comments that appear before the next token.
   private var pendingComments: [String] = []
 
-  /// Add token history
+  /// Add token history.
   private var lastToken: Token?
 
   /// Creates a new lexer with the given input
-  /// - Parameter input: The proto file content to tokenize
+  /// - Parameter input: The proto file content to tokenize.
   public init(input: String) {
     // Skip BOM if present at start of input
     if input.hasPrefix("\u{FEFF}") {
       self.input = String(input.dropFirst())
-    } else {
+    }
+    else {
       self.input = input
     }
 
@@ -72,8 +73,8 @@ public final class Lexer {
   }
 
   /// Returns the next token from the input
-  /// - Throws: LexerError if invalid input is encountered
-  /// - Returns: The next token
+  /// - Throws: LexerError if invalid input is encountered.
+  /// - Returns: The next token.
   public func nextToken() throws -> Token {
     skipWhitespace()
 
@@ -83,7 +84,8 @@ public final class Lexer {
       if let comment = try processComment() {
         pendingComments.append(comment)
         skipWhitespace()
-      } else {
+      }
+      else {
         break
       }
     }
@@ -145,15 +147,19 @@ public final class Lexer {
             || lastToken?.type == .comma || lastToken?.type == .colon))
       {
         return try makeNumberToken(startLocation)
-      } else if ch == "-" {
+      }
+      else if ch == "-" {
         token = makeCurrentToken(.minus, String(ch))
         readChar()
-      } else if ch == "+" {
+      }
+      else if ch == "+" {
         token = makeCurrentToken(.plus, String(ch))
         readChar()
-      } else if ch.isLetter || ch == "_" {
+      }
+      else if ch.isLetter || ch == "_" {
         token = makeIdentifierToken(startLocation)
-      } else {
+      }
+      else {
         throw LexerError.invalidCharacter(ch, location: startLocation)
       }
     }
@@ -173,10 +179,12 @@ public final class Lexer {
       if ch.isNewline {
         line += 1
         column = 0
-      } else {
+      }
+      else {
         column += 1
       }
-    } else {
+    }
+    else {
       ch = "\0"
       position = input.endIndex
     }
@@ -274,7 +282,7 @@ public final class Lexer {
     }
   }
 
-  /// Process single line comments starting with //
+  /// Process single line comments starting with //.
   private func processOneLineDoubleSlashComment() -> String? {
     readChar()  // consume second '/'
     let start = position
@@ -286,7 +294,7 @@ public final class Lexer {
     return String(input[start..<position]).trimmingCharacters(in: .whitespaces)
   }
 
-  /// Helper method to create tokens
+  /// Helper method to create tokens.
   private func makeToken(
     _ type: TokenType,
     _ literal: String,
@@ -369,7 +377,8 @@ public final class Lexer {
         }
         sawDot = true
         isFloat = true
-      } else if ch.lowercased() == "e" {
+      }
+      else if ch.lowercased() == "e" {
         if sawExponent {
           throw LexerError.invalidNumber(
             String(input[startPos..<position]),
@@ -388,7 +397,8 @@ public final class Lexer {
         }
         sawExponent = true
         isFloat = true
-      } else {
+      }
+      else {
         readChar()
       }
     }
@@ -427,7 +437,8 @@ public final class Lexer {
       if ch == "\\" {
         readChar()  // consume backslash
         value.append(try parseEscapeSequence())
-      } else {
+      }
+      else {
         value.append(ch)
         readChar()
       }
@@ -489,7 +500,8 @@ public final class Lexer {
         if ch.isHexDigit {
           hexString.append(ch)
           readChar()
-        } else {
+        }
+        else {
           throw LexerError.invalidEscapeSequence("\\u" + hexString, location: escapeLocation)
         }
       }

@@ -15,10 +15,12 @@ final class ParserPerformanceTests: XCTestCase {
     // Ensure test proto files exist
     XCTAssertTrue(
       fileManager.fileExists(atPath: "\(testProtoDir)/simple.proto"),
-      "simple.proto not found. Run Scripts/setup_protoc.sh first.")
+      "simple.proto not found. Run Scripts/setup_protoc.sh first."
+    )
     XCTAssertTrue(
       fileManager.fileExists(atPath: "\(testProtoDir)/complex.proto"),
-      "complex.proto not found. Run Scripts/setup_protoc.sh first.")
+      "complex.proto not found. Run Scripts/setup_protoc.sh first."
+    )
   }
 
   // MARK: - Performance Tests
@@ -27,20 +29,23 @@ final class ParserPerformanceTests: XCTestCase {
     let parser = ProtoParser(
       configuration: Configuration.builder()
         .addImportPath(testProtoDir)
-        .build())
+        .build()
+    )
 
     measure {
       do {
         // Parse the file with validation disabled to avoid type reference errors
         let lexer = Lexer(
-          input: try String(contentsOfFile: "\(testProtoDir)/simple.proto", encoding: .utf8))
+          input: try String(contentsOfFile: "\(testProtoDir)/simple.proto", encoding: .utf8)
+        )
         let parserInstance = try Parser(lexer: lexer)
         let fileNode = try parserInstance.parseFile(filePath: "\(testProtoDir)/simple.proto")
 
         // Generate descriptor without validation
         let generator = DescriptorGenerator()
         _ = try generator.generateFileDescriptor(fileNode)
-      } catch {
+      }
+      catch {
         XCTFail("Failed to parse simple.proto: \(error)")
       }
     }
@@ -50,20 +55,23 @@ final class ParserPerformanceTests: XCTestCase {
     let parser = ProtoParser(
       configuration: Configuration.builder()
         .addImportPath(testProtoDir)
-        .build())
+        .build()
+    )
 
     measure {
       do {
         // Parse the file with validation disabled to avoid type reference errors
         let lexer = Lexer(
-          input: try String(contentsOfFile: "\(testProtoDir)/complex.proto", encoding: .utf8))
+          input: try String(contentsOfFile: "\(testProtoDir)/complex.proto", encoding: .utf8)
+        )
         let parserInstance = try Parser(lexer: lexer)
         let fileNode = try parserInstance.parseFile(filePath: "\(testProtoDir)/complex.proto")
 
         // Generate descriptor without validation
         let generator = DescriptorGenerator()
         _ = try generator.generateFileDescriptor(fileNode)
-      } catch {
+      }
+      catch {
         XCTFail("Failed to parse complex.proto: \(error)")
       }
     }
@@ -84,7 +92,8 @@ final class ParserPerformanceTests: XCTestCase {
         // Generate descriptor without validation
         let generator = DescriptorGenerator()
         _ = try generator.generateFileDescriptor(fileNode)
-      } catch {
+      }
+      catch {
         XCTFail("Failed to parse large.proto: \(error)")
       }
     }
@@ -102,14 +111,16 @@ final class ParserPerformanceTests: XCTestCase {
         do {
           // Parse the file with validation disabled to avoid type reference errors
           let lexer = Lexer(
-            input: try String(contentsOfFile: "\(testProtoDir)/complex.proto", encoding: .utf8))
+            input: try String(contentsOfFile: "\(testProtoDir)/complex.proto", encoding: .utf8)
+          )
           let parserInstance = try Parser(lexer: lexer)
           let fileNode = try parserInstance.parseFile(filePath: "\(testProtoDir)/complex.proto")
 
           // Generate descriptor without validation
           let generator = DescriptorGenerator()
           _ = try generator.generateFileDescriptor(fileNode)
-        } catch {
+        }
+        catch {
           XCTFail("Failed to parse complex.proto: \(error)")
         }
       }
@@ -118,9 +129,8 @@ final class ParserPerformanceTests: XCTestCase {
 
   // MARK: - Helper Methods
 
-  /// Generates a large proto file for performance testing
-  private func generateLargeProtoFile(path: String, messageCount: Int, fieldsPerMessage: Int) throws
-  {
+  /// Generates a large proto file for performance testing.
+  private func generateLargeProtoFile(path: String, messageCount: Int, fieldsPerMessage: Int) throws {
     var content = """
       syntax = "proto3";
 

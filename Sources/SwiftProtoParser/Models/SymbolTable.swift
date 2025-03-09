@@ -1,8 +1,8 @@
 import Foundation
 
-/// Represents a symbol in the proto file
+/// Represents a symbol in the proto file.
 public final class Symbol {
-  /// Type of the symbol
+  /// Type of the symbol.
   public enum Kind {
     case message
     case enumeration
@@ -14,39 +14,39 @@ public final class Symbol {
     case extensionField
   }
 
-  /// The fully qualified name of the symbol
+  /// The fully qualified name of the symbol.
   public let fullName: String
 
-  /// The kind of symbol
+  /// The kind of symbol.
   public let kind: Kind
 
-  /// The node associated with this symbol
+  /// The node associated with this symbol.
   public let node: Node
 
-  /// The package this symbol belongs to
+  /// The package this symbol belongs to.
   public let package: String?
 
-  /// The parent symbol, if any (for nested types)
+  /// The parent symbol, if any (for nested types).
   public weak var parent: Symbol?
 
-  /// Child symbols (for nested types)
+  /// Child symbols (for nested types).
   public private(set) var children: [Symbol] = []
-  
-  /// For extension symbols, this stores the field number
+
+  /// For extension symbols, this stores the field number.
   public let fieldNumber: Int?
-  
-  /// For extension symbols, this stores the target type being extended
+
+  /// For extension symbols, this stores the target type being extended.
   public let extendedType: String?
 
-  /// Initialize a new symbol
-  /// - Parameters:
-  ///   - fullName: Fully qualified name
-  ///   - kind: Kind of symbol
-  ///   - node: Associated node
-  ///   - package: Package name
-  ///   - parent: Parent symbol
-  ///   - fieldNumber: Field number (for extensions)
-  ///   - extendedType: Type being extended (for extensions)
+  /// Initialize a new symbol.
+  /// - Parameters:.
+  ///   - fullName: Fully qualified name.
+  ///   - kind: Kind of symbol.
+  ///   - node: Associated node.
+  ///   - package: Package name.
+  ///   - parent: Parent symbol.
+  ///   - fieldNumber: Field number (for extensions).
+  ///   - extendedType: Type being extended (for extensions).
   public init(
     fullName: String,
     kind: Kind,
@@ -65,34 +65,34 @@ public final class Symbol {
     self.extendedType = extendedType
   }
 
-  /// Add a child symbol
-  /// - Parameter child: The child symbol to add
+  /// Add a child symbol.
+  /// - Parameter child: The child symbol to add.
   func addChild(_ child: Symbol) {
     children.append(child)
   }
 }
 
-/// Manages symbol resolution and tracking
+/// Manages symbol resolution and tracking.
 public final class SymbolTable {
-  /// Map of fully qualified names to symbols
+  /// Map of fully qualified names to symbols.
   private var symbols: [String: Symbol] = [:]
 
-  /// Map of package names to symbols in that package
+  /// Map of package names to symbols in that package.
   private var packageSymbols: [String: Set<Symbol>] = [:]
-  
-  /// Map of extended types to their extensions
+
+  /// Map of extended types to their extensions.
   private var extensions: [String: [Symbol]] = [:]
 
-  /// Initialize a new symbol table
+  /// Initialize a new symbol table.
   public init() {}
 
-  /// Add a symbol to the table
-  /// - Parameters:
-  ///   - node: The node to add
-  ///   - kind: The kind of symbol
-  ///   - package: The package name
-  ///   - parent: The parent symbol, if any
-  /// - Throws: SymbolTableError if symbol already exists
+  /// Add a symbol to the table.
+  /// - Parameters:.
+  ///   - node: The node to add.
+  ///   - kind: The kind of symbol.
+  ///   - package: The package name.
+  ///   - parent: The parent symbol, if any.
+  /// - Throws: SymbolTableError if symbol already exists.
   public func addSymbol(
     _ node: Node,
     kind: Symbol.Kind,
@@ -128,14 +128,14 @@ public final class SymbolTable {
       packageSymbols[package] = packageSet
     }
   }
-  
-  /// Add an extension field to the table
-  /// - Parameters:
-  ///   - field: The field node
-  ///   - extendedType: The type being extended
-  ///   - package: The package name
-  ///   - parent: The parent symbol, if any
-  /// - Throws: SymbolTableError if extension already exists
+
+  /// Add an extension field to the table.
+  /// - Parameters:.
+  ///   - field: The field node.
+  ///   - extendedType: The type being extended.
+  ///   - package: The package name.
+  ///   - parent: The parent symbol, if any.
+  /// - Throws: SymbolTableError if extension already exists.
   public func addExtension(
     _ field: FieldNode,
     extendedType: String,
@@ -144,11 +144,11 @@ public final class SymbolTable {
   ) throws {
     let name = field.name
     let fullName = package.map { "\($0).\(name)" } ?? name
-    
+
     guard symbols[fullName] == nil else {
       throw SymbolTableError.duplicateSymbol(fullName)
     }
-    
+
     // Create a symbol for the extension
     let symbol = Symbol(
       fullName: fullName,
@@ -159,15 +159,15 @@ public final class SymbolTable {
       fieldNumber: field.number,
       extendedType: extendedType
     )
-    
+
     // Add to symbols
     symbols[fullName] = symbol
-    
+
     // Add to extensions map
     var extensionList = extensions[extendedType, default: []]
     extensionList.append(symbol)
     extensions[extendedType] = extensionList
-    
+
     // Add to package symbols
     if let package = package {
       var packageSet = packageSymbols[package, default: Set()]
@@ -175,48 +175,48 @@ public final class SymbolTable {
       packageSymbols[package] = packageSet
     }
   }
-  
-  /// Look up extensions for a specific type
-  /// - Parameter typeName: The fully qualified name of the type
-  /// - Returns: Array of extension symbols
+
+  /// Look up extensions for a specific type.
+  /// - Parameter typeName: The fully qualified name of the type.
+  /// - Returns: Array of extension symbols.
   public func lookupExtensions(for typeName: String) -> [Symbol] {
     return extensions[typeName] ?? []
   }
-  
-  /// Resolve an option extension name to its field type
-  /// - Parameter extensionName: The fully qualified name of the extension
-  /// - Returns: The field type if found
+
+  /// Resolve an option extension name to its field type.
+  /// - Parameter extensionName: The fully qualified name of the extension.
+  /// - Returns: The field type if found.
   public func resolveOptionType(for extensionName: String) -> TypeNode? {
     guard let symbol = symbols[extensionName], symbol.kind == .extensionField else {
       return nil
     }
-    
+
     // Cast to FieldNode to get the type
     if let fieldNode = symbol.node as? FieldNode {
       return fieldNode.type
     }
-    
+
     return nil
   }
-  
-  /// Check if a name is an extension field
-  /// - Parameter name: The name to check
-  /// - Returns: True if the name is an extension field
+
+  /// Check if a name is an extension field.
+  /// - Parameter name: The name to check.
+  /// - Returns: True if the name is an extension field.
   public func isExtension(_ name: String) -> Bool {
     guard let symbol = symbols[name] else { return false }
     return symbol.kind == .extensionField
   }
 
-  /// Look up a symbol by its fully qualified name
-  /// - Parameter name: The name to look up
-  /// - Returns: The symbol if found
+  /// Look up a symbol by its fully qualified name.
+  /// - Parameter name: The name to look up.
+  /// - Returns: The symbol if found.
   public func lookup(_ name: String) -> Symbol? {
     return symbols[name]
   }
 
-  /// Look up a type by its fully qualified name
-  /// - Parameter name: The name to look up
-  /// - Returns: The symbol if found and it's a type (message or enum)
+  /// Look up a type by its fully qualified name.
+  /// - Parameter name: The name to look up.
+  /// - Returns: The symbol if found and it's a type (message or enum).
   public func lookupType(_ name: String) -> Symbol? {
     guard let symbol = symbols[name] else { return nil }
     switch symbol.kind {
@@ -227,47 +227,48 @@ public final class SymbolTable {
     }
   }
 
-  /// Look up symbols in a package
-  /// - Parameter package: The package name
-  /// - Returns: Set of symbols in the package
+  /// Look up symbols in a package.
+  /// - Parameter package: The package name.
+  /// - Returns: Set of symbols in the package.
   public func lookupPackage(_ package: String) -> Set<Symbol> {
     return packageSymbols[package] ?? []
   }
 
-  /// Check if a name is already used in the current scope
-  /// - Parameters:
-  ///   - name: The name to check
-  ///   - parent: The parent symbol for nested scope
-  /// - Returns: True if the name is already used
+  /// Check if a name is already used in the current scope.
+  /// - Parameters:.
+  ///   - name: The name to check.
+  ///   - parent: The parent symbol for nested scope.
+  /// - Returns: True if the name is already used.
   public func isNameUsed(_ name: String, parent: Symbol?) -> Bool {
     if let parent = parent {
       let fullName = "\(parent.fullName).\(name)"
       return symbols[fullName] != nil
-    } else {
+    }
+    else {
       return symbols[name] != nil
     }
   }
 
-  /// Get all symbols of a specific kind
+  /// Get all symbols of a specific kind.
   /// - Parameter kind: The kind of symbols to get
-  /// - Returns: Array of matching symbols
+  /// - Returns: Array of matching symbols.
   public func getSymbols(ofKind kind: Symbol.Kind) -> [Symbol] {
     return symbols.values.filter { $0.kind == kind }
   }
 
-  /// Clear all symbols
+  /// Clear all symbols.
   public func clear() {
     symbols.removeAll()
     packageSymbols.removeAll()
     extensions.removeAll()
   }
 
-  /// Add an extension node to the table
-  /// - Parameters:
-  ///   - extend: The extend node
-  ///   - package: The package name
-  ///   - parent: The parent symbol, if any
-  /// - Throws: SymbolTableError if extension already exists
+  /// Add an extension node to the table.
+  /// - Parameters:.
+  ///   - extend: The extend node.
+  ///   - package: The package name.
+  ///   - parent: The parent symbol, if any.
+  /// - Throws: SymbolTableError if extension already exists.
   public func addExtendNode(
     _ extend: ExtendNode,
     package: String?,
@@ -275,7 +276,7 @@ public final class SymbolTable {
   ) throws {
     // Get the fully qualified name of the extended type
     let extendedType = extend.fullExtendedName(inPackage: package)
-    
+
     // Add each field as an extension
     for field in extend.fields {
       try addExtension(
@@ -287,51 +288,55 @@ public final class SymbolTable {
     }
   }
 
-  /// Check if an extension exists for a specific type
-  /// - Parameters:
-  ///   - typeName: The fully qualified name of the type
-  ///   - extensionName: The name of the extension
-  /// - Returns: Whether the extension exists
+  /// Check if an extension exists for a specific type.
+  /// - Parameters:.
+  ///   - typeName: The fully qualified name of the type.
+  ///   - extensionName: The name of the extension.
+  /// - Returns: Whether the extension exists.
   public func hasExtension(for typeName: String, named extensionName: String) -> Bool {
     guard let extensionSymbols = extensions[typeName] else {
       return false
     }
-    
-    return extensionSymbols.contains { $0.fullName.hasSuffix(".\(extensionName)") || $0.fullName == extensionName }
+
+    return extensionSymbols.contains {
+      $0.fullName.hasSuffix(".\(extensionName)") || $0.fullName == extensionName
+    }
   }
-  
-  /// Check if a field exists in a specific message type
-  /// - Parameters:
-  ///   - typeName: The fully qualified name of the message type
-  ///   - fieldName: The name of the field
-  /// - Returns: Whether the field exists
+
+  /// Check if a field exists in a specific message type.
+  /// - Parameters:.
+  ///   - typeName: The fully qualified name of the message type.
+  ///   - fieldName: The name of the field.
+  /// - Returns: Whether the field exists.
   public func hasField(in typeName: String, named fieldName: String) -> Bool {
     guard let symbol = symbols[typeName], symbol.kind == .message else {
       return false
     }
-    
+
     // Check if any child is a field with the given name
     return symbol.children.contains { $0.kind == .field && $0.fullName.hasSuffix(".\(fieldName)") }
   }
-  
-  /// Resolve the type of a field in a specific message type
-  /// - Parameters:
-  ///   - typeName: The fully qualified name of the message type
-  ///   - fieldName: The name of the field
-  /// - Returns: The type of the field, if found
+
+  /// Resolve the type of a field in a specific message type.
+  /// - Parameters:.
+  ///   - typeName: The fully qualified name of the message type.
+  ///   - fieldName: The name of the field.
+  /// - Returns: The type of the field, if found.
   public func resolveFieldType(in typeName: String, named fieldName: String) -> TypeNode? {
     guard let symbol = symbols[typeName], symbol.kind == .message else {
       return nil
     }
-    
+
     // Find the field symbol
-    let fieldSymbol = symbol.children.first { $0.kind == .field && $0.fullName.hasSuffix(".\(fieldName)") }
-    
+    let fieldSymbol = symbol.children.first {
+      $0.kind == .field && $0.fullName.hasSuffix(".\(fieldName)")
+    }
+
     // Get the field node and return its type
     if let fieldSymbol = fieldSymbol, let fieldNode = fieldSymbol.node as? FieldNode {
       return fieldNode.type
     }
-    
+
     return nil
   }
 
@@ -359,7 +364,7 @@ public final class SymbolTable {
   }
 }
 
-/// Errors that can occur in symbol table operations
+/// Errors that can occur in symbol table operations.
 public enum SymbolTableError: Error, CustomStringConvertible {
   case duplicateSymbol(String)
   case invalidSymbolName(String)

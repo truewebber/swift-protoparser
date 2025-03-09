@@ -45,7 +45,8 @@ final class ParserTests: XCTestCase {
         case .unexpectedToken(let expected, let got):
           if expected != .stringLiteral || got.type != .identifier {
             XCTFail(
-              "Expected unexpectedToken on identifier instead of stringLiteral, but got: \(got)")
+              "Expected unexpectedToken on identifier instead of stringLiteral, but got: \(got)"
+            )
           }
         default:
           XCTFail("Expected invalidSyntaxVersion error, got: \(error)")
@@ -416,10 +417,12 @@ final class ParserTests: XCTestCase {
       XCTAssertEqual(keyType, .string)
       if case .named("Project") = valueType {
         // Correct value type
-      } else {
+      }
+      else {
         XCTFail("Expected named type 'Project' for first map value type")
       }
-    } else {
+    }
+    else {
       XCTFail("Expected map type for first field")
     }
 
@@ -428,10 +431,12 @@ final class ParserTests: XCTestCase {
       XCTAssertEqual(keyType, .int32)
       if case .scalar(.string) = valueType {
         // Correct value type
-      } else {
+      }
+      else {
         XCTFail("Expected scalar type 'string' for second map value type")
       }
-    } else {
+    }
+    else {
       XCTFail("Expected map type for second field")
     }
   }
@@ -681,7 +686,8 @@ final class ParserTests: XCTestCase {
     for field in fields {
       if case .named = field.type {
         // Custom type verified
-      } else {
+      }
+      else {
         XCTFail("Expected named type")
       }
     }
@@ -988,7 +994,8 @@ final class ParserTests: XCTestCase {
     let option = file.options[0]
     if case .map(let fields) = option.value {
       XCTAssertEqual(fields.count, 3)
-    } else {
+    }
+    else {
       XCTFail("Expected map value")
     }
   }
@@ -1003,7 +1010,8 @@ final class ParserTests: XCTestCase {
     let option = file.messages[0].fields[0].options[0]
     if case .array(let values) = option.value {
       XCTAssertEqual(values.count, 3)
-    } else {
+    }
+    else {
       XCTFail("Expected array value")
     }
   }
@@ -1060,7 +1068,8 @@ final class ParserTests: XCTestCase {
     for field in fields {
       if case .named = field.type {
         // Type reference verified
-      } else {
+      }
+      else {
         XCTFail("Expected named type")
       }
     }

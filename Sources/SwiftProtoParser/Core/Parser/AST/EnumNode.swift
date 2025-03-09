@@ -1,23 +1,23 @@
 import Foundation
 
-/// Represents an enum value definition in a proto file
+/// Represents an enum value definition in a proto file.
 public struct EnumValueNode: Node {
-  /// Source location of this enum value
+  /// Source location of this enum value.
   public let location: SourceLocation
 
-  /// Comments that appear before this enum value
+  /// Comments that appear before this enum value.
   public let leadingComments: [String]
 
-  /// Comment that appears after this enum value
+  /// Comment that appears after this enum value.
   public let trailingComment: String?
 
-  /// Name of the enum value
+  /// Name of the enum value.
   public let name: String
 
-  /// Numeric value of the enum value
+  /// Numeric value of the enum value.
   public let number: Int
 
-  /// Options applied to this enum value
+  /// Options applied to this enum value.
   public let options: [OptionNode]
 
   public init(
@@ -37,27 +37,27 @@ public struct EnumValueNode: Node {
   }
 }
 
-/// Represents an enum definition in a proto file
+/// Represents an enum definition in a proto file.
 public final class EnumNode: DefinitionNode {
-  /// Source location of this enum
+  /// Source location of this enum.
   public let location: SourceLocation
 
-  /// Comments that appear before this enum
+  /// Comments that appear before this enum.
   public let leadingComments: [String]
 
-  /// Comment that appears after the enum name
+  /// Comment that appears after the enum name.
   public let trailingComment: String?
 
-  /// Name of the enum
+  /// Name of the enum.
   public let name: String
 
-  /// Values defined in this enum
+  /// Values defined in this enum.
   public private(set) var values: [EnumValueNode]
 
-  /// Options applied to this enum
+  /// Options applied to this enum.
   public private(set) var options: [OptionNode]
 
-  /// Whether this enum allows alias values
+  /// Whether this enum allows alias values.
   public private(set) var allowAlias: Bool
 
   public init(
@@ -80,34 +80,34 @@ public final class EnumNode: DefinitionNode {
 
   // MARK: - Value Management
 
-  /// Gets all used value numbers in this enum
+  /// Gets all used value numbers in this enum.
   public var usedNumbers: Set<Int> {
     return Set(values.map { $0.number })
   }
 
-  /// Gets all used value names in this enum
+  /// Gets all used value names in this enum.
   public var usedNames: Set<String> {
     return Set(values.map { $0.name })
   }
 
-  /// Finds an enum value by name
-  /// - Parameter name: The name to look for
-  /// - Returns: The enum value if found
+  /// Finds an enum value by name.
+  /// - Parameter name: The name to look for.
+  /// - Returns: The enum value if found.
   public func findValue(named name: String) -> EnumValueNode? {
     return values.first { $0.name == name }
   }
 
-  /// Finds enum values by number
-  /// - Parameter number: The number to look for
-  /// - Returns: All enum values with the given number (can be multiple if aliases are allowed)
+  /// Finds enum values by number.
+  /// - Parameter number: The number to look for.
+  /// - Returns: All enum values with the given number (can be multiple if aliases are allowed).
   public func findValues(withNumber number: Int) -> [EnumValueNode] {
     return values.filter { $0.number == number }
   }
 
   // MARK: - Validation
 
-  /// Validates the enum according to proto3 rules
-  /// - Throws: ParserError if validation fails
+  /// Validates the enum according to proto3 rules.
+  /// - Throws: ParserError if validation fails.
   public func validate() throws {
     // Validate enum name
     guard isValidEnumName(name) else {

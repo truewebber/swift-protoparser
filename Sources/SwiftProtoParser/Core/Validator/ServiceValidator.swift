@@ -1,34 +1,32 @@
 import Foundation
 
-/// Implementation of service-level validation
+/// Implementation of service-level validation.
 class ServiceValidator: ServiceValidating {
   // Reference to the shared validation state
   private let state: ValidationState
 
-  /// Initialize with a validation state
-  /// - Parameter state: The validation state
+  /// Initialize with a validation state.
+  /// - Parameter state: The validation state.
   init(state: ValidationState) {
     self.state = state
   }
 
-  /// Validate service semantics
-  /// - Parameter service: The service node to validate
-  /// - Throws: ValidationError if validation fails
+  /// Validate service semantics.
+  /// - Parameter service: The service node to validate.
+  /// - Throws: ValidationError if validation fails.
   func validateServiceSemantics(_ service: ServiceNode) throws {
     // Check duplicate method names
     var methodNames = Set<String>()
-    for rpc in service.rpcs {
-      if !methodNames.insert(rpc.name).inserted {
-        throw ValidationError.duplicateMethodName(rpc.name)
-      }
+    for rpc in service.rpcs where !methodNames.insert(rpc.name).inserted {
+      throw ValidationError.duplicateMethodName(rpc.name)
     }
 
     // Input/output type validation will be done later during type resolution
   }
 
-  /// Validate method uniqueness in a service
-  /// - Parameter service: The service node to validate
-  /// - Throws: ValidationError if validation fails
+  /// Validate method uniqueness in a service.
+  /// - Parameter service: The service node to validate.
+  /// - Throws: ValidationError if validation fails.
   func validateMethodUniqueness(_ service: ServiceNode) throws {
     var methodNames = Set<String>()
 
@@ -45,16 +43,14 @@ class ServiceValidator: ServiceValidating {
     }
   }
 
-  /// Validate a service node
-  /// - Parameter service: The service node to validate
-  /// - Throws: ValidationError if validation fails
+  /// Validate a service node.
+  /// - Parameter service: The service node to validate.
+  /// - Throws: ValidationError if validation fails.
   func validateService(_ service: ServiceNode) throws {
     // Check duplicate method names
     var methodNames = Set<String>()
-    for rpc in service.rpcs {
-      if !methodNames.insert(rpc.name).inserted {
-        throw ValidationError.duplicateMethodName(rpc.name)
-      }
+    for rpc in service.rpcs where !methodNames.insert(rpc.name).inserted {
+      throw ValidationError.duplicateMethodName(rpc.name)
 
       // Validate input type
       // This would typically call a reference validator
@@ -67,9 +63,9 @@ class ServiceValidator: ServiceValidating {
     }
   }
 
-  /// Validate streaming rules for an RPC
-  /// - Parameter rpc: The RPC node to validate
-  /// - Throws: ValidationError if validation fails
+  /// Validate streaming rules for an RPC.
+  /// - Parameter rpc: The RPC node to validate.
+  /// - Throws: ValidationError if validation fails.
   func validateStreamingRules(_ rpc: RPCNode) throws {
     // Validate streaming configuration
     if rpc.clientStreaming {
@@ -91,9 +87,9 @@ class ServiceValidator: ServiceValidating {
 
   // MARK: - Private Helper Methods
 
-  /// Check if a method name is valid
-  /// - Parameter name: The method name to check
-  /// - Returns: True if the method name is valid
+  /// Check if a method name is valid.
+  /// - Parameter name: The method name to check.
+  /// - Returns: True if the method name is valid.
   private func isValidMethodName(_ name: String) -> Bool {
     guard !name.isEmpty else { return false }
 

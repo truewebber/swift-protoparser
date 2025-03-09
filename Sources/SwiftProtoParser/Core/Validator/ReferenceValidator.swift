@@ -1,19 +1,19 @@
 import Foundation
 
-/// Implementation of reference validation
+/// Implementation of reference validation.
 class ReferenceValidator: ReferenceValidating {
   // Reference to the shared validation state
   private let state: ValidationState
 
-  /// Initialize with a validation state
-  /// - Parameter state: The validation state
+  /// Initialize with a validation state.
+  /// - Parameter state: The validation state.
   init(state: ValidationState) {
     self.state = state
   }
 
-  /// Register types in a file
-  /// - Parameter file: The file node
-  /// - Throws: ValidationError if registration fails
+  /// Register types in a file.
+  /// - Parameter file: The file node.
+  /// - Throws: ValidationError if registration fails.
   func registerTypes(_ file: FileNode) throws {
     let prefix = state.currentPackage.map { $0 + "." } ?? ""
 
@@ -30,11 +30,11 @@ class ReferenceValidator: ReferenceValidating {
     }
   }
 
-  /// Validate type reference
-  /// - Parameters:
-  ///   - typeName: The type name
-  ///   - message: The message containing the reference
-  /// - Throws: ValidationError if the reference is invalid
+  /// Validate type reference.
+  /// - Parameters:.
+  ///   - typeName: The type name.
+  ///   - message: The message containing the reference.
+  /// - Throws: ValidationError if the reference is invalid.
   func validateTypeReference(_ typeName: String, inMessage message: MessageNode?) throws {
     // Handle fully qualified names (starting with dot)
     let typeToCheck = typeName.hasPrefix(".") ? String(typeName.dropFirst()) : typeName
@@ -85,9 +85,9 @@ class ReferenceValidator: ReferenceValidating {
     throw ValidationError.undefinedType(typeName, referencedIn: message?.name ?? "service")
   }
 
-  /// Validate cross references in a file
-  /// - Parameter file: The file node
-  /// - Throws: ValidationError if validation fails
+  /// Validate cross references in a file.
+  /// - Parameter file: The file node.
+  /// - Throws: ValidationError if validation fails.
   func validateCrossReferences(_ file: FileNode) throws {
     // Validate all type references are resolvable
     for message in file.messages {
@@ -121,11 +121,11 @@ class ReferenceValidator: ReferenceValidating {
 
   // MARK: - Private Helper Methods
 
-  /// Validate nested type reference
-  /// - Parameters:
-  ///   - components: The components of the type name
-  ///   - referencedIn: The name of the containing type
-  /// - Throws: ValidationError if validation fails
+  /// Validate nested type reference.
+  /// - Parameters:.
+  ///   - components: The components of the type name.
+  ///   - referencedIn: The name of the containing type.
+  /// - Throws: ValidationError if validation fails.
   private func validateNestedTypeReference(_ components: [Substring], referencedIn: String) throws {
     var currentPath = ""
 
@@ -143,7 +143,8 @@ class ReferenceValidator: ReferenceValidating {
     if currentPath.isEmpty {
       if state.definedTypes[firstComponent] != nil {
         currentPath = firstComponent
-      } else {
+      }
+      else {
         throw ValidationError.undefinedType(firstComponent, referencedIn: referencedIn)
       }
     }
@@ -157,9 +158,9 @@ class ReferenceValidator: ReferenceValidating {
     }
   }
 
-  /// Resolve a type name to its fully qualified form
-  /// - Parameter typeName: The type name to resolve
-  /// - Returns: The fully qualified type name
+  /// Resolve a type name to its fully qualified form.
+  /// - Parameter typeName: The type name to resolve.
+  /// - Returns: The fully qualified type name.
   private func resolveTypeName(_ typeName: String) -> String {
     if typeName.hasPrefix(".") {
       return String(typeName.dropFirst())

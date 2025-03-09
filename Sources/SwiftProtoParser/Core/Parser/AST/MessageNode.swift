@@ -1,49 +1,49 @@
 import Foundation
 
-/// Represents a message definition in a proto file
+/// Represents a message definition in a proto file.
 public final class MessageNode: DefinitionNode, DefinitionContainer {
-  /// Source location where this message begins
+  /// Source location where this message begins.
   public let location: SourceLocation
 
-  /// Comments that appear before this message
+  /// Comments that appear before this message.
   public let leadingComments: [String]
 
-  /// Comment that appears after the message name
+  /// Comment that appears after the message name.
   public let trailingComment: String?
 
-  /// Name of the message
+  /// Name of the message.
   public let name: String
 
-  /// Fields defined in the message
+  /// Fields defined in the message.
   public private(set) var fields: [FieldNode]
 
-  /// Oneof definitions in the message
+  /// Oneof definitions in the message.
   public private(set) var oneofs: [OneofNode]
 
-  /// Message-level options
+  /// Message-level options.
   public private(set) var options: [OptionNode]
 
-  /// Reserved field numbers and names
+  /// Reserved field numbers and names.
   public private(set) var reserved: [ReservedNode]
 
-  /// Nested message definitions
+  /// Nested message definitions.
   public private(set) var messages: [MessageNode]
 
-  /// Nested enum definitions
+  /// Nested enum definitions.
   public private(set) var enums: [EnumNode]
 
-  /// Creates a new message node
-  /// - Parameters:
-  ///   - location: Source location of the message
-  ///   - leadingComments: Comments before the message
-  ///   - trailingComment: Comment after the message name
-  ///   - name: Message name
-  ///   - fields: Fields in the message
-  ///   - oneofs: Oneof definitions
-  ///   - options: Message options
-  ///   - reserved: Reserved fields
-  ///   - messages: Nested messages
-  ///   - enums: Nested enums
+  /// Creates a new message node.
+  /// - Parameters:.
+  ///   - location: Source location of the message.
+  ///   - leadingComments: Comments before the message.
+  ///   - trailingComment: Comment after the message name.
+  ///   - name: Message name.
+  ///   - fields: Fields in the message.
+  ///   - oneofs: Oneof definitions.
+  ///   - options: Message options.
+  ///   - reserved: Reserved fields.
+  ///   - messages: Nested messages.
+  ///   - enums: Nested enums.
   public init(
     location: SourceLocation,
     leadingComments: [String] = [],
@@ -72,7 +72,7 @@ public final class MessageNode: DefinitionNode, DefinitionContainer {
 // MARK: - Field Management
 
 extension MessageNode {
-  /// All field numbers used in this message, including oneof fields
+  /// All field numbers used in this message, including oneof fields.
   public var usedFieldNumbers: Set<Int> {
     var numbers = Set(fields.map { $0.number })
     for oneof in oneofs {
@@ -81,7 +81,7 @@ extension MessageNode {
     return numbers
   }
 
-  /// All field names used in this message, including oneof fields
+  /// All field names used in this message, including oneof fields.
   public var usedFieldNames: Set<String> {
     var names = Set(fields.map { $0.name })
     for oneof in oneofs {
@@ -90,7 +90,7 @@ extension MessageNode {
     return names
   }
 
-  /// Reserved field numbers
+  /// Reserved field numbers.
   public var reservedNumbers: Set<Int> {
     var numbers: Set<Int> = []
     for reservedNode in reserved {
@@ -108,7 +108,7 @@ extension MessageNode {
     return numbers
   }
 
-  /// Reserved field names
+  /// Reserved field names.
   public var reservedNames: Set<String> {
     var names: Set<String> = []
     for reservedNode in reserved {
@@ -125,7 +125,7 @@ extension MessageNode {
 // MARK: - Type Management
 
 extension MessageNode {
-  /// Returns all type references used in this message's fields
+  /// Returns all type references used in this message's fields.
   public var typeReferences: Set<String> {
     var references: Set<String> = []
 
@@ -133,7 +133,8 @@ extension MessageNode {
     for field in fields {
       if case .named(let typeName) = field.type {
         references.insert(typeName)
-      } else if case .map(_, let valueType) = field.type {
+      }
+      else if case .map(_, let valueType) = field.type {
         if case .named(let typeName) = valueType {
           references.insert(typeName)
         }
@@ -152,9 +153,9 @@ extension MessageNode {
     return references
   }
 
-  /// Finds a nested type by name
-  /// - Parameter name: The name to look for
-  /// - Returns: The nested type if found
+  /// Finds a nested type by name.
+  /// - Parameter name: The name to look for.
+  /// - Returns: The nested type if found.
   public func findNestedType(_ name: String) -> DefinitionNode? {
     if let message = messages.first(where: { $0.name == name }) {
       return message
@@ -169,8 +170,8 @@ extension MessageNode {
 // MARK: - Validation
 
 extension MessageNode {
-  /// Validates the message according to proto3 rules
-  /// - Throws: ParserError if validation fails
+  /// Validates the message according to proto3 rules.
+  /// - Throws: ParserError if validation fails.
   public func validate() throws {
     // Validate message name
     guard isValidMessageName(name) else {

@@ -1,19 +1,19 @@
 import Foundation
 
-/// Implementation of dependency validation
+/// Implementation of dependency validation.
 class DependencyValidator: DependencyValidating {
   // Reference to the shared validation state
   private let state: ValidationState
 
-  /// Initialize with a validation state
-  /// - Parameter state: The validation state
+  /// Initialize with a validation state.
+  /// - Parameter state: The validation state.
   init(state: ValidationState) {
     self.state = state
   }
 
-  /// Build dependency graph for a file
-  /// - Parameter file: The file node
-  /// - Throws: ValidationError if building fails
+  /// Build dependency graph for a file.
+  /// - Parameter file: The file node.
+  /// - Throws: ValidationError if building fails.
   func buildDependencyGraph(_ file: FileNode) throws {
     for message in file.messages {
       let fullName = getFullyQualifiedName(message.name)
@@ -30,8 +30,8 @@ class DependencyValidator: DependencyValidating {
     }
   }
 
-  /// Check for cyclic dependencies
-  /// - Throws: ValidationError if cycles are detected
+  /// Check for cyclic dependencies.
+  /// - Throws: ValidationError if cycles are detected.
   func checkCyclicDependencies() throws {
     var visited = Set<String>()
     var stack = Set<String>()
@@ -63,9 +63,9 @@ class DependencyValidator: DependencyValidating {
 
   // MARK: - Private Helper Methods
 
-  /// Get the fully qualified name for a type
-  /// - Parameter name: The type name
-  /// - Returns: The fully qualified name
+  /// Get the fully qualified name for a type.
+  /// - Parameter name: The type name.
+  /// - Returns: The fully qualified name.
   private func getFullyQualifiedName(_ name: String) -> String {
     if name.hasPrefix(".") {
       return String(name.dropFirst())
@@ -78,9 +78,9 @@ class DependencyValidator: DependencyValidating {
     return name
   }
 
-  /// Resolve a type name to its fully qualified form
-  /// - Parameter typeName: The type name to resolve
-  /// - Returns: The fully qualified type name
+  /// Resolve a type name to its fully qualified form.
+  /// - Parameter typeName: The type name to resolve.
+  /// - Returns: The fully qualified type name.
   private func resolveTypeName(_ typeName: String) -> String {
     if typeName.hasPrefix(".") {
       return String(typeName.dropFirst())

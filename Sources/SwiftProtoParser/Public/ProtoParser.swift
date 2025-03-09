@@ -1,19 +1,19 @@
 import Foundation
 import SwiftProtobuf
 
-/// Main proto parser interface
+/// Main proto parser interface.
 public final class ProtoParser {
-  /// Configuration for the parser
+  /// Configuration for the parser.
   private let configuration: Configuration
 
-  /// Symbol table for type resolution
+  /// Symbol table for type resolution.
   private let symbolTable: SymbolTable
 
-  /// Import resolver for handling imports
+  /// Import resolver for handling imports.
   private let importResolver: ImportResolver
 
-  /// Initialize a new proto parser
-  /// - Parameter configuration: Parser configuration
+  /// Initialize a new proto parser.
+  /// - Parameter configuration: Parser configuration.
   public init(configuration: Configuration = Configuration()) {
     self.configuration = configuration
     self.symbolTable = SymbolTable()
@@ -30,10 +30,10 @@ public final class ProtoParser {
     }
   }
 
-  /// Parse a proto file
-  /// - Parameter path: Path to the file
-  /// - Returns: File descriptor proto
-  /// - Throws: ProtoParserError if parsing fails
+  /// Parse a proto file.
+  /// - Parameter path: Path to the file.
+  /// - Returns: File descriptor proto.
+  /// - Throws: ProtoParserError if parsing fails.
   public func parseFile(_ path: String) throws -> Google_Protobuf_FileDescriptorProto {
     let fileProvider = DefaultFileProvider(importPaths: configuration.importPaths)
     guard let content = try? fileProvider.readFile(path) else {
@@ -44,12 +44,15 @@ public final class ProtoParser {
   }
 
   /// Parse proto content
-  /// - Parameters:
-  ///   - content: The proto content to parse
-  ///   - filePath: Optional file path for error reporting
-  /// - Returns: File descriptor proto
-  /// - Throws: ParserError if parsing fails
-  public func parseContent(_ content: String, filePath: String? = nil) throws
+  /// - Parameters:.
+  ///   - content: The proto content to parse.
+  ///   - filePath: Optional file path for error reporting.
+  /// - Returns: File descriptor proto.
+  /// - Throws: ParserError if parsing fails.
+  public func parseContent(
+    _ content: String,
+    filePath: String? = nil
+  ) throws
     -> Google_Protobuf_FileDescriptorProto
   {
     // Create lexer
@@ -82,15 +85,15 @@ public final class ProtoParser {
     return fileDescriptor
   }
 
-  /// Parse multiple proto files
-  /// - Parameter paths: Array of file paths
-  /// - Returns: Array of file descriptor protos
-  /// - Throws: ParserError if parsing fails
+  /// Parse multiple proto files.
+  /// - Parameter paths: Array of file paths.
+  /// - Returns: Array of file descriptor protos.
+  /// - Throws: ParserError if parsing fails.
   public func parseFiles(_ paths: [String]) throws -> [Google_Protobuf_FileDescriptorProto] {
     return try paths.map { try parseFile($0) }
   }
 
-  /// Clear all internal state
+  /// Clear all internal state.
   public func clear() {
     symbolTable.clear()
     importResolver.clearCache()
@@ -98,10 +101,10 @@ public final class ProtoParser {
 
   // MARK: - Private Methods
 
-  /// Process imports in a file node
-  /// - Parameter fileNode: The file node to process imports for
-  /// - Returns: Dictionary of imported types
-  /// - Throws: Error if import resolution fails
+  /// Process imports in a file node.
+  /// - Parameter fileNode: The file node to process imports for.
+  /// - Returns: Dictionary of imported types.
+  /// - Throws: Error if import resolution fails.
   private func processImports(_ fileNode: FileNode) throws -> [String: String] {
     // Get all imported types
     var importedTypes: [String: String] = [:]
@@ -109,19 +112,24 @@ public final class ProtoParser {
 
     // Process imports recursively
     try processImportsRecursively(
-      fileNode, importedTypes: &importedTypes, processedImports: &processedImports)
+      fileNode,
+      importedTypes: &importedTypes,
+      processedImports: &processedImports
+    )
 
     return importedTypes
   }
 
-  /// Recursively process imports in a file node and its imported files
-  /// - Parameters:
-  ///   - fileNode: The file node to process imports for
-  ///   - importedTypes: Dictionary to collect imported types
-  ///   - processedImports: Set of already processed import paths to avoid cycles
-  /// - Throws: Error if import resolution fails
+  /// Recursively process imports in a file node and its imported files.
+  /// - Parameters:.
+  ///   - fileNode: The file node to process imports for.
+  ///   - importedTypes: Dictionary to collect imported types.
+  ///   - processedImports: Set of already processed import paths to avoid cycles.
+  /// - Throws: Error if import resolution fails.
   private func processImportsRecursively(
-    _ fileNode: FileNode, importedTypes: inout [String: String], processedImports: inout Set<String>
+    _ fileNode: FileNode,
+    importedTypes: inout [String: String],
+    processedImports: inout Set<String>
   ) throws {
     // For each import, collect the types from the imported file
     for import_ in fileNode.imports {
@@ -144,12 +152,15 @@ public final class ProtoParser {
 
       // Recursively process imports in the imported file
       try processImportsRecursively(
-        importedFile, importedTypes: &importedTypes, processedImports: &processedImports)
+        importedFile,
+        importedTypes: &importedTypes,
+        processedImports: &processedImports
+      )
     }
   }
 }
 
-/// Public error type for parser errors
+/// Public error type for parser errors.
 public enum ProtoParserError: Error, CustomStringConvertible {
   case fileNotFound(String)
   case lexerError(LexerError)
@@ -179,7 +190,7 @@ public enum ProtoParserError: Error, CustomStringConvertible {
   }
 }
 
-/// Extension to wrap internal errors into public ProtoParserError
+/// Extension to wrap internal errors into public ProtoParserError.
 extension ProtoParserError {
   static func wrap(_ error: Error) -> ProtoParserError {
     switch error {
@@ -201,21 +212,21 @@ extension ProtoParserError {
   }
 }
 
-/// Extension to provide convenience parsing methods
+/// Extension to provide convenience parsing methods.
 extension ProtoParser {
-  /// Parse proto content and return as a string
-  /// - Parameter content: The proto content to parse
-  /// - Returns: String representation of the file descriptor
-  /// - Throws: ParserError if parsing fails
+  /// Parse proto content and return as a string.
+  /// - Parameter content: The proto content to parse.
+  /// - Returns: String representation of the file descriptor.
+  /// - Throws: ParserError if parsing fails.
   public func parseContentToString(_ content: String) throws -> String {
     let descriptor = try parseContent(content)
     return descriptor.textFormatString()
   }
 
-  /// Parse file and return as a string
-  /// - Parameter path: Path to the file
-  /// - Returns: String representation of the file descriptor
-  /// - Throws: ParserError if parsing fails
+  /// Parse file and return as a string.
+  /// - Parameter path: Path to the file.
+  /// - Returns: String representation of the file descriptor.
+  /// - Throws: ParserError if parsing fails.
   public func parseFileToString(_ path: String) throws -> String {
     let descriptor = try parseFile(path)
     return descriptor.textFormatString()

@@ -2,7 +2,7 @@ import XCTest
 
 @testable import SwiftProtoParser
 
-/// Tests for Proto3 enum validation rules
+/// Tests for Proto3 enum validation rules.
 final class EnumValidationTests: XCTestCase {
   // Test validator
   private var validator: ValidatorV2!
@@ -220,7 +220,8 @@ final class EnumValidationTests: XCTestCase {
 
       // This should throw an invalidEnumName error
       XCTAssertThrowsError(
-        try validator.validate(file), "Enum name '\(enumName)' should be invalid"
+        try validator.validate(file),
+        "Enum name '\(enumName)' should be invalid"
       ) { error in
         guard let validationError = error as? ValidationError else {
           XCTFail("Expected ValidationError for enum name '\(enumName)'")
@@ -285,7 +286,9 @@ final class EnumValidationTests: XCTestCase {
 
       // This should not throw
       XCTAssertNoThrow(
-        try validator.validate(file), "Enum value name '\(valueName)' should be valid")
+        try validator.validate(file),
+        "Enum value name '\(valueName)' should be valid"
+      )
     }
   }
 
@@ -353,7 +356,8 @@ final class EnumValidationTests: XCTestCase {
 
       // This should throw an invalidEnumValueName error
       XCTAssertThrowsError(
-        try validator.validate(file), "Enum value name '\(valueName)' should be invalid"
+        try validator.validate(file),
+        "Enum value name '\(valueName)' should be invalid"
       ) { error in
         guard let validationError = error as? ValidationError else {
           XCTFail("Expected ValidationError for enum value name '\(valueName)'")
