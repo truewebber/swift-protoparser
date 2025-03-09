@@ -191,10 +191,10 @@ final class ReferenceValidationTests: XCTestCase {
 
     // Register the message directly
     try state.registerType("test.Message", node: message)
-    
+
     // Add the message to the definedTypes dictionary directly
     state.definedTypes["test.Message"] = message
-    
+
     // Create a field that references the message with a simple name
     let field = FieldNode(
       location: SourceLocation(line: 2, column: 3),
@@ -204,7 +204,7 @@ final class ReferenceValidationTests: XCTestCase {
       isRepeated: false,
       options: []
     )
-    
+
     // Create a container message with the field
     let containerMessage = MessageNode(
       location: SourceLocation(line: 5, column: 1),
@@ -213,7 +213,7 @@ final class ReferenceValidationTests: XCTestCase {
       oneofs: [],
       options: []
     )
-    
+
     // Create a file with both messages
     let file = FileNode(
       location: SourceLocation(line: 1, column: 1),
@@ -223,7 +223,7 @@ final class ReferenceValidationTests: XCTestCase {
       options: [],
       definitions: [message, containerMessage]
     )
-    
+
     // Validate cross references - should not throw
     XCTAssertNoThrow(try referenceValidator.validateCrossReferences(file))
   }
@@ -244,10 +244,10 @@ final class ReferenceValidationTests: XCTestCase {
 
     // Register the message directly
     try state.registerType("test.Message", node: message)
-    
+
     // Add the message to the definedTypes dictionary directly
     state.definedTypes["test.Message"] = message
-    
+
     // Create a file with the message
     let file = FileNode(
       location: SourceLocation(line: 1, column: 1),
@@ -257,7 +257,7 @@ final class ReferenceValidationTests: XCTestCase {
       options: [],
       definitions: [message]
     )
-    
+
     // Create a field that references the message with a fully qualified name
     let field = FieldNode(
       location: SourceLocation(line: 2, column: 3),
@@ -267,7 +267,7 @@ final class ReferenceValidationTests: XCTestCase {
       isRepeated: false,
       options: []
     )
-    
+
     // Create a container message with the field
     let containerMessage = MessageNode(
       location: SourceLocation(line: 5, column: 1),
@@ -276,7 +276,7 @@ final class ReferenceValidationTests: XCTestCase {
       oneofs: [],
       options: []
     )
-    
+
     // Create a file with the container message
     let containerFile = FileNode(
       location: SourceLocation(line: 5, column: 1),
@@ -286,7 +286,7 @@ final class ReferenceValidationTests: XCTestCase {
       options: [],
       definitions: [containerMessage]
     )
-    
+
     // Validate cross references - should not throw
     XCTAssertNoThrow(try referenceValidator.validateCrossReferences(containerFile))
 
@@ -323,7 +323,7 @@ final class ReferenceValidationTests: XCTestCase {
 
     // Register the message directly
     try state.registerType("test.Message", node: message1)
-    
+
     // Add the message to the definedTypes dictionary directly
     state.definedTypes["test.Message"] = message1
 
@@ -338,10 +338,10 @@ final class ReferenceValidationTests: XCTestCase {
 
     // Register the message with a different package
     try state.registerType("other.OtherMessage", node: message2)
-    
+
     // Add the message to the definedTypes dictionary directly
     state.definedTypes["other.OtherMessage"] = message2
-    
+
     // Create a field that references the message in a different package
     let field1 = FieldNode(
       location: SourceLocation(line: 2, column: 3),
@@ -351,7 +351,7 @@ final class ReferenceValidationTests: XCTestCase {
       isRepeated: false,
       options: []
     )
-    
+
     // Create a field that references the message in a different package with leading dot
     let field2 = FieldNode(
       location: SourceLocation(line: 3, column: 3),
@@ -361,7 +361,7 @@ final class ReferenceValidationTests: XCTestCase {
       isRepeated: false,
       options: []
     )
-    
+
     // Create a container message with the fields
     let containerMessage = MessageNode(
       location: SourceLocation(line: 10, column: 1),
@@ -370,7 +370,7 @@ final class ReferenceValidationTests: XCTestCase {
       oneofs: [],
       options: []
     )
-    
+
     // Create a file with the container message
     let file = FileNode(
       location: SourceLocation(line: 1, column: 1),
@@ -380,7 +380,7 @@ final class ReferenceValidationTests: XCTestCase {
       options: [],
       definitions: [containerMessage]
     )
-    
+
     // Validate cross references - should not throw
     XCTAssertNoThrow(try referenceValidator.validateCrossReferences(file))
   }
@@ -411,14 +411,14 @@ final class ReferenceValidationTests: XCTestCase {
 
     // Register the parent message directly
     try state.registerType("test.ParentMessage", node: parentMessage)
-    
+
     // Register the nested message directly
     try state.registerType("test.ParentMessage.NestedMessage", node: nestedMessage)
-    
+
     // Add the messages to the definedTypes dictionary directly
     state.definedTypes["test.ParentMessage"] = parentMessage
     state.definedTypes["test.ParentMessage.NestedMessage"] = nestedMessage
-    
+
     // Create a field that references the nested message with fully qualified name
     let field = FieldNode(
       location: SourceLocation(line: 3, column: 3),
@@ -428,7 +428,7 @@ final class ReferenceValidationTests: XCTestCase {
       isRepeated: false,
       options: []
     )
-    
+
     // Create a container message with the field
     let containerMessage = MessageNode(
       location: SourceLocation(line: 10, column: 1),
@@ -437,7 +437,7 @@ final class ReferenceValidationTests: XCTestCase {
       oneofs: [],
       options: []
     )
-    
+
     // Create a file with the parent message and container message
     let file = FileNode(
       location: SourceLocation(line: 1, column: 1),
@@ -447,7 +447,7 @@ final class ReferenceValidationTests: XCTestCase {
       options: [],
       definitions: [parentMessage, containerMessage]
     )
-    
+
     // Validate cross references - should not throw
     XCTAssertNoThrow(try referenceValidator.validateCrossReferences(file))
   }
@@ -487,14 +487,14 @@ final class ReferenceValidationTests: XCTestCase {
 
     // Register the parent message directly
     try state.registerType("test.ParentMessage", node: parentMessage)
-    
+
     // Register the nested message directly
     try state.registerType("test.ParentMessage.NestedMessage", node: nestedMessage)
-    
+
     // Add the messages to the definedTypes dictionary directly
     state.definedTypes["test.ParentMessage"] = parentMessage
     state.definedTypes["test.ParentMessage.NestedMessage"] = nestedMessage
-    
+
     // Push the parent message onto the scope stack
     state.pushScope(parentMessage)
 
@@ -518,7 +518,7 @@ final class ReferenceValidationTests: XCTestCase {
       oneofs: [],
       options: []
     )
-    
+
     // Create a file node with the message
     let fileNode = FileNode(
       location: SourceLocation(line: 1, column: 1),
@@ -526,7 +526,7 @@ final class ReferenceValidationTests: XCTestCase {
       package: "test",
       definitions: [message]
     )
-    
+
     // Register the types
     try referenceValidator.registerTypes(fileNode)
 
@@ -563,10 +563,10 @@ final class ReferenceValidationTests: XCTestCase {
 
     // Register the parent message directly
     try state.registerType("test.ParentMessage", node: parentMessage)
-    
+
     // Add the parent message to the definedTypes dictionary directly
     state.definedTypes["test.ParentMessage"] = parentMessage
-    
+
     // Create a field that references an undefined nested type
     let field = FieldNode(
       location: SourceLocation(line: 2, column: 3),
@@ -576,7 +576,7 @@ final class ReferenceValidationTests: XCTestCase {
       isRepeated: false,
       options: []
     )
-    
+
     // Create a container message with the field
     let containerMessage = MessageNode(
       location: SourceLocation(line: 5, column: 1),
@@ -585,7 +585,7 @@ final class ReferenceValidationTests: XCTestCase {
       oneofs: [],
       options: []
     )
-    
+
     // Create a file with the parent message and container message
     let file = FileNode(
       location: SourceLocation(line: 1, column: 1),
@@ -595,7 +595,7 @@ final class ReferenceValidationTests: XCTestCase {
       options: [],
       definitions: [parentMessage, containerMessage]
     )
-    
+
     // Validate cross references - should throw for undefined nested type
     XCTAssertThrowsError(try referenceValidator.validateCrossReferences(file)) { error in
       guard let validationError = error as? ValidationError else {
@@ -658,7 +658,7 @@ final class ReferenceValidationTests: XCTestCase {
     // Register the messages directly
     try state.registerType("test.MessageA", node: messageA)
     try state.registerType("test.MessageB", node: messageB)
-    
+
     // Add the messages to the definedTypes dictionary directly
     state.definedTypes["test.MessageA"] = messageA
     state.definedTypes["test.MessageB"] = messageB
@@ -709,7 +709,7 @@ final class ReferenceValidationTests: XCTestCase {
       options: [],
       definitions: [message]
     )
-    
+
     // Register the types
     try referenceValidator.registerTypes(file)
 
@@ -773,7 +773,7 @@ final class ReferenceValidationTests: XCTestCase {
     // Register the messages directly
     try state.registerType("test.Request", node: requestMessage)
     try state.registerType("test.Response", node: responseMessage)
-    
+
     // Add the messages to the definedTypes dictionary directly
     state.definedTypes["test.Request"] = requestMessage
     state.definedTypes["test.Response"] = responseMessage
@@ -870,7 +870,7 @@ final class ReferenceValidationTests: XCTestCase {
 
     // Register the request message directly
     try state.registerType("test.Request", node: requestMessage)
-    
+
     // Add the message to the definedTypes dictionary directly
     state.definedTypes["test.Request"] = requestMessage
 
@@ -944,7 +944,7 @@ final class ReferenceValidationTests: XCTestCase {
 
     // Register the message directly
     try state.registerType("test.Message", node: message)
-    
+
     // Add the message to the definedTypes dictionary directly
     state.definedTypes["test.Message"] = message
 
@@ -956,10 +956,10 @@ final class ReferenceValidationTests: XCTestCase {
       oneofs: [],
       options: []
     )
-    
+
     // Register the imported type directly
     try state.registerType("ImportedType", node: importedMessage)
-    
+
     // Add the imported type to the definedTypes dictionary directly
     state.definedTypes["ImportedType"] = importedMessage
 
@@ -1020,7 +1020,7 @@ final class ReferenceValidationTests: XCTestCase {
     // Register the messages directly
     try state.registerType("test.ContainerMessage", node: containerMessage)
     try state.registerType("test.Message", node: referencedMessage)
-    
+
     // Add the messages to the definedTypes dictionary directly
     state.definedTypes["test.ContainerMessage"] = containerMessage
     state.definedTypes["test.Message"] = referencedMessage

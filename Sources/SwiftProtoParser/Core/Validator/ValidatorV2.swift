@@ -84,7 +84,7 @@ public final class ValidatorV2 {
       state.pushScope(message)
       try messageValidator.validateMessageSemantics(message)
       try messageValidator.validateNestedMessage(message)
-      
+
       // Validate nested enums
       for nestedEnum in message.enums {
         try enumValidator.validateEnumSemantics(nestedEnum)
@@ -97,7 +97,7 @@ public final class ValidatorV2 {
           try optionValidator.validateEnumValueOptions(value.options)
         }
       }
-      
+
       // Validate nested messages recursively
       for nestedMessage in message.messages {
         state.pushScope(nestedMessage)
@@ -105,7 +105,7 @@ public final class ValidatorV2 {
         try messageValidator.validateNestedMessage(nestedMessage)
         state.popScope()
       }
-      
+
       state.popScope()
     }
 
