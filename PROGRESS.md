@@ -193,6 +193,7 @@ This document tracks the progress of the SwiftProtoParser project through its de
 | Implement comprehensive Public API tests | 🔄 IN PROGRESS | Enhancing ProtoParserTests.swift with additional test cases - 64.4% line coverage |
 | Implement comprehensive Error Handling tests | ✅ COMPLETED | Created LexerErrorTests.swift, ParserErrorTests.swift, ValidationErrorTests.swift, ImportErrorTests.swift, and DescriptorGeneratorErrorTests.swift with 81.5% line coverage and 94.6% function coverage |
 | Implement comprehensive Validator tests | 🔄 IN PROGRESS | Created ValidationStateTests.swift with 100% coverage and ValidatorV2Tests.swift with 96.2% coverage - overall validator coverage at 51.8% |
+| Implement comprehensive OptionValidator tests | 🔄 IN PROGRESS | Fixed compilation issues in OptionValidationTests.swift and improved basic option validation tests - 53.5% line coverage and 27.6% function coverage |
 | Implement comprehensive Performance tests | 📅 PLANNED | Enhancing ParserPerformanceTests.swift with additional test cases |
 | Implement property-based tests | 📅 PLANNED | Creating PropertyTests.swift for property-based testing |
 | Create test documentation | ✅ COMPLETED | Updated coverage_tracking.md with comprehensive test strategy |

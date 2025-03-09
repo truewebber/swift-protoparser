@@ -3,6 +3,12 @@
 # Run tests with code coverage enabled
 swift test --enable-code-coverage
 
+rm -f .build/debug/codecov/default.profdata
+
+xcrun llvm-profdata merge -sparse \
+  .build/arm64-apple-macosx/debug/codecov/*.profraw \
+  -o .build/arm64-apple-macosx/debug/codecov/default.profdata
+
 # Generate code coverage report
 xcrun llvm-cov export -format="lcov" \
   .build/debug/SwiftProtoParserPackageTests.xctest/Contents/MacOS/SwiftProtoParserPackageTests \

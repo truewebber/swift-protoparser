@@ -17,6 +17,7 @@ This document tracks the test coverage progress for each component of the SwiftP
 | - FileNode | ~74% | 78.6% | 100% | ✅ Good Progress |
 | - Node | ~59% | 72.0% | 100% | ✅ Good Progress |
 | Validator | ~85% | 51.8% | 100% | 🔄 In Progress |
+| - OptionValidator | ~30% | 53.5% | 100% | 🔄 In Progress |
 | Symbol Resolution | ~80% | 95.4% | 100% | ✅ Good Progress |
 | Import Resolution | ~75% | 93.8% | 100% | ✅ Good Progress |
 | Descriptor Generation | ~85% | 70.5% | 100% | 🔄 In Progress |
@@ -159,18 +160,23 @@ This document tracks the test coverage progress for each component of the SwiftP
 - Many validation rules (only 51.8% covered)
 - Complex validation scenarios
 - SemanticValidator (3% coverage)
-- OptionValidator (30% coverage)
+- OptionValidator (53.5% line coverage, 27.6% function coverage)
 - ReferenceValidator (34% coverage)
 
 #### Test Gaps
 - Cross-reference validation
 - Complex type validation
+- Custom option validation in OptionValidator
+- Nested option fields validation
 
 #### Action Items
 - [x] Create comprehensive tests for ValidationState (100% coverage)
 - [x] Create comprehensive tests for ValidatorV2 (96.2% coverage)
+- [x] Fix compilation issues in OptionValidationTests
+- [x] Improve basic option validation tests for OptionValidator
+- [ ] Create comprehensive tests for custom option validation in OptionValidator
+- [ ] Create comprehensive tests for nested option fields in OptionValidator
 - [ ] Create comprehensive tests for SemanticValidator
-- [ ] Create comprehensive tests for OptionValidator
 - [ ] Create comprehensive tests for ReferenceValidator
 - [ ] Create comprehensive positive tests for remaining validators
 - [ ] Create comprehensive negative tests for remaining validators

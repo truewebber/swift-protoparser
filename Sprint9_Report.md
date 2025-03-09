@@ -108,10 +108,10 @@ We made significant progress on the Validator component:
 Key improvements include:
 - **ValidationState**: 100% line coverage (46 of 46 lines)
 - **ValidatorV2**: 96.2% line coverage (76 of 79 lines)
+- **OptionValidator**: 53.5% line coverage (228 of 426 lines), up from 30%
 
 However, some components still need improvement:
 - **SemanticValidator**: 3% line coverage (3 of 100 lines)
-- **OptionValidator**: 30% line coverage (123 of 409 lines)
 - **ReferenceValidator**: 34% line coverage (49 of 143 lines)
 
 ### 8. Error Handling Testing
@@ -144,7 +144,26 @@ We continued improving tests for AST nodes, with significant improvements across
 - **FileNode**: 78.6% line coverage (136 of 173 lines), up from 76.9%
 - Overall AST nodes: 85.6% line coverage (856 of 1,000 lines), up from 66.6%
 
-### 10. Coverage Analysis Infrastructure
+### 10. OptionValidator Improvements
+
+We made significant progress on the OptionValidator component:
+- **53.5%** line coverage (228 of 426 lines), up from 30%
+- **27.6%** function coverage (8 of 29 functions)
+
+Key improvements include:
+- Fixed compilation issues in the OptionValidationTests
+- Removed the problematic MockSymbolTable class that was causing inheritance issues
+- Improved basic option validation tests for various option types:
+  - File options
+  - Message options
+  - Field options
+  - Enum options
+  - Enum value options
+  - Service options
+  - Method options
+- Identified gaps in custom option validation that need further testing
+
+### 11. Coverage Analysis Infrastructure
 
 We established a robust coverage analysis infrastructure:
 - Created scripts for generating detailed coverage reports
@@ -152,7 +171,7 @@ We established a robust coverage analysis infrastructure:
 - Implemented HTML report generation for visual coverage analysis
 - Documented coverage gaps and action items
 
-### 11. Documentation
+### 12. Documentation
 
 We updated documentation to support the testing effort:
 - `Tools/CodeCoverage/coverage_tracking.md`: Updated with latest coverage metrics and action items
@@ -176,6 +195,7 @@ We updated documentation to support the testing effort:
 | - FileNode | 78.6% | 53.8% |
 | - Node | 72.0% | 70.0% |
 | Validator | 51.8% | 62.7% |
+| - OptionValidator | 53.5% | 27.6% |
 | Symbol Resolution | 95.4% | 68.2% |
 | Import Resolution | 93.8% | 92.3% |
 | Source Info Generation | 90.3% | 72.7% |
@@ -191,7 +211,7 @@ While we achieved good coverage in several components, there are areas that need
 
 1. **Validator (51.8% line coverage)**: The validator has many complex rules that need more thorough testing.
    - **SemanticValidator (3% coverage)**: This component needs comprehensive tests.
-   - **OptionValidator (30% coverage)**: This component needs more thorough testing.
+   - **OptionValidator (53.5% coverage)**: While improved, this component still needs more thorough testing, particularly for custom options and nested option fields.
    - **ReferenceValidator (34% coverage)**: This component needs more thorough testing.
 
 2. **Public API (64.4% line coverage)**: The public API needs more comprehensive testing, especially focusing on edge cases and error handling.
