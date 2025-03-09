@@ -299,7 +299,7 @@ final class MessageNodeTests: XCTestCase {
           location: SourceLocation(line: 4, column: 5),
           name: "VALUE1",
           number: 1
-        )
+        ),
       ]
     )
 
@@ -378,12 +378,16 @@ final class MessageNodeTests: XCTestCase {
     XCTAssertEqual(messageNode.messages.count, 1, "Message should have 1 nested message")
     XCTAssertEqual(messageNode.messages[0].name, "NestedMessage", "Nested message name should match")
     XCTAssertEqual(messageNode.messages[0].messages.count, 1, "Nested message should have 1 nested message")
-    XCTAssertEqual(messageNode.messages[0].messages[0].name, "DeeplyNestedMessage", "Deeply nested message name should match")
+    XCTAssertEqual(
+      messageNode.messages[0].messages[0].name,
+      "DeeplyNestedMessage",
+      "Deeply nested message name should match"
+    )
 
     // Test allNestedDefinitions (should include deeply nested types)
     let allNestedDefs = messageNode.allNestedDefinitions
     XCTAssertEqual(allNestedDefs.count, 2, "Should have 2 nested definitions")
-    
+
     let nestedNames = allNestedDefs.map { $0.name }
     XCTAssertTrue(nestedNames.contains("NestedMessage"), "Should contain NestedMessage")
     XCTAssertTrue(nestedNames.contains("DeeplyNestedMessage"), "Should contain DeeplyNestedMessage")
@@ -499,7 +503,8 @@ final class MessageNodeTests: XCTestCase {
 
       if case .invalidMessageName(let name) = parserError {
         XCTAssertEqual(name, "invalidName", "Error should contain the invalid name")
-      } else {
+      }
+      else {
         XCTFail("Expected invalidMessageName error")
       }
     }
@@ -535,7 +540,7 @@ final class MessageNodeTests: XCTestCase {
     let usedNumbers = messageNode.usedFieldNumbers
     XCTAssertEqual(usedNumbers.count, 1, "Should have 1 unique field number")
     XCTAssertTrue(usedNumbers.contains(1), "Should contain field number 1")
-    
+
     // Create a field with a different number to verify the test is working correctly
     let field3 = FieldNode(
       location: SourceLocation(line: 4, column: 3),
@@ -543,13 +548,13 @@ final class MessageNodeTests: XCTestCase {
       type: .scalar(.int32),
       number: 2  // Different number
     )
-    
+
     let messageNodeWithUniqueNumbers = MessageNode(
       location: SourceLocation(line: 1, column: 1),
       name: "TestMessage",
       fields: [field1, field3]
     )
-    
+
     let uniqueNumbers = messageNodeWithUniqueNumbers.usedFieldNumbers
     XCTAssertEqual(uniqueNumbers.count, 2, "Should have 2 unique field numbers")
   }
@@ -694,4 +699,4 @@ final class MessageNodeTests: XCTestCase {
     // Validation should throw due to invalid nested message
     XCTAssertThrowsError(try messageNode.validate())
   }
-} 
+}

@@ -7,25 +7,25 @@ import XCTest
 /// This test suite verifies the functionality of the SemanticValidator component
 /// which is responsible for validating semantic rules in proto files.
 final class SemanticValidatorTests: XCTestCase {
-  
+
   // Test subject
   private var validator: SemanticValidator!
   private var state: ValidationState!
-  
+
   override func setUp() {
     super.setUp()
     state = ValidationState()
     validator = SemanticValidator(state: state)
   }
-  
+
   override func tearDown() {
     validator = nil
     state = nil
     super.tearDown()
   }
-  
+
   // MARK: - File Validation Tests
-  
+
   /// Test validating a file with invalid syntax version.
   func testInvalidSyntaxVersion() {
     // Create a file with invalid syntax
@@ -35,22 +35,23 @@ final class SemanticValidatorTests: XCTestCase {
       package: "test.package",
       filePath: "test.proto"
     )
-    
+
     // Should throw
     XCTAssertThrowsError(try validator.validateSemanticRules(fileNode)) { error in
       guard let validationError = error as? ValidationError else {
         XCTFail("Expected ValidationError")
         return
       }
-      
+
       if case .invalidSyntaxVersion(let version) = validationError {
         XCTAssertEqual(version, "proto2", "Error should contain the invalid syntax version")
-      } else {
+      }
+      else {
         XCTFail("Expected invalidSyntaxVersion error")
       }
     }
   }
-  
+
   /// Test validating a file with valid syntax version.
   func testValidSyntaxVersion() {
     // Create a file with valid syntax
@@ -60,11 +61,11 @@ final class SemanticValidatorTests: XCTestCase {
       package: "test.package",
       filePath: "test.proto"
     )
-    
+
     // Should not throw
     XCTAssertNoThrow(try validator.validateSemanticRules(fileNode))
   }
-  
+
   /// Test validating a file with empty enums.
   func testEmptyEnum() {
     // Create an enum with no values
@@ -74,7 +75,7 @@ final class SemanticValidatorTests: XCTestCase {
       values: [],
       options: []
     )
-    
+
     // Create a file with the empty enum
     let fileNode = FileNode(
       location: SourceLocation(line: 1, column: 1),
@@ -83,22 +84,23 @@ final class SemanticValidatorTests: XCTestCase {
       filePath: "test.proto",
       definitions: [enumNode]
     )
-    
+
     // Should throw
     XCTAssertThrowsError(try validator.validateSemanticRules(fileNode)) { error in
       guard let validationError = error as? ValidationError else {
         XCTFail("Expected ValidationError")
         return
       }
-      
+
       if case .emptyEnum(let name) = validationError {
         XCTAssertEqual(name, "TestEnum", "Error should contain the enum name")
-      } else {
+      }
+      else {
         XCTFail("Expected emptyEnum error")
       }
     }
   }
-  
+
   /// Test validating a file with an enum whose first value is not zero.
   func testEnumFirstValueNotZero() {
     // Create an enum with first value not zero
@@ -115,7 +117,7 @@ final class SemanticValidatorTests: XCTestCase {
       ],
       options: []
     )
-    
+
     // Create a file with the invalid enum
     let fileNode = FileNode(
       location: SourceLocation(line: 1, column: 1),
@@ -124,22 +126,23 @@ final class SemanticValidatorTests: XCTestCase {
       filePath: "test.proto",
       definitions: [enumNode]
     )
-    
+
     // Should throw
     XCTAssertThrowsError(try validator.validateSemanticRules(fileNode)) { error in
       guard let validationError = error as? ValidationError else {
         XCTFail("Expected ValidationError")
         return
       }
-      
+
       if case .firstEnumValueNotZero(let name) = validationError {
         XCTAssertEqual(name, "TestEnum", "Error should contain the enum name")
-      } else {
+      }
+      else {
         XCTFail("Expected firstEnumValueNotZero error")
       }
     }
   }
-  
+
   /// Test validating a file with an enum with duplicate values.
   func testEnumDuplicateValues() {
     // Create an enum with duplicate values
@@ -164,11 +167,11 @@ final class SemanticValidatorTests: XCTestCase {
           name: "DUPLICATE",
           number: 1,  // Duplicate value
           options: []
-        )
+        ),
       ],
       options: []
     )
-    
+
     // Create a file with the invalid enum
     let fileNode = FileNode(
       location: SourceLocation(line: 1, column: 1),
@@ -177,23 +180,24 @@ final class SemanticValidatorTests: XCTestCase {
       filePath: "test.proto",
       definitions: [enumNode]
     )
-    
+
     // Should throw
     XCTAssertThrowsError(try validator.validateSemanticRules(fileNode)) { error in
       guard let validationError = error as? ValidationError else {
         XCTFail("Expected ValidationError")
         return
       }
-      
+
       if case .duplicateEnumValue(let name, let value) = validationError {
         XCTAssertEqual(name, "DUPLICATE", "Error should contain the enum value name")
         XCTAssertEqual(value, 1, "Error should contain the duplicate value")
-      } else {
+      }
+      else {
         XCTFail("Expected duplicateEnumValue error")
       }
     }
   }
-  
+
   /// Test validating a file with an enum with allow_alias option.
   func testEnumWithAllowAlias() {
     // Create an enum with allow_alias option and duplicate values
@@ -218,7 +222,7 @@ final class SemanticValidatorTests: XCTestCase {
           name: "ALIAS",
           number: 1,  // Duplicate value, but allowed with allow_alias
           options: []
-        )
+        ),
       ],
       options: [
         OptionNode(
@@ -228,7 +232,7 @@ final class SemanticValidatorTests: XCTestCase {
         )
       ]
     )
-    
+
     // Create a file with the valid enum (due to allow_alias)
     let fileNode = FileNode(
       location: SourceLocation(line: 1, column: 1),
@@ -237,11 +241,11 @@ final class SemanticValidatorTests: XCTestCase {
       filePath: "test.proto",
       definitions: [enumNode]
     )
-    
+
     // Should not throw
     XCTAssertNoThrow(try validator.validateSemanticRules(fileNode))
   }
-  
+
   /// Test validating a file with a valid enum.
   func testValidEnum() {
     // Create a valid enum
@@ -266,11 +270,11 @@ final class SemanticValidatorTests: XCTestCase {
           name: "THIRD",
           number: 2,
           options: []
-        )
+        ),
       ],
       options: []
     )
-    
+
     // Create a file with the valid enum
     let fileNode = FileNode(
       location: SourceLocation(line: 1, column: 1),
@@ -279,13 +283,13 @@ final class SemanticValidatorTests: XCTestCase {
       filePath: "test.proto",
       definitions: [enumNode]
     )
-    
+
     // Should not throw
     XCTAssertNoThrow(try validator.validateSemanticRules(fileNode))
   }
-  
+
   // MARK: - Message Validation Tests
-  
+
   /// Test validating a message with an empty oneof.
   func testEmptyOneof() {
     // Create a message with an empty oneof
@@ -302,7 +306,7 @@ final class SemanticValidatorTests: XCTestCase {
       ],
       options: []
     )
-    
+
     // Create a file with the invalid message
     let fileNode = FileNode(
       location: SourceLocation(line: 1, column: 1),
@@ -311,22 +315,23 @@ final class SemanticValidatorTests: XCTestCase {
       filePath: "test.proto",
       definitions: [messageNode]
     )
-    
+
     // Should throw
     XCTAssertThrowsError(try validator.validateSemanticRules(fileNode)) { error in
       guard let validationError = error as? ValidationError else {
         XCTFail("Expected ValidationError")
         return
       }
-      
+
       if case .emptyOneof(let name) = validationError {
         XCTAssertEqual(name, "test_oneof", "Error should contain the oneof name")
-      } else {
+      }
+      else {
         XCTFail("Expected emptyOneof error")
       }
     }
   }
-  
+
   /// Test validating a message with an invalid field number.
   func testInvalidFieldNumber() {
     // Create a message with an invalid field number
@@ -346,7 +351,7 @@ final class SemanticValidatorTests: XCTestCase {
       oneofs: [],
       options: []
     )
-    
+
     // Create a file with the invalid message
     let fileNode = FileNode(
       location: SourceLocation(line: 1, column: 1),
@@ -355,22 +360,23 @@ final class SemanticValidatorTests: XCTestCase {
       filePath: "test.proto",
       definitions: [messageNode]
     )
-    
+
     // Should throw
     XCTAssertThrowsError(try validator.validateSemanticRules(fileNode)) { error in
       guard let validationError = error as? ValidationError else {
         XCTFail("Expected ValidationError")
         return
       }
-      
+
       if case .invalidFieldNumber(let number, _) = validationError {
         XCTAssertEqual(number, 0, "Error should contain the invalid field number")
-      } else {
+      }
+      else {
         XCTFail("Expected invalidFieldNumber error")
       }
     }
   }
-  
+
   /// Test validating a message with a field number in the reserved range.
   func testReservedFieldNumber() {
     // Create a message with a field number in the reserved range
@@ -390,7 +396,7 @@ final class SemanticValidatorTests: XCTestCase {
       oneofs: [],
       options: []
     )
-    
+
     // Create a file with the invalid message
     let fileNode = FileNode(
       location: SourceLocation(line: 1, column: 1),
@@ -399,22 +405,23 @@ final class SemanticValidatorTests: XCTestCase {
       filePath: "test.proto",
       definitions: [messageNode]
     )
-    
+
     // Should throw
     XCTAssertThrowsError(try validator.validateSemanticRules(fileNode)) { error in
       guard let validationError = error as? ValidationError else {
         XCTFail("Expected ValidationError")
         return
       }
-      
+
       if case .invalidFieldNumber(let number, _) = validationError {
         XCTAssertEqual(number, 19500, "Error should contain the invalid field number")
-      } else {
+      }
+      else {
         XCTFail("Expected invalidFieldNumber error")
       }
     }
   }
-  
+
   /// Test validating a message with duplicate field numbers.
   func testDuplicateFieldNumbers() {
     // Create a message with duplicate field numbers
@@ -437,12 +444,12 @@ final class SemanticValidatorTests: XCTestCase {
           number: 1,  // Duplicate field number
           isRepeated: false,
           options: []
-        )
+        ),
       ],
       oneofs: [],
       options: []
     )
-    
+
     // Create a file with the invalid message
     let fileNode = FileNode(
       location: SourceLocation(line: 1, column: 1),
@@ -451,23 +458,24 @@ final class SemanticValidatorTests: XCTestCase {
       filePath: "test.proto",
       definitions: [messageNode]
     )
-    
+
     // Should throw
     XCTAssertThrowsError(try validator.validateSemanticRules(fileNode)) { error in
       guard let validationError = error as? ValidationError else {
         XCTFail("Expected ValidationError")
         return
       }
-      
+
       if case .duplicateMessageFieldNumber(let number, let messageName) = validationError {
         XCTAssertEqual(number, 1, "Error should contain the duplicate field number")
         XCTAssertEqual(messageName, "TestMessage", "Error should contain the message name")
-      } else {
+      }
+      else {
         XCTFail("Expected duplicateMessageFieldNumber error")
       }
     }
   }
-  
+
   /// Test validating a message with a repeated map field.
   func testRepeatedMapField() {
     // Create a message with a repeated map field
@@ -487,7 +495,7 @@ final class SemanticValidatorTests: XCTestCase {
       oneofs: [],
       options: []
     )
-    
+
     // Create a file with the invalid message
     let fileNode = FileNode(
       location: SourceLocation(line: 1, column: 1),
@@ -496,22 +504,23 @@ final class SemanticValidatorTests: XCTestCase {
       filePath: "test.proto",
       definitions: [messageNode]
     )
-    
+
     // Should throw
     XCTAssertThrowsError(try validator.validateSemanticRules(fileNode)) { error in
       guard let validationError = error as? ValidationError else {
         XCTFail("Expected ValidationError")
         return
       }
-      
+
       if case .repeatedMapField(let name) = validationError {
         XCTAssertEqual(name, "test_map", "Error should contain the field name")
-      } else {
+      }
+      else {
         XCTFail("Expected repeatedMapField error")
       }
     }
   }
-  
+
   /// Test validating a message with nested messages and enums.
   func testNestedTypesValidation() {
     // Create a nested enum with invalid first value
@@ -528,8 +537,8 @@ final class SemanticValidatorTests: XCTestCase {
       ],
       options: []
     )
-    
-    // Create a nested message with an empty oneof
+
+    // Create a nested message with a oneof that has a field
     let nestedMessage = MessageNode(
       location: SourceLocation(line: 10, column: 5),
       name: "NestedMessage",
@@ -538,12 +547,21 @@ final class SemanticValidatorTests: XCTestCase {
         OneofNode(
           location: SourceLocation(line: 11, column: 7),
           name: "nested_oneof",
-          fields: []  // Empty oneof
+          fields: [
+            FieldNode(
+              location: SourceLocation(line: 12, column: 9),
+              name: "oneof_field",
+              type: .scalar(.int32),
+              number: 1,
+              isRepeated: false,
+              options: []
+            )
+          ]
         )
       ],
       options: []
     )
-    
+
     // Create a parent message with the nested types
     let messageNode = MessageNode(
       location: SourceLocation(line: 1, column: 1),
@@ -563,31 +581,34 @@ final class SemanticValidatorTests: XCTestCase {
       messages: [nestedMessage],
       enums: [nestedEnum]
     )
-    
+
     // Create a file with the invalid message
     let fileNode = FileNode(
       location: SourceLocation(line: 1, column: 1),
       syntax: "proto3",
       package: "test.package",
       filePath: "test.proto",
+      imports: [],
+      options: [],
       definitions: [messageNode]
     )
-    
+
     // Should throw for the nested enum first
     XCTAssertThrowsError(try validator.validateSemanticRules(fileNode)) { error in
       guard let validationError = error as? ValidationError else {
         XCTFail("Expected ValidationError")
         return
       }
-      
+
       if case .firstEnumValueNotZero(let name) = validationError {
         XCTAssertEqual(name, "NestedEnum", "Error should contain the enum name")
-      } else {
-        XCTFail("Expected firstEnumValueNotZero error")
+      }
+      else {
+        XCTFail("Expected firstEnumValueNotZero error, got \(validationError)")
       }
     }
   }
-  
+
   /// Test validating a valid message.
   func testValidMessage() {
     // Create a valid message
@@ -618,7 +639,7 @@ final class SemanticValidatorTests: XCTestCase {
           number: 3,
           isRepeated: false,
           options: []
-        )
+        ),
       ],
       oneofs: [
         OneofNode(
@@ -640,13 +661,13 @@ final class SemanticValidatorTests: XCTestCase {
               number: 5,
               isRepeated: false,
               options: []
-            )
+            ),
           ]
         )
       ],
       options: []
     )
-    
+
     // Create a file with the valid message
     let fileNode = FileNode(
       location: SourceLocation(line: 1, column: 1),
@@ -655,13 +676,13 @@ final class SemanticValidatorTests: XCTestCase {
       filePath: "test.proto",
       definitions: [messageNode]
     )
-    
+
     // Should not throw
     XCTAssertNoThrow(try validator.validateSemanticRules(fileNode))
   }
-  
+
   // MARK: - Service Validation Tests
-  
+
   /// Test validating a service with duplicate method names.
   func testDuplicateMethodNames() {
     // Create a service with duplicate method names
@@ -686,11 +707,11 @@ final class SemanticValidatorTests: XCTestCase {
           clientStreaming: false,
           serverStreaming: false,
           options: []
-        )
+        ),
       ],
       options: []
     )
-    
+
     // Create a file with the invalid service
     let fileNode = FileNode(
       location: SourceLocation(line: 1, column: 1),
@@ -699,22 +720,23 @@ final class SemanticValidatorTests: XCTestCase {
       filePath: "test.proto",
       definitions: [serviceNode]
     )
-    
+
     // Should throw
     XCTAssertThrowsError(try validator.validateSemanticRules(fileNode)) { error in
       guard let validationError = error as? ValidationError else {
         XCTFail("Expected ValidationError")
         return
       }
-      
+
       if case .duplicateMethodName(let name) = validationError {
         XCTAssertEqual(name, "TestMethod", "Error should contain the method name")
-      } else {
+      }
+      else {
         XCTFail("Expected duplicateMethodName error")
       }
     }
   }
-  
+
   /// Test validating a valid service.
   func testValidService() {
     // Create a valid service
@@ -739,11 +761,11 @@ final class SemanticValidatorTests: XCTestCase {
           clientStreaming: true,
           serverStreaming: true,
           options: []
-        )
+        ),
       ],
       options: []
     )
-    
+
     // Create a file with the valid service
     let fileNode = FileNode(
       location: SourceLocation(line: 1, column: 1),
@@ -752,13 +774,13 @@ final class SemanticValidatorTests: XCTestCase {
       filePath: "test.proto",
       definitions: [serviceNode]
     )
-    
+
     // Should not throw
     XCTAssertNoThrow(try validator.validateSemanticRules(fileNode))
   }
-  
+
   // MARK: - Complex File Validation Tests
-  
+
   /// Test validating a complex file with multiple definitions.
   func testComplexFileValidation() {
     // Create a valid enum
@@ -777,11 +799,11 @@ final class SemanticValidatorTests: XCTestCase {
           name: "SECOND",
           number: 1,
           options: []
-        )
+        ),
       ],
       options: []
     )
-    
+
     // Create a valid message
     let messageNode = MessageNode(
       location: SourceLocation(line: 10, column: 1),
@@ -799,7 +821,7 @@ final class SemanticValidatorTests: XCTestCase {
       oneofs: [],
       options: []
     )
-    
+
     // Create a valid service
     let serviceNode = ServiceNode(
       location: SourceLocation(line: 15, column: 1),
@@ -817,7 +839,7 @@ final class SemanticValidatorTests: XCTestCase {
       ],
       options: []
     )
-    
+
     // Create a file with all the valid definitions
     let fileNode = FileNode(
       location: SourceLocation(line: 1, column: 1),
@@ -826,7 +848,7 @@ final class SemanticValidatorTests: XCTestCase {
       filePath: "test.proto",
       definitions: [enumNode, messageNode, serviceNode]
     )
-    
+
     // Should not throw
     XCTAssertNoThrow(try validator.validateSemanticRules(fileNode))
   }

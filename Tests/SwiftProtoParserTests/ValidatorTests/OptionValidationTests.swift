@@ -17,11 +17,11 @@ final class OptionValidationTests: XCTestCase {
     state.symbolTable = symbolTable
     validator = ValidatorV2()
     optionValidator = OptionValidator(state: state)
-    
+
     // Set up symbol table with some extension fields for testing custom options
     setupSymbolTableWithExtensions()
   }
-  
+
   private func setupSymbolTableWithExtensions() {
     // Create a message node to represent the extension container
     let extensionContainer = MessageNode(
@@ -29,14 +29,14 @@ final class OptionValidationTests: XCTestCase {
       name: "Extensions",
       fields: []
     )
-    
+
     // Create a message node to represent the target of extensions
     let targetMessage = MessageNode(
       location: SourceLocation(line: 1, column: 1),
       name: "TargetMessage",
       fields: []
     )
-    
+
     // Create a file node to contain these messages
     let fileNode = FileNode(
       location: SourceLocation(line: 1, column: 1),
@@ -46,14 +46,14 @@ final class OptionValidationTests: XCTestCase {
       options: [],
       definitions: [extensionContainer, targetMessage]
     )
-    
+
     // Add the messages to the symbol table
     do {
       try symbolTable.addSymbol(extensionContainer, kind: .message, package: "test")
       try symbolTable.addSymbol(targetMessage, kind: .message, package: "test")
-      
+
       // Add extension fields
-      
+
       // String extension field
       let stringExtField = FieldNode(
         location: SourceLocation(line: 1, column: 1),
@@ -63,7 +63,7 @@ final class OptionValidationTests: XCTestCase {
         isRepeated: false,
         isOptional: true
       )
-      
+
       // Boolean extension field
       let boolExtField = FieldNode(
         location: SourceLocation(line: 2, column: 1),
@@ -73,7 +73,7 @@ final class OptionValidationTests: XCTestCase {
         isRepeated: false,
         isOptional: true
       )
-      
+
       // Number extension field
       let numberExtField = FieldNode(
         location: SourceLocation(line: 3, column: 1),
@@ -83,7 +83,7 @@ final class OptionValidationTests: XCTestCase {
         isRepeated: false,
         isOptional: true
       )
-      
+
       // Message type extension field
       let messageExtField = FieldNode(
         location: SourceLocation(line: 4, column: 1),
@@ -93,7 +93,7 @@ final class OptionValidationTests: XCTestCase {
         isRepeated: false,
         isOptional: true
       )
-      
+
       // Create a nested message for testing nested fields
       let nestedMessage = MessageNode(
         location: SourceLocation(line: 5, column: 1),
@@ -114,12 +114,12 @@ final class OptionValidationTests: XCTestCase {
             number: 2,
             isRepeated: false,
             isOptional: false
-          )
+          ),
         ]
       )
-      
+
       try symbolTable.addSymbol(nestedMessage, kind: .message, package: "test")
-      
+
       // Add extension fields to the symbol table
       try symbolTable.addExtension(
         stringExtField,
@@ -127,28 +127,29 @@ final class OptionValidationTests: XCTestCase {
         package: "test",
         parent: nil
       )
-      
+
       try symbolTable.addExtension(
         boolExtField,
         extendedType: "test.TargetMessage",
         package: "test",
         parent: nil
       )
-      
+
       try symbolTable.addExtension(
         numberExtField,
         extendedType: "test.TargetMessage",
         package: "test",
         parent: nil
       )
-      
+
       try symbolTable.addExtension(
         messageExtField,
         extendedType: "test.TargetMessage",
         package: "test",
         parent: nil
       )
-    } catch {
+    }
+    catch {
       XCTFail("Failed to set up symbol table: \(error)")
     }
   }
@@ -202,7 +203,7 @@ final class OptionValidationTests: XCTestCase {
       ("java_package", .identifier("com.example.test"), "java_package must be a string"),
       ("java_outer_classname", .number(123), "java_outer_classname must be a string"),
       ("optimize_for", .identifier("INVALID_VALUE"), "optimize_for must be SPEED, CODE_SIZE, or LITE_RUNTIME"),
-      ("cc_enable_arenas", .string("true"), "cc_enable_arenas must be a boolean")
+      ("cc_enable_arenas", .string("true"), "cc_enable_arenas must be a boolean"),
     ]
 
     for option in invalidOptions {
@@ -223,7 +224,8 @@ final class OptionValidationTests: XCTestCase {
 
         if case .invalidOptionValue(let message) = validationError {
           XCTAssertEqual(message, option.errorMessage, "Error message should match expected")
-        } else {
+        }
+        else {
           XCTFail("Expected invalidOptionValue error")
         }
       }
@@ -242,7 +244,7 @@ final class OptionValidationTests: XCTestCase {
         location: SourceLocation(line: 2, column: 1),
         name: "java_package",
         value: .string("com.example.test2")
-      )
+      ),
     ]
 
     // Should throw
@@ -254,7 +256,8 @@ final class OptionValidationTests: XCTestCase {
 
       if case .duplicateOption(let name) = validationError {
         XCTAssertEqual(name, "java_package", "Error should contain the duplicate option name")
-      } else {
+      }
+      else {
         XCTFail("Expected duplicateOption error")
       }
     }
@@ -266,7 +269,7 @@ final class OptionValidationTests: XCTestCase {
     // Test valid message options
     let validOptions: [(name: String, value: OptionNode.Value)] = [
       ("deprecated", .identifier("true")),
-      ("map_entry", .identifier("true"))
+      ("map_entry", .identifier("true")),
       // These options are not supported in the current implementation:
       // ("message_set_wire_format", .identifier("true")),
       // ("no_standard_descriptor_accessor", .identifier("true"))
@@ -290,7 +293,7 @@ final class OptionValidationTests: XCTestCase {
     // Test invalid message options
     let invalidOptions: [(name: String, value: OptionNode.Value, errorMessage: String)] = [
       ("deprecated", .string("true"), "deprecated must be a boolean"),
-      ("map_entry", .string("true"), "map_entry must be a boolean")
+      ("map_entry", .string("true"), "map_entry must be a boolean"),
     ]
 
     for option in invalidOptions {
@@ -311,7 +314,8 @@ final class OptionValidationTests: XCTestCase {
 
         if case .invalidOptionValue(let message) = validationError {
           XCTAssertEqual(message, option.errorMessage, "Error message should match expected")
-        } else {
+        }
+        else {
           XCTFail("Expected invalidOptionValue error")
         }
       }
@@ -330,7 +334,7 @@ final class OptionValidationTests: XCTestCase {
         location: SourceLocation(line: 2, column: 1),
         name: "deprecated",
         value: .identifier("false")
-      )
+      ),
     ]
 
     // Should throw
@@ -342,7 +346,8 @@ final class OptionValidationTests: XCTestCase {
 
       if case .duplicateOption(let name) = validationError {
         XCTAssertEqual(name, "deprecated", "Error should contain the duplicate option name")
-      } else {
+      }
+      else {
         XCTFail("Expected duplicateOption error")
       }
     }
@@ -355,7 +360,7 @@ final class OptionValidationTests: XCTestCase {
     let validOptions: [(name: String, value: OptionNode.Value)] = [
       ("packed", .identifier("true")),
       ("deprecated", .identifier("true")),
-      ("json_name", .string("custom_name"))
+      ("json_name", .string("custom_name")),
       // These options are not supported in the current implementation:
       // ("jstype", .identifier("JS_STRING")),
       // ("lazy", .identifier("true")),
@@ -381,7 +386,7 @@ final class OptionValidationTests: XCTestCase {
     let invalidOptions: [(name: String, value: OptionNode.Value, errorMessage: String)] = [
       ("packed", .string("true"), "packed must be a boolean"),
       ("deprecated", .string("true"), "deprecated must be a boolean"),
-      ("json_name", .identifier("name"), "json_name must be a string")
+      ("json_name", .identifier("name"), "json_name must be a string"),
     ]
 
     for option in invalidOptions {
@@ -402,7 +407,8 @@ final class OptionValidationTests: XCTestCase {
 
         if case .invalidOptionValue(let message) = validationError {
           XCTAssertEqual(message, option.errorMessage, "Error message should match expected")
-        } else {
+        }
+        else {
           XCTFail("Expected invalidOptionValue error")
         }
       }
@@ -421,7 +427,7 @@ final class OptionValidationTests: XCTestCase {
         location: SourceLocation(line: 2, column: 1),
         name: "packed",
         value: .identifier("false")
-      )
+      ),
     ]
 
     // Should throw
@@ -433,7 +439,8 @@ final class OptionValidationTests: XCTestCase {
 
       if case .duplicateOption(let name) = validationError {
         XCTAssertEqual(name, "packed", "Error should contain the duplicate option name")
-      } else {
+      }
+      else {
         XCTFail("Expected duplicateOption error")
       }
     }
@@ -445,7 +452,7 @@ final class OptionValidationTests: XCTestCase {
     // Test valid enum options
     let validOptions: [(name: String, value: OptionNode.Value)] = [
       ("allow_alias", .identifier("true")),
-      ("deprecated", .identifier("true"))
+      ("deprecated", .identifier("true")),
     ]
 
     for option in validOptions {
@@ -466,7 +473,7 @@ final class OptionValidationTests: XCTestCase {
     // Test invalid enum options
     let invalidOptions: [(name: String, value: OptionNode.Value, errorMessage: String)] = [
       ("allow_alias", .string("true"), "allow_alias must be a boolean"),
-      ("deprecated", .number(1), "deprecated must be a boolean")
+      ("deprecated", .number(1), "deprecated must be a boolean"),
     ]
 
     for option in invalidOptions {
@@ -487,7 +494,8 @@ final class OptionValidationTests: XCTestCase {
 
         if case .invalidOptionValue(let message) = validationError {
           XCTAssertEqual(message, option.errorMessage, "Error message should match expected")
-        } else {
+        }
+        else {
           XCTFail("Expected invalidOptionValue error")
         }
       }
@@ -540,7 +548,8 @@ final class OptionValidationTests: XCTestCase {
 
         if case .invalidOptionValue(let message) = validationError {
           XCTAssertEqual(message, option.errorMessage, "Error message should match expected")
-        } else {
+        }
+        else {
           XCTFail("Expected invalidOptionValue error")
         }
       }
@@ -593,7 +602,8 @@ final class OptionValidationTests: XCTestCase {
 
         if case .invalidOptionValue(let message) = validationError {
           XCTAssertEqual(message, option.errorMessage, "Error message should match expected")
-        } else {
+        }
+        else {
           XCTFail("Expected invalidOptionValue error")
         }
       }
@@ -606,7 +616,7 @@ final class OptionValidationTests: XCTestCase {
     // Test valid method options
     let validOptions: [(name: String, value: OptionNode.Value)] = [
       ("deprecated", .identifier("true")),
-      ("idempotency_level", .identifier("IDEMPOTENT"))
+      ("idempotency_level", .identifier("IDEMPOTENT")),
     ]
 
     for option in validOptions {
@@ -627,7 +637,10 @@ final class OptionValidationTests: XCTestCase {
     // Test invalid method options
     let invalidOptions: [(name: String, value: OptionNode.Value, errorMessage: String)] = [
       ("deprecated", .string("true"), "deprecated must be a boolean"),
-      ("idempotency_level", .identifier("INVALID_VALUE"), "idempotency_level must be IDEMPOTENCY_UNKNOWN, NO_SIDE_EFFECTS, or IDEMPOTENT")
+      (
+        "idempotency_level", .identifier("INVALID_VALUE"),
+        "idempotency_level must be IDEMPOTENCY_UNKNOWN, NO_SIDE_EFFECTS, or IDEMPOTENT"
+      ),
     ]
 
     for option in invalidOptions {
@@ -648,7 +661,8 @@ final class OptionValidationTests: XCTestCase {
 
         if case .invalidOptionValue(let message) = validationError {
           XCTAssertEqual(message, option.errorMessage, "Error message should match expected")
-        } else {
+        }
+        else {
           XCTFail("Expected invalidOptionValue error")
         }
       }
@@ -662,7 +676,7 @@ final class OptionValidationTests: XCTestCase {
     let validOptions: [(name: String, value: OptionNode.Value, extensionName: String)] = [
       ("(test.string_option)", .string("test value"), "test.string_option"),
       ("(test.bool_option)", .identifier("true"), "test.bool_option"),
-      ("(test.number_option)", .number(42), "test.number_option")
+      ("(test.number_option)", .number(42), "test.number_option"),
     ]
 
     for option in validOptions {
@@ -683,8 +697,11 @@ final class OptionValidationTests: XCTestCase {
     // Test invalid custom option types
     let invalidOptions: [(name: String, value: OptionNode.Value, extensionName: String, errorMessage: String)] = [
       ("(test.string_option)", .number(42), "test.string_option", "Option (test.string_option) must be a string"),
-      ("(test.bool_option)", .string("true"), "test.bool_option", "Option (test.bool_option) must be a boolean (true or false)"),
-      ("(test.number_option)", .string("42"), "test.number_option", "Option (test.number_option) must be a number")
+      (
+        "(test.bool_option)", .string("true"), "test.bool_option",
+        "Option (test.bool_option) must be a boolean (true or false)"
+      ),
+      ("(test.number_option)", .string("42"), "test.number_option", "Option (test.number_option) must be a number"),
     ]
 
     for option in invalidOptions {
@@ -705,7 +722,8 @@ final class OptionValidationTests: XCTestCase {
 
         if case .invalidOptionValue(let message) = validationError {
           XCTAssertEqual(message, option.errorMessage, "Error message should match expected")
-        } else {
+        }
+        else {
           XCTFail("Expected invalidOptionValue error")
         }
       }
@@ -731,7 +749,8 @@ final class OptionValidationTests: XCTestCase {
 
       if case .unknownOption(let name) = validationError {
         XCTAssertEqual(name, "(test.unknown_option)", "Error should contain the unknown option name")
-      } else {
+      }
+      else {
         XCTFail("Expected unknownOption error")
       }
     }
@@ -759,16 +778,18 @@ final class OptionValidationTests: XCTestCase {
       (.string("test"), .scalar(.string), "string_option"),
       (.identifier("true"), .scalar(.bool), "bool_option"),
       (.number(42), .scalar(.int32), "number_option"),
-      (.identifier("ENUM_VALUE"), .named("test.SomeEnum"), "enum_option")
+      (.identifier("ENUM_VALUE"), .named("test.SomeEnum"), "enum_option"),
     ]
 
     for testCase in validCases {
       // Should not throw
-      XCTAssertNoThrow(try optionValidator.validateOptionValueType(
-        testCase.value,
-        expectedType: testCase.type,
-        optionName: testCase.optionName
-      ))
+      XCTAssertNoThrow(
+        try optionValidator.validateOptionValueType(
+          testCase.value,
+          expectedType: testCase.type,
+          optionName: testCase.optionName
+        )
+      )
     }
   }
 
@@ -779,16 +800,21 @@ final class OptionValidationTests: XCTestCase {
       (.string("true"), .scalar(.bool), "bool_option", "Option (bool_option) must be a boolean (true or false)"),
       (.string("42"), .scalar(.int32), "number_option", "Option (number_option) must be a number"),
       (.number(1), .named("test.SomeEnum"), "enum_option", "Option (enum_option) must be an enum value"),
-      (.string("value"), .map(key: .string, value: .scalar(.string)), "map_option", "Map types are not supported for options")
+      (
+        .string("value"), .map(key: .string, value: .scalar(.string)), "map_option",
+        "Map types are not supported for options"
+      ),
     ]
 
     for testCase in invalidCases {
       // Should throw
-      XCTAssertThrowsError(try optionValidator.validateOptionValueType(
-        testCase.value,
-        expectedType: testCase.type,
-        optionName: testCase.optionName
-      )) { error in
+      XCTAssertThrowsError(
+        try optionValidator.validateOptionValueType(
+          testCase.value,
+          expectedType: testCase.type,
+          optionName: testCase.optionName
+        )
+      ) { error in
         guard let validationError = error as? ValidationError else {
           XCTFail("Expected ValidationError")
           return
@@ -796,7 +822,8 @@ final class OptionValidationTests: XCTestCase {
 
         if case .invalidOptionValue(let message) = validationError {
           XCTAssertEqual(message, testCase.errorMessage, "Error message should match expected")
-        } else {
+        }
+        else {
           XCTFail("Expected invalidOptionValue error")
         }
       }

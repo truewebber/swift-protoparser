@@ -16,8 +16,10 @@ This document tracks the test coverage progress for each component of the SwiftP
 | - MessageNode | ~53% | 95.9% | 100% | ✅ Good Progress |
 | - FileNode | ~74% | 78.6% | 100% | ✅ Good Progress |
 | - Node | ~59% | 72.0% | 100% | ✅ Good Progress |
-| Validator | ~85% | 51.8% | 100% | 🔄 In Progress |
-| - OptionValidator | ~30% | 53.5% | 100% | 🔄 In Progress |
+| Validator | ~85% | 73.3% | 100% | ✅ Good Progress |
+| - OptionValidator | ~30% | 77.0% | 100% | ✅ Good Progress |
+| - ReferenceValidator | ~34% | 86.7% | 100% | ✅ Good Progress |
+| - SemanticValidator | ~3% | 100% | 100% | ✅ Complete |
 | Symbol Resolution | ~80% | 95.4% | 100% | ✅ Good Progress |
 | Import Resolution | ~75% | 93.8% | 100% | ✅ Good Progress |
 | Descriptor Generation | ~85% | 70.5% | 100% | 🔄 In Progress |
@@ -25,7 +27,7 @@ This document tracks the test coverage progress for each component of the SwiftP
 | Configuration | ~90% | 97.4% | 100% | ✅ Good Progress |
 | Public API | ~85% | 64.4% | 100% | 🔄 In Progress |
 | Error Handling | 22.6% | 81.5% | 100% | ✅ Good Progress |
-| Overall | ~82% | 50.6% | >95% | 🔄 In Progress |
+| Overall | ~82% | 54.0% | >95% | 🔄 In Progress |
 
 ## Detailed Coverage Analysis
 
@@ -157,30 +159,28 @@ This document tracks the test coverage progress for each component of the SwiftP
 ### Validator
 
 #### Uncovered Code Areas
-- Many validation rules (only 51.8% covered)
-- Complex validation scenarios
-- SemanticValidator (3% coverage)
-- OptionValidator (53.5% line coverage, 27.6% function coverage)
-- ReferenceValidator (34% coverage)
+- Some validation rules (73.3% line coverage)
+- Some functions (74.1% function coverage)
+- OptionValidator (77.0% line coverage, 51.7% function coverage)
+- ReferenceValidator (86.7% line coverage, 92.3% function coverage)
 
 #### Test Gaps
-- Cross-reference validation
-- Complex type validation
-- Custom option validation in OptionValidator
-- Nested option fields validation
+- Some complex validation scenarios
+- Some custom option validation in OptionValidator
+- Some nested option fields validation
 
 #### Action Items
 - [x] Create comprehensive tests for ValidationState (100% coverage)
-- [x] Create comprehensive tests for ValidatorV2 (96.2% coverage)
+- [x] Create comprehensive tests for ValidatorV2 (84.2% coverage)
 - [x] Fix compilation issues in OptionValidationTests
 - [x] Improve basic option validation tests for OptionValidator
-- [ ] Create comprehensive tests for custom option validation in OptionValidator
-- [ ] Create comprehensive tests for nested option fields in OptionValidator
-- [ ] Create comprehensive tests for SemanticValidator
-- [ ] Create comprehensive tests for ReferenceValidator
-- [ ] Create comprehensive positive tests for remaining validators
-- [ ] Create comprehensive negative tests for remaining validators
-- [ ] Create comprehensive corner case tests for remaining validators
+- [x] Create comprehensive tests for SemanticValidator (100% coverage)
+- [x] Create comprehensive tests for ReferenceValidator (86.7% coverage)
+- [ ] Create more comprehensive tests for custom option validation in OptionValidator
+- [ ] Create more comprehensive tests for nested option fields in OptionValidator
+- [ ] Create more comprehensive positive tests for remaining validators
+- [ ] Create more comprehensive negative tests for remaining validators
+- [ ] Create more comprehensive corner case tests for remaining validators
 
 ### Symbol Resolution
 
@@ -291,3 +291,13 @@ This document tracks the test coverage progress for each component of the SwiftP
 - [x] Create comprehensive error handling tests for Import errors
 - [x] Create comprehensive error handling tests for Descriptor Generator errors
 - [ ] Add tests for error recovery mechanisms
+
+## Recent Improvements
+
+### 2025-03-09
+- Fixed failing tests in `ReferenceValidationTests.swift`
+- Improved test coverage for `SemanticValidator` to 100%
+- Improved test coverage for `ReferenceValidator` from 34% to 86.7%
+- Improved test coverage for `OptionValidator` from 53.5% to 77.0%
+- Overall validator coverage improved from 51.8% to 73.3%
+- All tests now pass successfully
