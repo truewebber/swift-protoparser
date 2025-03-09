@@ -180,17 +180,19 @@ This document tracks the progress of the SwiftProtoParser project through its de
 |------------|--------|-------|
 | Perform gap analysis of test coverage | ✅ COMPLETED | Used code coverage tools to identify untested code |
 | Implement comprehensive Lexer tests | ✅ COMPLETED | Enhanced LexerTests.swift with positive, negative, and corner cases - 84.7% line coverage |
-| Implement comprehensive Parser tests | ✅ COMPLETED | Enhanced ParserTests.swift with positive, negative, and corner cases - 87.7% line coverage |
+| Implement comprehensive Parser tests | ✅ COMPLETED | Enhanced ParserTests.swift with positive, negative, and corner cases - 91.3% line coverage |
 | Implement comprehensive Service and RPC tests | ✅ COMPLETED | Created ServiceNodeTests.swift with 97.9% line coverage and 91.7% function coverage |
 | Implement comprehensive FieldNode tests | ✅ COMPLETED | Created FieldNodeTests.swift with 68.6% line coverage and 52.6% function coverage |
 | Implement comprehensive ExtendNode tests | ✅ COMPLETED | Created ExtendNodeTests.swift with 97.3% line coverage and 100% function coverage |
-| Implement comprehensive Symbol Resolution tests | ✅ COMPLETED | Created SymbolResolutionTests.swift with 94.6% line coverage and 69.6% function coverage |
+| Implement comprehensive MessageNode tests | ✅ COMPLETED | Created MessageNodeTests.swift with 95.9% line coverage |
+| Implement comprehensive Symbol Resolution tests | ✅ COMPLETED | Created SymbolResolutionTests.swift with 95.4% line coverage and 68.2% function coverage |
 | Implement comprehensive Import Resolution tests | ✅ COMPLETED | Import validation tests now have 93.8% line coverage and 92.3% function coverage |
 | Implement comprehensive Descriptor Generation tests | 🔄 IN PROGRESS | Enhanced DescriptorGeneratorTests.swift to 70.5% line coverage and 97.0% function coverage |
 | Implement comprehensive Source Info Generation tests | ✅ COMPLETED | Enhanced SourceInfoGeneratorTests.swift to 90.3% line coverage and 72.7% function coverage |
 | Implement comprehensive Configuration tests | ✅ COMPLETED | ConfigurationTests.swift now has 97.4% line coverage and 67.7% function coverage |
 | Implement comprehensive Public API tests | 🔄 IN PROGRESS | Enhancing ProtoParserTests.swift with additional test cases - 64.4% line coverage |
-| Implement comprehensive Error Handling tests | ✅ COMPLETED | Created LexerErrorTests.swift, ParserErrorTests.swift, ValidationErrorTests.swift, ImportErrorTests.swift, and DescriptorGeneratorErrorTests.swift with 81.2% line coverage and 94.6% function coverage |
+| Implement comprehensive Error Handling tests | ✅ COMPLETED | Created LexerErrorTests.swift, ParserErrorTests.swift, ValidationErrorTests.swift, ImportErrorTests.swift, and DescriptorGeneratorErrorTests.swift with 81.5% line coverage and 94.6% function coverage |
+| Implement comprehensive Validator tests | 🔄 IN PROGRESS | Created ValidationStateTests.swift with 100% coverage and ValidatorV2Tests.swift with 96.2% coverage - overall validator coverage at 51.8% |
 | Implement comprehensive Performance tests | 📅 PLANNED | Enhancing ParserPerformanceTests.swift with additional test cases |
 | Implement property-based tests | 📅 PLANNED | Creating PropertyTests.swift for property-based testing |
 | Create test documentation | ✅ COMPLETED | Updated coverage_tracking.md with comprehensive test strategy |

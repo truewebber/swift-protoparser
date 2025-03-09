@@ -7,24 +7,24 @@ This document tracks the test coverage progress for each component of the SwiftP
 | Component | Initial Coverage | Current Coverage | Target Coverage | Status |
 |-----------|-----------------|------------------|----------------|--------|
 | Lexer | ~85% | 84.7% | 100% | ✅ Good Progress |
-| Parser | ~80% | 87.7% | 100% | ✅ Good Progress |
-| AST Nodes | ~50% | 78.4% | 100% | ✅ Good Progress |
+| Parser | ~80% | 91.3% | 100% | ✅ Good Progress |
+| AST Nodes | ~50% | 85.6% | 100% | ✅ Good Progress |
 | - EnumNode | ~13% | 96.6% | 100% | ✅ Good Progress |
 | - ServiceNode | ~11% | 97.9% | 100% | ✅ Good Progress |
 | - ExtendNode | ~38% | 97.3% | 100% | ✅ Good Progress |
 | - FieldNode | ~35% | 68.6% | 100% | ✅ Good Progress |
-| - MessageNode | ~53% | 58.5% | 100% | 🔄 In Progress |
+| - MessageNode | ~53% | 95.9% | 100% | ✅ Good Progress |
 | - FileNode | ~74% | 78.6% | 100% | ✅ Good Progress |
 | - Node | ~59% | 72.0% | 100% | ✅ Good Progress |
-| Validator | ~85% | 50.9% | 100% | 🔄 In Progress |
-| Symbol Resolution | ~80% | 94.6% | 100% | ✅ Good Progress |
+| Validator | ~85% | 51.8% | 100% | 🔄 In Progress |
+| Symbol Resolution | ~80% | 95.4% | 100% | ✅ Good Progress |
 | Import Resolution | ~75% | 93.8% | 100% | ✅ Good Progress |
 | Descriptor Generation | ~85% | 70.5% | 100% | 🔄 In Progress |
 | Source Info Generation | ~80% | 90.3% | 100% | ✅ Good Progress |
 | Configuration | ~90% | 97.4% | 100% | ✅ Good Progress |
 | Public API | ~85% | 64.4% | 100% | 🔄 In Progress |
-| Error Handling | 22.6% | 81.2% | 100% | ✅ Good Progress |
-| Overall | ~82% | 48.8% | >95% | 🔄 In Progress |
+| Error Handling | 22.6% | 81.5% | 100% | ✅ Good Progress |
+| Overall | ~82% | 50.6% | >95% | 🔄 In Progress |
 
 ## Detailed Coverage Analysis
 
@@ -139,8 +139,8 @@ This document tracks the test coverage progress for each component of the SwiftP
 ### Parser
 
 #### Uncovered Code Areas
-- Very few areas (87.7% line coverage)
-- Some functions (72.5% function coverage)
+- Very few areas (91.3% line coverage)
+- Some functions (76.5% function coverage)
 
 #### Test Gaps
 - Performance testing with very large files
@@ -156,23 +156,31 @@ This document tracks the test coverage progress for each component of the SwiftP
 ### Validator
 
 #### Uncovered Code Areas
-- Many validation rules (only 50.9% covered)
+- Many validation rules (only 51.8% covered)
 - Complex validation scenarios
+- SemanticValidator (3% coverage)
+- OptionValidator (30% coverage)
+- ReferenceValidator (34% coverage)
 
 #### Test Gaps
 - Cross-reference validation
 - Complex type validation
 
 #### Action Items
-- [ ] Create comprehensive positive tests
-- [ ] Create comprehensive negative tests
-- [ ] Create comprehensive corner case tests
+- [x] Create comprehensive tests for ValidationState (100% coverage)
+- [x] Create comprehensive tests for ValidatorV2 (96.2% coverage)
+- [ ] Create comprehensive tests for SemanticValidator
+- [ ] Create comprehensive tests for OptionValidator
+- [ ] Create comprehensive tests for ReferenceValidator
+- [ ] Create comprehensive positive tests for remaining validators
+- [ ] Create comprehensive negative tests for remaining validators
+- [ ] Create comprehensive corner case tests for remaining validators
 
 ### Symbol Resolution
 
 #### Uncovered Code Areas
-- Small portions of the implementation (94.6% line coverage)
-- Some functions (69.6% function coverage)
+- Small portions of the implementation (95.4% line coverage)
+- Some functions (68.2% function coverage)
 
 #### Test Gaps
 - Some edge cases in symbol resolution
@@ -262,7 +270,7 @@ This document tracks the test coverage progress for each component of the SwiftP
 ### Error Handling
 
 #### Uncovered Code Areas
-- Some error handling code in SwiftProtobufError.swift (81.2% line coverage)
+- Some error handling code (81.5% line coverage)
 - Some error handling functions (94.6% function coverage)
 
 #### Test Gaps
