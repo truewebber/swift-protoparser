@@ -12,7 +12,7 @@ This document tracks the test coverage progress for each component of the SwiftP
 | - EnumNode | ~13% | 96.6% | 100% | ✅ Good Progress |
 | - ServiceNode | ~11% | 97.9% | 100% | ✅ Good Progress |
 | - ExtendNode | ~38% | 40.0% | 100% | 🔄 In Progress |
-| - FieldNode | ~35% | 37.2% | 100% | 🔄 In Progress |
+| - FieldNode | ~35% | 67.9% | 100% | ✅ Good Progress |
 | - MessageNode | ~53% | 54.2% | 100% | 🔄 In Progress |
 | - FileNode | ~74% | 76.9% | 100% | ✅ Good Progress |
 | - Node | ~59% | 59.5% | 100% | 🔄 In Progress |
@@ -63,6 +63,29 @@ This document tracks the test coverage progress for each component of the SwiftP
 - [x] Create comprehensive tests for value management
 - [x] Create comprehensive tests for validation
 - [ ] Add tests for remaining edge cases in option validation
+
+#### FieldNode
+
+#### Uncovered Code Areas
+- Some error handling paths (67.9% line coverage)
+- Some functions (52.6% function coverage)
+
+#### Test Gaps
+- Some edge cases in field validation
+- Some error handling paths
+
+#### Action Items
+- [x] Create basic initialization tests
+- [x] Create tests for scalar fields
+- [x] Create tests for fields with options
+- [x] Create tests for fields with packed option
+- [x] Create validation tests for field names
+- [x] Create validation tests for field numbers
+- [x] Create validation tests for field options
+- [x] Create validation tests for map key types
+- [x] Create validation tests for reserved field names and numbers
+- [ ] Add tests for remaining edge cases
+- [ ] Add tests for remaining error handling paths
 
 ### ServiceNode
 
