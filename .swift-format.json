@@ -9,7 +9,6 @@
   "lineBreakBeforeControlFlowKeywords": true,
   "lineBreakBeforeEachArgument": true,
   "lineBreakBeforeEachGenericRequirement": true,
-  "prioritizeKeepingFunctionOutputTogether": true,
   "indentConditionalCompilationBlocks": true,
   "indentSwitchCaseLabels": false,
   "rules": {

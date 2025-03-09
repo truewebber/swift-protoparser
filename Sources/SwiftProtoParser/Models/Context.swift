@@ -49,7 +49,7 @@ public final class Context {
     _ = messageStack.popLast()
   }
 
-  /// Get the current message context
+  /// Get the current message context.
   public var currentMessage: MessageContext? {
     return messageStack.last
   }

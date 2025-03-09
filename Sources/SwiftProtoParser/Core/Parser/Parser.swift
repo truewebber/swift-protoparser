@@ -1155,7 +1155,7 @@ public final class Parser {
     )
   }
 
-  /// Parses an extend statement
+  /// Parses an extend statement.
   private func parseExtend() throws -> ExtendNode {
     try expectToken(.extend)
     let extendLocation = currentToken.location

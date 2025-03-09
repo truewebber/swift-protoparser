@@ -23,4 +23,4 @@ jobs:
         shell: bash
 
       - name: Build and test with coverage
-        run: swift test --enable-code-coverage --parallel
+        run: swift test --parallel

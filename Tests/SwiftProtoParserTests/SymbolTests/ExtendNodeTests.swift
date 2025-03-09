@@ -588,7 +588,7 @@ final class ExtendNodeTests: XCTestCase {
     }
   }
 
-  /// Test validation of type name with empty component
+  /// Test validation of type name with empty component.
   ///
   /// This test verifies that validation fails for an extension with a type name containing an empty component.
   func testValidationOfTypeNameWithEmptyComponent() throws {

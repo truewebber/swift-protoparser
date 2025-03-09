@@ -61,7 +61,7 @@ public struct OptionNode: Node {
 
   /// Represents a part of a custom option path.
   public struct PathPart: Equatable {
-    /// The name of this path part
+    /// The name of this path part.
     public let name: String
     /// Whether this part is an extension field (enclosed in parentheses).
     public let isExtension: Bool

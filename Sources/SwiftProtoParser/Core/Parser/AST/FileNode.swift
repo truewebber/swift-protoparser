@@ -8,7 +8,7 @@ public final class FileNode: Node, DefinitionContainer {
   /// Comments that appear at the start of the file.
   public let leadingComments: [String]
 
-  /// The syntax version specified in the file (e.g., "proto3")
+  /// The syntax version specified in the file (e.g., "proto3").
   public let syntax: String
 
   /// The package name specified in the file.
