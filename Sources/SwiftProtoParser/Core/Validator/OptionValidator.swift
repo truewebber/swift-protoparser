@@ -412,7 +412,7 @@ class OptionValidator: OptionValidating {
   ///   - expectedType: The expected type.
   ///   - optionName: The name of the option for error messages.
   /// - Throws: ValidationError if the value doesn't match the expected type.
-  private func validateOptionValueType(
+  internal func validateOptionValueType(
     _ value: OptionNode.Value,
     expectedType: TypeNode,
     optionName: String

@@ -8,17 +8,155 @@ final class OptionValidationTests: XCTestCase {
   private var validator: ValidatorV2!
   private var optionValidator: OptionValidator!
   private var state: ValidationState!
+  private var symbolTable: SymbolTable!
 
   override func setUp() {
     super.setUp()
     state = ValidationState()
+    symbolTable = SymbolTable()
+    state.symbolTable = symbolTable
     validator = ValidatorV2()
     optionValidator = OptionValidator(state: state)
+    
+    // Set up symbol table with some extension fields for testing custom options
+    setupSymbolTableWithExtensions()
+  }
+  
+  private func setupSymbolTableWithExtensions() {
+    // Create a message node to represent the extension container
+    let extensionContainer = MessageNode(
+      location: SourceLocation(line: 1, column: 1),
+      name: "Extensions",
+      fields: []
+    )
+    
+    // Create a message node to represent the target of extensions
+    let targetMessage = MessageNode(
+      location: SourceLocation(line: 1, column: 1),
+      name: "TargetMessage",
+      fields: []
+    )
+    
+    // Create a file node to contain these messages
+    let fileNode = FileNode(
+      location: SourceLocation(line: 1, column: 1),
+      syntax: "proto3",
+      package: "test",
+      imports: [],
+      options: [],
+      definitions: [extensionContainer, targetMessage]
+    )
+    
+    // Add the messages to the symbol table
+    do {
+      try symbolTable.addSymbol(extensionContainer, kind: .message, package: "test")
+      try symbolTable.addSymbol(targetMessage, kind: .message, package: "test")
+      
+      // Add extension fields
+      
+      // String extension field
+      let stringExtField = FieldNode(
+        location: SourceLocation(line: 1, column: 1),
+        name: "string_option",
+        type: .scalar(.string),
+        number: 1000,
+        isRepeated: false,
+        isOptional: true
+      )
+      
+      // Boolean extension field
+      let boolExtField = FieldNode(
+        location: SourceLocation(line: 2, column: 1),
+        name: "bool_option",
+        type: .scalar(.bool),
+        number: 1001,
+        isRepeated: false,
+        isOptional: true
+      )
+      
+      // Number extension field
+      let numberExtField = FieldNode(
+        location: SourceLocation(line: 3, column: 1),
+        name: "number_option",
+        type: .scalar(.int32),
+        number: 1002,
+        isRepeated: false,
+        isOptional: true
+      )
+      
+      // Message type extension field
+      let messageExtField = FieldNode(
+        location: SourceLocation(line: 4, column: 1),
+        name: "message_option",
+        type: .named("test.NestedMessage"),
+        number: 1003,
+        isRepeated: false,
+        isOptional: true
+      )
+      
+      // Create a nested message for testing nested fields
+      let nestedMessage = MessageNode(
+        location: SourceLocation(line: 5, column: 1),
+        name: "NestedMessage",
+        fields: [
+          FieldNode(
+            location: SourceLocation(line: 6, column: 1),
+            name: "nested_string",
+            type: .scalar(.string),
+            number: 1,
+            isRepeated: false,
+            isOptional: false
+          ),
+          FieldNode(
+            location: SourceLocation(line: 7, column: 1),
+            name: "nested_bool",
+            type: .scalar(.bool),
+            number: 2,
+            isRepeated: false,
+            isOptional: false
+          )
+        ]
+      )
+      
+      try symbolTable.addSymbol(nestedMessage, kind: .message, package: "test")
+      
+      // Add extension fields to the symbol table
+      try symbolTable.addExtension(
+        stringExtField,
+        extendedType: "test.TargetMessage",
+        package: "test",
+        parent: nil
+      )
+      
+      try symbolTable.addExtension(
+        boolExtField,
+        extendedType: "test.TargetMessage",
+        package: "test",
+        parent: nil
+      )
+      
+      try symbolTable.addExtension(
+        numberExtField,
+        extendedType: "test.TargetMessage",
+        package: "test",
+        parent: nil
+      )
+      
+      try symbolTable.addExtension(
+        messageExtField,
+        extendedType: "test.TargetMessage",
+        package: "test",
+        parent: nil
+      )
+    } catch {
+      XCTFail("Failed to set up symbol table: \(error)")
+    }
   }
 
   override func tearDown() {
     validator = nil
     optionValidator = nil
+    symbolTable = nil
     state = nil
     super.tearDown()
   }
@@ -519,40 +657,149 @@ final class OptionValidationTests: XCTestCase {
 
   // MARK: - Custom Option Tests
 
-  func testCustomOptions() {
-    // This test is skipped because it requires a properly set up symbol table with extensions
-    // which is beyond the scope of this test file
+  func testCustomOptions() throws {
+    // Test valid custom options
+    let validOptions: [(name: String, value: OptionNode.Value, extensionName: String)] = [
+      ("(test.string_option)", .string("test value"), "test.string_option"),
+      ("(test.bool_option)", .identifier("true"), "test.bool_option"),
+      ("(test.number_option)", .number(42), "test.number_option")
+    ]
+
+    for option in validOptions {
+      let customOption = OptionNode(
+        location: SourceLocation(line: 1, column: 1),
+        name: option.name,
+        value: option.value,
+        pathParts: [OptionNode.PathPart(name: option.extensionName, isExtension: true)],
+        isCustomOption: true
+      )
+
+      // Should not throw
+      XCTAssertNoThrow(try optionValidator.validateCustomOption(customOption, symbolTable: symbolTable))
+    }
   }
 
-  func testInvalidCustomOptionType() {
-    // This test is skipped because it requires a properly set up symbol table with extensions
-    // which is beyond the scope of this test file
+  func testInvalidCustomOptionType() throws {
+    // Test invalid custom option types
+    let invalidOptions: [(name: String, value: OptionNode.Value, extensionName: String, errorMessage: String)] = [
+      ("(test.string_option)", .number(42), "test.string_option", "Option (test.string_option) must be a string"),
+      ("(test.bool_option)", .string("true"), "test.bool_option", "Option (test.bool_option) must be a boolean (true or false)"),
+      ("(test.number_option)", .string("42"), "test.number_option", "Option (test.number_option) must be a number")
+    ]
+
+    for option in invalidOptions {
+      let customOption = OptionNode(
+        location: SourceLocation(line: 1, column: 1),
+        name: option.name,
+        value: option.value,
+        pathParts: [OptionNode.PathPart(name: option.extensionName, isExtension: true)],
+        isCustomOption: true
+      )
+
+      // Should throw
+      XCTAssertThrowsError(try optionValidator.validateCustomOption(customOption, symbolTable: symbolTable)) { error in
+        guard let validationError = error as? ValidationError else {
+          XCTFail("Expected ValidationError")
+          return
+        }
+
+        if case .invalidOptionValue(let message) = validationError {
+          XCTAssertEqual(message, option.errorMessage, "Error message should match expected")
+        } else {
+          XCTFail("Expected invalidOptionValue error")
+        }
+      }
+    }
   }
 
-  func testUnknownCustomOption() {
-    // This test is skipped because it requires a properly set up symbol table with extensions
-    // which is beyond the scope of this test file
+  func testUnknownCustomOption() throws {
+    // Test unknown custom option
+    let unknownOption = OptionNode(
+      location: SourceLocation(line: 1, column: 1),
+      name: "(test.unknown_option)",
+      value: .string("test"),
+      pathParts: [OptionNode.PathPart(name: "test.unknown_option", isExtension: true)],
+      isCustomOption: true
+    )
+
+    // Should throw
+    XCTAssertThrowsError(try optionValidator.validateCustomOption(unknownOption, symbolTable: symbolTable)) { error in
+      guard let validationError = error as? ValidationError else {
+        XCTFail("Expected ValidationError")
+        return
+      }
+
+      if case .unknownOption(let name) = validationError {
+        XCTAssertEqual(name, "(test.unknown_option)", "Error should contain the unknown option name")
+      } else {
+        XCTFail("Expected unknownOption error")
+      }
+    }
   }
 
   // MARK: - Nested Option Tests
 
-  func testNestedOptions() {
-    // This test is skipped because it requires a properly set up symbol table with extensions
-    // which is beyond the scope of this test file
+  func testNestedOptions() throws {
+    // Skip the nested option test for now since the current implementation
+    // doesn't fully support nested options in the way we're testing
+    // This would require changes to the validateCustomOptionSyntax method
   }
 
-  func testInvalidNestedOptionField() {
-    // This test is skipped because it requires a properly set up symbol table with extensions
-    // which is beyond the scope of this test file
+  func testInvalidNestedOptionField() throws {
+    // Skip the invalid nested option field test for now since the current implementation
+    // doesn't fully support nested options in the way we're testing
+    // This would require changes to the validateCustomOptionSyntax method
   }
 
   // MARK: - Option Value Validation Tests
 
-  func testValidateOptionValue() {
-    // This test is skipped because the OptionValidator doesn't have a public validateOptionValue method
+  func testValidateOptionValue() throws {
+    // Test valid option values for different types
+    let validCases: [(value: OptionNode.Value, type: TypeNode, optionName: String)] = [
+      (.string("test"), .scalar(.string), "string_option"),
+      (.identifier("true"), .scalar(.bool), "bool_option"),
+      (.number(42), .scalar(.int32), "number_option"),
+      (.identifier("ENUM_VALUE"), .named("test.SomeEnum"), "enum_option")
+    ]
+
+    for testCase in validCases {
+      // Should not throw
+      XCTAssertNoThrow(try optionValidator.validateOptionValueType(
+        testCase.value,
+        expectedType: testCase.type,
+        optionName: testCase.optionName
+      ))
+    }
   }
 
-  func testInvalidOptionValue() {
-    // This test is skipped because the OptionValidator doesn't have a public validateOptionValue method
+  func testInvalidOptionValue() throws {
+    // Test invalid option values for different types
+    let invalidCases: [(value: OptionNode.Value, type: TypeNode, optionName: String, errorMessage: String)] = [
+      (.number(42), .scalar(.string), "string_option", "Option (string_option) must be a string"),
+      (.string("true"), .scalar(.bool), "bool_option", "Option (bool_option) must be a boolean (true or false)"),
+      (.string("42"), .scalar(.int32), "number_option", "Option (number_option) must be a number"),
+      (.number(1), .named("test.SomeEnum"), "enum_option", "Option (enum_option) must be an enum value"),
+      (.string("value"), .map(key: .string, value: .scalar(.string)), "map_option", "Map types are not supported for options")
+    ]
+
+    for testCase in invalidCases {
+      // Should throw
+      XCTAssertThrowsError(try optionValidator.validateOptionValueType(
+        testCase.value,
+        expectedType: testCase.type,
+        optionName: testCase.optionName
+      )) { error in
+        guard let validationError = error as? ValidationError else {
+          XCTFail("Expected ValidationError")
+          return
+        }
+
+        if case .invalidOptionValue(let message) = validationError {
+          XCTAssertEqual(message, testCase.errorMessage, "Error message should match expected")
+        } else {
+          XCTFail("Expected invalidOptionValue error")
+        }
+      }
+    }
   }
 }
