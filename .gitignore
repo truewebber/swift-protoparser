@@ -2,17 +2,10 @@
 .idea
 .vscode
 
-/.build
+.build
 /Packages
 xcuserdata/
 DerivedData/
 .swiftpm/
 .netrc
 Package.resolved
-
-# Coverage files
-*.lcov
-# Coverage analysis reports
-Tools/CodeCoverage/analysis/
-# Coverage HTML reports
-Tools/CodeCoverage/report/

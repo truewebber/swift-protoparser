@@ -4,8 +4,8 @@ import PackageDescription
 let package = Package(
   name: "SwiftProtoParser",
   platforms: [
-    .macOS(.v13),
-    .iOS(.v16),
+    .macOS(.v12),
+    .iOS(.v15),
   ],
   products: [
     .library(
@@ -14,7 +14,7 @@ let package = Package(
     )
   ],
   dependencies: [
-    .package(url: "https://github.com/apple/swift-protobuf.git", from: "1.25.0")
+    .package(url: "https://github.com/apple/swift-protobuf.git", from: "1.29.0")
   ],
   targets: [
     .target(

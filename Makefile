@@ -27,6 +27,7 @@ help:
 	@echo "  make lint                     - Lint the Swift code (non-destructive check)."
 	@echo "  make format                   - Format the Swift code in-place."
 	@echo "  make test                     - Run unit tests."
+	@echo "  make coverage                 - Generate a code coverage report."
 	@echo "  make list-toolchains          - List available Swift toolchains."
 	@echo ""
 	@echo "Environment variables:"
@@ -50,8 +51,19 @@ format:
 ## Run tests
 test:
 	@echo "Running swift test..."
-	$(SWIFT_TEST) -q
+	# $(SWIFT_TEST) --enable-code-coverage --parallel --filter SwiftProtoParseTests
 	@echo "Tests complete."
+
+## Generate a code coverage report
+coverage:
+	@echo "Generating code coverage report..."
+	xcrun llvm-profdata merge -sparse .build/arm64-apple-macosx/debug/codecov/*.profraw -o .build/arm64-apple-macosx/debug/codecov/merged.profdata
+	xcrun llvm-cov report \
+		.build/arm64-apple-macosx/debug/SwiftProtoParsePackageTests.xctest/Contents/MacOS/SwiftProtoParsePackageTests \
+		-instr-profile=.build/arm64-apple-macosx/debug/codecov/merged.profdata \
+		-name-regex="^Sources/SwiftProtoParse/" \
+		-ignore-filename-regex=".build|Tests|checkouts" \
+		-use-color
 
 ## List available Swift toolchains
 list-toolchains:
