@@ -21,14 +21,23 @@ internal struct KeywordRecognizer {
     /// Recognizes whether an identifier string is a keyword or regular identifier.
     /// 
     /// - Parameter identifier: The string to analyze
-    /// - Returns: A `Token` - either `.keyword` if recognized, or `.identifier` if not
-    internal static func recognize(_ identifier: String) -> Token {
+    /// - Returns: A `TokenType` - either `.keyword` if recognized, or `.identifier` if not
+    internal static func recognizeType(_ identifier: String) -> TokenType {
         // Fast path: check if it's a keyword using raw value initialization
         if let keyword = ProtoKeyword(rawValue: identifier) {
             return .keyword(keyword)
         } else {
             return .identifier(identifier)
         }
+    }
+    
+    /// Recognizes whether an identifier string is a keyword or regular identifier.
+    /// 
+    /// - Parameter identifier: The string to analyze
+    /// - Returns: A `Token` - either `.keyword` if recognized, or `.identifier` if not
+    /// - Note: Deprecated in favor of recognizeType. This method cannot create a complete Token without position.
+    internal static func recognize(_ identifier: String) -> TokenType {
+        return recognizeType(identifier)
     }
     
     /// Checks if a string is a Protocol Buffers keyword.

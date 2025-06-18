@@ -4,9 +4,33 @@ import Foundation
 
 /// Represents a token in Protocol Buffers source code.
 /// 
-/// This enum defines all possible token types that can appear in a proto3 file,
-/// from keywords and identifiers to literals and symbols.
-public enum Token {
+/// This struct contains the token type and position information for error reporting.
+public struct Token {
+    /// The type of the token
+    public let type: TokenType
+    
+    /// The position of this token in the source file
+    public let position: Position
+    
+    public init(type: TokenType, position: Position) {
+        self.type = type
+        self.position = position
+    }
+    
+    /// Position information for a token
+    public struct Position: Equatable {
+        public let line: Int
+        public let column: Int
+        
+        public init(line: Int, column: Int) {
+            self.line = line
+            self.column = column
+        }
+    }
+}
+
+/// Token types that can appear in a proto3 file
+public enum TokenType {
     
     // MARK: - Language Elements
     
@@ -136,6 +160,15 @@ public enum ProtoKeyword: String, CaseIterable {
 extension Token: Equatable {
     
     public static func == (lhs: Token, rhs: Token) -> Bool {
+        return lhs.type == rhs.type && lhs.position == rhs.position
+    }
+}
+
+// MARK: - TokenType + Equatable
+
+extension TokenType: Equatable {
+    
+    public static func == (lhs: TokenType, rhs: TokenType) -> Bool {
         switch (lhs, rhs) {
         case (.keyword(let lhsKeyword), .keyword(let rhsKeyword)):
             return lhsKeyword == rhsKeyword
@@ -175,6 +208,15 @@ extension Token: Equatable {
 // MARK: - Token + CustomStringConvertible
 
 extension Token: CustomStringConvertible {
+    
+    public var description: String {
+        return type.description
+    }
+}
+
+// MARK: - TokenType + CustomStringConvertible
+
+extension TokenType: CustomStringConvertible {
     
     public var description: String {
         switch self {
@@ -220,6 +262,31 @@ extension Token {
     
     /// Returns true if this token represents whitespace or comments
     public var isIgnorable: Bool {
+        return type.isIgnorable
+    }
+    
+    /// Returns true if this token is a literal value
+    public var isLiteral: Bool {
+        return type.isLiteral
+    }
+    
+    /// Returns true if this token is a specific keyword
+    public func isKeyword(_ keyword: ProtoKeyword) -> Bool {
+        return type.isKeyword(keyword)
+    }
+    
+    /// Returns true if this token is a specific symbol
+    public func isSymbol(_ symbol: Character) -> Bool {
+        return type.isSymbol(symbol)
+    }
+}
+
+// MARK: - TokenType + Convenience Properties
+
+extension TokenType {
+    
+    /// Returns true if this token represents whitespace or comments
+    public var isIgnorable: Bool {
         switch self {
         case .whitespace, .comment, .newline:
             return true
@@ -254,3 +321,64 @@ extension Token {
         return false
     }
 }
+
+// MARK: - Token + Test Convenience
+
+#if DEBUG
+extension Token {
+    /// Creates a token with default position for testing
+    public static func keyword(_ keyword: ProtoKeyword) -> Token {
+        return Token(type: .keyword(keyword), position: Position(line: 1, column: 1))
+    }
+    
+    /// Creates a token with default position for testing
+    public static func identifier(_ name: String) -> Token {
+        return Token(type: .identifier(name), position: Position(line: 1, column: 1))
+    }
+    
+    /// Creates a token with default position for testing
+    public static func stringLiteral(_ value: String) -> Token {
+        return Token(type: .stringLiteral(value), position: Position(line: 1, column: 1))
+    }
+    
+    /// Creates a token with default position for testing
+    public static func integerLiteral(_ value: Int64) -> Token {
+        return Token(type: .integerLiteral(value), position: Position(line: 1, column: 1))
+    }
+    
+    /// Creates a token with default position for testing
+    public static func floatLiteral(_ value: Double) -> Token {
+        return Token(type: .floatLiteral(value), position: Position(line: 1, column: 1))
+    }
+    
+    /// Creates a token with default position for testing
+    public static func boolLiteral(_ value: Bool) -> Token {
+        return Token(type: .boolLiteral(value), position: Position(line: 1, column: 1))
+    }
+    
+    /// Creates a token with default position for testing
+    public static func symbol(_ char: Character) -> Token {
+        return Token(type: .symbol(char), position: Position(line: 1, column: 1))
+    }
+    
+    /// Creates a token with default position for testing
+    public static func comment(_ value: String) -> Token {
+        return Token(type: .comment(value), position: Position(line: 1, column: 1))
+    }
+    
+    /// Creates a token with default position for testing
+    public static var whitespace: Token {
+        return Token(type: .whitespace, position: Position(line: 1, column: 1))
+    }
+    
+    /// Creates a token with default position for testing
+    public static var newline: Token {
+        return Token(type: .newline, position: Position(line: 1, column: 1))
+    }
+    
+    /// Creates a token with default position for testing
+    public static var eof: Token {
+        return Token(type: .eof, position: Position(line: 1, column: 1))
+    }
+}
+#endif

@@ -115,7 +115,7 @@ final class LexerTests: XCTestCase {
             if case .success(let tokens) = result {
                 let nonEofTokens = tokens.filter { $0 != .eof }
                 XCTAssertEqual(nonEofTokens.count, 1)
-                if case .keyword(let parsedKeyword) = nonEofTokens[0] {
+                if case .keyword(let parsedKeyword) = nonEofTokens[0].type {
                     XCTAssertEqual(parsedKeyword.rawValue, keyword)
                 } else {
                     XCTFail("Expected keyword token for: \(keyword)")
@@ -294,7 +294,7 @@ final class LexerTests: XCTestCase {
         XCTAssertTrue(result.isSuccess)
         if case .success(let tokens) = result {
             let commentTokens = tokens.compactMap { token -> String? in
-                if case .comment(let comment) = token {
+                if case .comment(let comment) = token.type {
                     return comment
                 }
                 return nil
@@ -314,7 +314,7 @@ final class LexerTests: XCTestCase {
         XCTAssertTrue(result.isSuccess)
         if case .success(let tokens) = result {
             let commentTokens = tokens.compactMap { token -> String? in
-                if case .comment(let comment) = token {
+                if case .comment(let comment) = token.type {
                     return comment
                 }
                 return nil

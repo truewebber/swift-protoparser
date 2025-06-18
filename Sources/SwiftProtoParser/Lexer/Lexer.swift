@@ -57,7 +57,8 @@ public final class Lexer {
             try tokenizeInput()
             
             // Add EOF token at the end
-            tokens.append(.eof)
+            let eofPosition = Token.Position(line: currentLine, column: currentColumn)
+            tokens.append(Token(type: .eof, position: eofPosition))
             
             return .success(tokens)
             
@@ -119,15 +120,17 @@ public final class Lexer {
     // MARK: - Whitespace Tokenization
 
     private func tokenizeWhitespace() throws {
+        let position = Token.Position(line: currentLine, column: currentColumn)
         advanceIndex()
-        tokens.append(.whitespace)
+        tokens.append(Token(type: .whitespace, position: position))
     }
 
     private func tokenizeNewline() throws {
+        let position = Token.Position(line: currentLine, column: currentColumn)
         advanceIndex()
         currentLine += 1
         currentColumn = 1
-        tokens.append(.newline)
+        tokens.append(Token(type: .newline, position: position))
     }
 
     // MARK: - Comment Tokenization
@@ -168,7 +171,8 @@ public final class Lexer {
         }
         
         let commentText = String(input[startIndex..<currentIndex])
-        tokens.append(.comment(commentText))
+        let position = Token.Position(line: currentLine, column: currentColumn - commentText.count)
+        tokens.append(Token(type: .comment(commentText), position: position))
     }
     
     private func tokenizeMultiLineComment() throws {
@@ -190,7 +194,8 @@ public final class Lexer {
                     advanceIndex() // /
                     
                     let commentText = String(input[startIndex..<currentIndex])
-                    tokens.append(.comment(commentText))
+                    let position = Token.Position(line: startLine, column: startColumn)
+                    tokens.append(Token(type: .comment(commentText), position: position))
                     return
                 }
             }
@@ -240,7 +245,8 @@ public final class Lexer {
         // Skip closing quote
         advanceIndex()
         
-        tokens.append(.stringLiteral(stringValue))
+        let position = Token.Position(line: startLine, column: startColumn)
+        tokens.append(Token(type: .stringLiteral(stringValue), position: position))
     }
     
     private func tokenizeEscapeSequence() throws -> Character {
@@ -335,15 +341,17 @@ public final class Lexer {
         
         let numberString = String(input[startIndex..<currentIndex])
         
+        let position = Token.Position(line: startLine, column: startColumn)
+        
         if isFloat {
             if let floatValue = Double(numberString) {
-                tokens.append(.floatLiteral(floatValue))
+                tokens.append(Token(type: .floatLiteral(floatValue), position: position))
             } else {
                 throw LexerError.invalidFloatLiteral(numberString, line: startLine, column: startColumn)
             }
         } else {
             if let intValue = Int64(numberString) {
-                tokens.append(.integerLiteral(intValue))
+                tokens.append(Token(type: .integerLiteral(intValue), position: position))
             } else {
                 throw LexerError.numberOutOfRange(numberString, line: startLine, column: startColumn)
             }
@@ -354,6 +362,8 @@ public final class Lexer {
     
     private func tokenizeIdentifierOrKeyword() throws {
         let startIndex = currentIndex
+        let startLine = currentLine
+        let startColumn = currentColumn
         
         // Read identifier characters (letters, digits, underscores)
         while !isAtEnd() {
@@ -366,27 +376,29 @@ public final class Lexer {
         }
         
         let identifier = String(input[startIndex..<currentIndex])
+        let position = Token.Position(line: startLine, column: startColumn)
         
         // Check for boolean literals
         if identifier == "true" {
-            tokens.append(.boolLiteral(true))
+            tokens.append(Token(type: .boolLiteral(true), position: position))
             return
         } else if identifier == "false" {
-            tokens.append(.boolLiteral(false))
+            tokens.append(Token(type: .boolLiteral(false), position: position))
             return
         }
         
         // Use KeywordRecognizer to determine if it's a keyword or identifier
-        let token = KeywordRecognizer.recognize(identifier)
-        tokens.append(token)
+        let tokenType = KeywordRecognizer.recognizeType(identifier)
+        tokens.append(Token(type: tokenType, position: position))
     }
     
     // MARK: - Symbol Tokenization
     
     private func tokenizeSymbol() throws {
         let symbol = currentCharacter()
+        let position = Token.Position(line: currentLine, column: currentColumn)
         advanceIndex()
-        tokens.append(.symbol(symbol))
+        tokens.append(Token(type: .symbol(symbol), position: position))
     }
     
     // MARK: - Helper Methods

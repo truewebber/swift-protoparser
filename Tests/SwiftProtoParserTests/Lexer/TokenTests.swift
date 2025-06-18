@@ -10,7 +10,7 @@ final class TokenTests: XCTestCase {
     func testTokenCreation() {
         // Test keyword token
         let keywordToken = Token.keyword(.syntax)
-        if case .keyword(let keyword) = keywordToken {
+        if case .keyword(let keyword) = keywordToken.type {
             XCTAssertEqual(keyword, .syntax)
         } else {
             XCTFail("Expected keyword token")
@@ -18,7 +18,7 @@ final class TokenTests: XCTestCase {
         
         // Test identifier token
         let identifierToken = Token.identifier("MyMessage")
-        if case .identifier(let identifier) = identifierToken {
+        if case .identifier(let identifier) = identifierToken.type {
             XCTAssertEqual(identifier, "MyMessage")
         } else {
             XCTFail("Expected identifier token")
@@ -26,7 +26,7 @@ final class TokenTests: XCTestCase {
         
         // Test string literal token
         let stringToken = Token.stringLiteral("hello world")
-        if case .stringLiteral(let string) = stringToken {
+        if case .stringLiteral(let string) = stringToken.type {
             XCTAssertEqual(string, "hello world")
         } else {
             XCTFail("Expected string literal token")
@@ -36,7 +36,7 @@ final class TokenTests: XCTestCase {
     func testLiteralTokens() {
         // Test integer literal
         let intToken = Token.integerLiteral(42)
-        if case .integerLiteral(let value) = intToken {
+        if case .integerLiteral(let value) = intToken.type {
             XCTAssertEqual(value, 42)
         } else {
             XCTFail("Expected integer literal token")
@@ -44,7 +44,7 @@ final class TokenTests: XCTestCase {
         
         // Test float literal
         let floatToken = Token.floatLiteral(3.14)
-        if case .floatLiteral(let value) = floatToken {
+        if case .floatLiteral(let value) = floatToken.type {
             XCTAssertEqual(value, 3.14, accuracy: 0.001)
         } else {
             XCTFail("Expected float literal token")
@@ -52,7 +52,7 @@ final class TokenTests: XCTestCase {
         
         // Test bool literal
         let boolToken = Token.boolLiteral(true)
-        if case .boolLiteral(let value) = boolToken {
+        if case .boolLiteral(let value) = boolToken.type {
             XCTAssertTrue(value)
         } else {
             XCTFail("Expected bool literal token")
@@ -61,16 +61,16 @@ final class TokenTests: XCTestCase {
     
     func testSymbolAndSpecialTokens() {
         // Test symbol token
-        let symbolToken = Token.symbol("{")
-        if case .symbol(let symbol) = symbolToken {
-            XCTAssertEqual(symbol, "{")
+        let symbolToken = Token.symbol(Character("{"))
+        if case .symbol(let symbol) = symbolToken.type {
+            XCTAssertEqual(String(symbol), "{")
         } else {
             XCTFail("Expected symbol token")
         }
         
         // Test comment token
         let commentToken = Token.comment("// This is a comment")
-        if case .comment(let comment) = commentToken {
+        if case .comment(let comment) = commentToken.type {
             XCTAssertEqual(comment, "// This is a comment")
         } else {
             XCTFail("Expected comment token")
