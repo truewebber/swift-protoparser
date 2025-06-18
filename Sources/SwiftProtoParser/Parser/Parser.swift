@@ -142,7 +142,9 @@ public final class Parser {
     /// Parses the syntax declaration: syntax = "proto3";
     private func parseSyntaxDeclaration() throws -> ProtoVersion {
         _ = state.expectKeyword(.syntax)
+        skipIgnorableTokens()
         _ = state.expectSymbol("=")
+        skipIgnorableTokens()
         
         guard let token = state.currentToken,
               case .stringLiteral(let syntaxString) = token.type else {
@@ -151,6 +153,7 @@ public final class Parser {
         }
         
         state.advance()
+        skipIgnorableTokens()
         _ = state.expectSymbol(";")
         
         guard let version = ProtoVersion(rawValue: syntaxString) else {
@@ -287,6 +290,7 @@ public final class Parser {
     /// Parses a message declaration
     private func parseMessageDeclaration() throws -> MessageNode {
         _ = state.expectKeyword(.message)
+        skipIgnorableTokens()
         
         guard let messageName = state.identifierName else {
             state.addError(.unexpectedToken(state.currentToken ?? Token(type: .eof, position: Token.Position(line: 0, column: 0)), expected: "message name"))
@@ -294,6 +298,7 @@ public final class Parser {
         }
         
         state.advance()
+        skipIgnorableTokens()
         _ = state.expectSymbol("{")
         
         var fields: [FieldNode] = []
@@ -305,8 +310,12 @@ public final class Parser {
         var reservedNames: [String] = []
         
         // Parse message body
-        while !state.isAtEnd && !state.checkSymbol("}") {
+        while !state.isAtEnd {
             skipIgnorableTokens()
+            
+            if state.checkSymbol("}") {
+                break
+            }
             
             guard let token = state.currentToken else { break }
             
@@ -376,13 +385,16 @@ public final class Parser {
         if state.checkKeyword(.repeated) {
             label = .repeated
             state.advance()
+            skipIgnorableTokens()
         } else if state.checkKeyword(.optional) {
             label = .optional
             state.advance()
+            skipIgnorableTokens()
         }
         
         // Parse field type
         let fieldType = try parseFieldType()
+        skipIgnorableTokens()
         
         // Parse field name
         guard let fieldName = state.identifierName else {
@@ -391,7 +403,9 @@ public final class Parser {
         }
         
         state.advance()
+        skipIgnorableTokens()
         _ = state.expectSymbol("=")
+        skipIgnorableTokens()
         
         // Parse field number
         guard let fieldNumberInt = state.integerLiteralValue else {
@@ -401,11 +415,13 @@ public final class Parser {
         
         let fieldNumber = Int32(fieldNumberInt)
         state.advance()
+        skipIgnorableTokens()
         
         // Parse optional field options
         var options: [OptionNode] = []
         if state.checkSymbol("[") {
             options = try parseFieldOptions()
+            skipIgnorableTokens()
         }
         
         _ = state.expectSymbol(";")

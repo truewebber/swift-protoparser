@@ -45,9 +45,9 @@ final class LexerTests: XCTestCase {
         if case .success(let tokens) = result {
             XCTAssertEqual(tokens.count, 6) // 5 whitespace + EOF
             for i in 0..<5 {
-                XCTAssertEqual(tokens[i], .whitespace)
+                XCTAssertTrue(tokens[i].hasType(.whitespace))
             }
-            XCTAssertEqual(tokens[5], .eof)
+            XCTAssertTrue(tokens[5].hasType(.eof))
         }
     }
     
@@ -58,9 +58,9 @@ final class LexerTests: XCTestCase {
         XCTAssertTrue(result.isSuccess)
         if case .success(let tokens) = result {
             XCTAssertEqual(tokens.count, 3) // 2 newlines + EOF
-            XCTAssertEqual(tokens[0], .newline)
-            XCTAssertEqual(tokens[1], .newline)
-            XCTAssertEqual(tokens[2], .eof)
+            XCTAssertTrue(tokens[0].hasType(.newline))
+            XCTAssertTrue(tokens[1].hasType(.newline))
+            XCTAssertTrue(tokens[2].hasType(.eof))
         }
     }
     
@@ -76,9 +76,9 @@ final class LexerTests: XCTestCase {
             XCTAssertEqual(tokens.count, symbols.count + 1) // symbols + EOF
             
             for (index, char) in symbols.enumerated() {
-                XCTAssertEqual(tokens[index], .symbol(char))
+                XCTAssertTrue(tokens[index].hasType(.symbol(char)))
             }
-            XCTAssertEqual(tokens.last, .eof)
+            XCTAssertTrue(tokens.last?.hasType(.eof) == true)
         }
     }
     
@@ -91,13 +91,13 @@ final class LexerTests: XCTestCase {
         
         XCTAssertTrue(result.isSuccess)
         if case .success(let tokens) = result {
-            let nonWhitespaceTokens = tokens.filter { !$0.isIgnorable && !($0 == .eof) }
+            let nonWhitespaceTokens = tokens.filter { !$0.isIgnorable && !$0.hasType(.eof) }
             XCTAssertEqual(nonWhitespaceTokens.count, 4)
             
-            XCTAssertEqual(nonWhitespaceTokens[0], .keyword(.syntax))
-            XCTAssertEqual(nonWhitespaceTokens[1], .keyword(.package))
-            XCTAssertEqual(nonWhitespaceTokens[2], .keyword(.import))
-            XCTAssertEqual(nonWhitespaceTokens[3], .keyword(.message))
+            XCTAssertTrue(nonWhitespaceTokens[0].hasType(.keyword(.syntax)))
+            XCTAssertTrue(nonWhitespaceTokens[1].hasType(.keyword(.package)))
+            XCTAssertTrue(nonWhitespaceTokens[2].hasType(.keyword(.import)))
+            XCTAssertTrue(nonWhitespaceTokens[3].hasType(.keyword(.message)))
         }
     }
     
