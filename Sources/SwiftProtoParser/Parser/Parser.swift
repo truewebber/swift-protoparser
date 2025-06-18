@@ -619,10 +619,13 @@ public final class Parser {
   /// Parses field options: [option1 = value1, option2 = value2]
   private func parseFieldOptions() throws -> [OptionNode] {
     _ = state.expectSymbol("[")
+    skipIgnorableTokens()
 
     var options: [OptionNode] = []
 
     repeat {
+      skipIgnorableTokens()
+      
       // Parse option name
       let isCustom: Bool
       let optionName: String
@@ -630,6 +633,7 @@ public final class Parser {
       if state.checkSymbol("(") {
         isCustom = true
         state.advance()  // consume "("
+        skipIgnorableTokens()
 
         guard let customName = state.identifierName else {
           state.addError(
@@ -643,6 +647,7 @@ public final class Parser {
 
         optionName = customName
         state.advance()
+        skipIgnorableTokens()
         _ = state.expectSymbol(")")
       }
       else {
@@ -661,19 +666,24 @@ public final class Parser {
         state.advance()
       }
 
+      skipIgnorableTokens()
       _ = state.expectSymbol("=")
+      skipIgnorableTokens()
       let value = try parseOptionValue()
 
       options.append(OptionNode(name: optionName, value: value, isCustom: isCustom))
 
+      skipIgnorableTokens()
       if state.checkSymbol(",") {
         state.advance()  // consume ","
+        skipIgnorableTokens()
       }
       else {
         break
       }
     } while !state.isAtEnd
 
+    skipIgnorableTokens()
     _ = state.expectSymbol("]")
 
     return options
