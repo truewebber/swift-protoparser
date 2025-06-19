@@ -1,6 +1,6 @@
 import Foundation
 
-/// Wrapper for multiple parser errors to conform to Error protocol
+/// Wrapper for multiple parser errors to conform to Error protocol.
 public struct ParserErrors: Error {
   public let errors: [ParserError]
 
@@ -11,20 +11,20 @@ public struct ParserErrors: Error {
 
 /// Recursive descent parser for Protocol Buffers source code.
 ///
-/// This parser takes a stream of tokens from the lexer and constructs
+/// This parser takes a stream of tokens from the lexer and constructs.
 /// an Abstract Syntax Tree (AST) representing the structure of the .proto file.
 public final class Parser {
 
   // MARK: - Private Properties
 
-  /// The parser state managing token stream and errors
+  /// The parser state managing token stream and errors.
   private var state: ParserState
 
   // MARK: - Initialization
 
   /// Creates a new parser with the given tokens.
   ///
-  /// - Parameter tokens: The array of tokens to parse
+  /// - Parameter tokens: The array of tokens to parse.
   public init(tokens: [Token]) {
     self.state = ParserState(tokens: tokens)
   }
@@ -33,7 +33,7 @@ public final class Parser {
 
   /// Parses the tokens into a Protocol Buffers AST.
   ///
-  /// - Returns: A `Result` containing either the parsed AST or parser errors
+  /// - Returns: A `Result` containing either the parsed AST or parser errors.
   public func parse() -> Result<ProtoAST, ParserErrors> {
     do {
       let ast = try parseProtoFile()
@@ -59,7 +59,7 @@ public final class Parser {
 
   // MARK: - Private Parsing Methods
 
-  /// Parses a complete .proto file
+  /// Parses a complete .proto file.
   private func parseProtoFile() throws -> ProtoAST {
     var syntax: ProtoVersion = .proto3  // Default
     var package: String?
@@ -143,7 +143,7 @@ public final class Parser {
     )
   }
 
-  /// Parses the syntax declaration: syntax = "proto3";
+  /// Parses the syntax declaration: syntax = "proto3";.
   private func parseSyntaxDeclaration() throws -> ProtoVersion {
     _ = state.expectKeyword(.syntax)
     skipIgnorableTokens()
@@ -186,7 +186,7 @@ public final class Parser {
     return version
   }
 
-  /// Parses a package declaration: package com.example;
+  /// Parses a package declaration: package com.example;.
   private func parsePackageDeclaration() throws -> String {
     _ = state.expectKeyword(.package)
     skipIgnorableTokens()
@@ -233,7 +233,7 @@ public final class Parser {
     return packageComponents.joined(separator: ".")
   }
 
-  /// Parses an import declaration: import "path/to/file.proto";
+  /// Parses an import declaration: import "path/to/file.proto";.
   private func parseImportDeclaration() throws -> String {
     _ = state.expectKeyword(.import)
     skipIgnorableTokens()
@@ -261,7 +261,7 @@ public final class Parser {
     return importPath
   }
 
-  /// Parses an option declaration: option java_package = "com.example";
+  /// Parses an option declaration: option java_package = "com.example";.
   private func parseOptionDeclaration() throws -> OptionNode {
     _ = state.expectKeyword(.option)
     skipIgnorableTokens()
@@ -319,7 +319,7 @@ public final class Parser {
     return OptionNode(name: optionName, value: value, isCustom: isCustom)
   }
 
-  /// Parses an option value (string, number, boolean, or identifier)
+  /// Parses an option value (string, number, boolean, or identifier).
   private func parseOptionValue() throws -> OptionValue {
     guard let token = state.currentToken else {
       state.addError(.unexpectedEndOfInput(expected: "option value"))
@@ -353,7 +353,7 @@ public final class Parser {
     return value
   }
 
-  /// Parses a message declaration
+  /// Parses a message declaration.
   private func parseMessageDeclaration() throws -> MessageNode {
     _ = state.expectKeyword(.message)
     skipIgnorableTokens()
@@ -448,7 +448,7 @@ public final class Parser {
     )
   }
 
-  /// Parses a field declaration
+  /// Parses a field declaration.
   private func parseFieldDeclaration() throws -> FieldNode {
     // Parse optional field label
     var label: FieldLabel = .singular
@@ -525,7 +525,7 @@ public final class Parser {
     )
   }
 
-  /// Parses a field type (scalar, message, enum, or map)
+  /// Parses a field type (scalar, message, enum, or map).
   private func parseFieldType() throws -> FieldType {
     guard let token = state.currentToken else {
       state.addError(.unexpectedEndOfInput(expected: "field type"))
@@ -602,7 +602,7 @@ public final class Parser {
     }
   }
 
-  /// Parses a map field type: map<key_type, value_type>
+  /// Parses a map field type: map<key_type, value_type>.
   private func parseMapType() throws -> FieldType {
     _ = state.expectKeyword(.map)
     _ = state.expectSymbol("<")
@@ -616,7 +616,7 @@ public final class Parser {
     return .map(key: keyType, value: valueType)
   }
 
-  /// Parses field options: [option1 = value1, option2 = value2]
+  /// Parses field options: [option1 = value1, option2 = value2].
   private func parseFieldOptions() throws -> [OptionNode] {
     _ = state.expectSymbol("[")
     skipIgnorableTokens()
@@ -625,7 +625,7 @@ public final class Parser {
 
     repeat {
       skipIgnorableTokens()
-      
+
       // Parse option name
       let isCustom: Bool
       let optionName: String
@@ -689,7 +689,7 @@ public final class Parser {
     return options
   }
 
-  /// Parses an enum declaration
+  /// Parses an enum declaration.
   private func parseEnumDeclaration() throws -> EnumNode {
     _ = state.expectKeyword(.enum)
     skipIgnorableTokens()
@@ -749,7 +749,7 @@ public final class Parser {
     return EnumNode(name: enumName, values: values, options: options)
   }
 
-  /// Parses an enum value: VALUE_NAME = number [options];
+  /// Parses an enum value: VALUE_NAME = number [options];.
   private func parseEnumValue() throws -> EnumValueNode {
     guard let valueName = state.identifierName else {
       state.addError(
@@ -792,7 +792,7 @@ public final class Parser {
     return EnumValueNode(name: valueName, number: valueNumber, options: options)
   }
 
-  /// Parses a oneof declaration
+  /// Parses a oneof declaration.
   private func parseOneofDeclaration() throws -> OneofNode {
     _ = state.expectKeyword(.oneof)
 
@@ -838,7 +838,7 @@ public final class Parser {
     return OneofNode(name: oneofName, fields: fields, options: options)
   }
 
-  /// Parses a reserved declaration: reserved 1, 2, 3 to 5, "field1", "field2";
+  /// Parses a reserved declaration: reserved 1, 2, 3 to 5, "field1", "field2";.
   private func parseReservedDeclaration() throws -> ([Int32], [String]) {
     _ = state.expectKeyword(.reserved)
 
@@ -906,7 +906,7 @@ public final class Parser {
     return (numbers, names)
   }
 
-  /// Parses a service declaration
+  /// Parses a service declaration.
   private func parseServiceDeclaration() throws -> ServiceNode {
     _ = state.expectKeyword(.service)
     skipIgnorableTokens()
@@ -959,7 +959,7 @@ public final class Parser {
     return ServiceNode(name: serviceName, methods: methods, options: options)
   }
 
-  /// Parses an RPC method: rpc MethodName(RequestType) returns (ResponseType);
+  /// Parses an RPC method: rpc MethodName(RequestType) returns (ResponseType);.
   private func parseRPCMethod() throws -> RPCMethodNode {
     _ = state.expectKeyword(.rpc)
     skipIgnorableTokens()
@@ -1069,7 +1069,7 @@ public final class Parser {
 
   // MARK: - Helper Methods
 
-  /// Skips whitespace, comments, and newlines
+  /// Skips whitespace, comments, and newlines.
   private func skipIgnorableTokens() {
     while let token = state.currentToken, token.isIgnorable {
       let beforeIndex = state.currentIndex
@@ -1086,10 +1086,10 @@ public final class Parser {
 
 extension Parser {
 
-  /// Convenience method to parse tokens directly
+  /// Convenience method to parse tokens directly.
   ///
-  /// - Parameter tokens: The tokens to parse
-  /// - Returns: A `Result` containing either the parsed AST or parser errors
+  /// - Parameter tokens: The tokens to parse.
+  /// - Returns: A `Result` containing either the parsed AST or parser errors.
   public static func parse(tokens: [Token]) -> Result<ProtoAST, ParserErrors> {
     let parser = Parser(tokens: tokens)
     return parser.parse()

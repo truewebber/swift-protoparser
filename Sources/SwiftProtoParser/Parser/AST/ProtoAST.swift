@@ -1,26 +1,26 @@
 import Foundation
 
-/// Root AST node representing a complete .proto file
+/// Root AST node representing a complete .proto file.
 public struct ProtoAST {
-  /// Protocol Buffer syntax version (proto3 only supported)
+  /// Protocol Buffer syntax version (proto3 only supported).
   public let syntax: ProtoVersion
 
-  /// Package declaration
+  /// Package declaration.
   public let package: String?
 
-  /// Import statements
+  /// Import statements.
   public let imports: [String]
 
-  /// Top-level options
+  /// Top-level options.
   public let options: [OptionNode]
 
-  /// Message definitions
+  /// Message definitions.
   public let messages: [MessageNode]
 
-  /// Enum definitions
+  /// Enum definitions.
   public let enums: [EnumNode]
 
-  /// Service definitions
+  /// Service definitions.
   public let services: [ServiceNode]
 
   public init(

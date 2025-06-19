@@ -1,14 +1,14 @@
 import Foundation
 
-/// Represents a protobuf enum definition
+/// Represents a protobuf enum definition.
 public struct EnumNode: Equatable {
-  /// The enum name
+  /// The enum name.
   public let name: String
 
-  /// The enum values
+  /// The enum values.
   public let values: [EnumValueNode]
 
-  /// Enum-specific options
+  /// Enum-specific options.
   public let options: [OptionNode]
 
   public init(
@@ -21,31 +21,31 @@ public struct EnumNode: Equatable {
     self.options = options
   }
 
-  /// Returns true if this enum has a zero value (required in proto3)
+  /// Returns true if this enum has a zero value (required in proto3).
   public var hasZeroValue: Bool {
     return values.contains { $0.number == 0 }
   }
 
-  /// Returns the enum value with the given name, if it exists
+  /// Returns the enum value with the given name, if it exists.
   public func value(named name: String) -> EnumValueNode? {
     return values.first { $0.name == name }
   }
 
-  /// Returns the enum value with the given number, if it exists
+  /// Returns the enum value with the given number, if it exists.
   public func value(withNumber number: Int32) -> EnumValueNode? {
     return values.first { $0.number == number }
   }
 }
 
-/// Represents a value within a protobuf enum
+/// Represents a value within a protobuf enum.
 public struct EnumValueNode: Equatable {
-  /// The value name
+  /// The value name.
   public let name: String
 
-  /// The value number
+  /// The value number.
   public let number: Int32
 
-  /// Value-specific options
+  /// Value-specific options.
   public let options: [OptionNode]
 
   public init(

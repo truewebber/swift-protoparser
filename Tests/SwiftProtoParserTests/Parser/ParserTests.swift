@@ -322,7 +322,7 @@ final class ParserTests: XCTestCase {
   func testNestedDeclarations() {
     let protoContent = """
       syntax = "proto3";
-      
+
       message OuterMessage {
         message InnerMessage {
           string value = 1;
@@ -355,7 +355,7 @@ final class ParserTests: XCTestCase {
   func testFieldLabels() {
     let protoContent = """
       syntax = "proto3";
-      
+
       message TestMessage {
         string singular_field = 1;
         repeated string repeated_field = 2;
@@ -377,11 +377,11 @@ final class ParserTests: XCTestCase {
   func testImportDeclarations() {
     let protoContent = """
       syntax = "proto3";
-      
+
       import "google/protobuf/timestamp.proto";
       import public "common/types.proto";
       import weak "deprecated/old.proto";
-      
+
       message TestMessage {
         string name = 1;
       }
@@ -401,13 +401,13 @@ final class ParserTests: XCTestCase {
   func testAdvancedOptionValues() {
     let protoContent = """
       syntax = "proto3";
-      
+
       option java_package = "com.example";
       option optimize_for = SPEED;
       option deprecated = true;
       option custom_number = 42;
       option custom_float = 3.14;
-      
+
       message TestMessage {
         string name = 1;
       }
@@ -426,9 +426,9 @@ final class ParserTests: XCTestCase {
   func testPackageWithKeywords() {
     let protoContent = """
       syntax = "proto3";
-      
+
       package my.test.service.message;
-      
+
       message TestMessage {
         string name = 1;
       }
@@ -447,7 +447,7 @@ final class ParserTests: XCTestCase {
   func testBasicFieldTypes() {
     let protoContent = """
       syntax = "proto3";
-      
+
       message TestMessage {
         string name = 1;
         int32 id = 2;
@@ -472,7 +472,7 @@ final class ParserTests: XCTestCase {
   func testCommentHandling() {
     let protoContent = """
       syntax = "proto3";
-      
+
       // This is a comment
       message TestMessage {
         // Field comment
@@ -495,7 +495,7 @@ final class ParserTests: XCTestCase {
   func testEnumWithOptions() {
     let protoContent = """
       syntax = "proto3";
-      
+
       enum Status {
         option allow_alias = true;
         UNKNOWN = 0;
@@ -519,7 +519,7 @@ final class ParserTests: XCTestCase {
   func testServiceDeclaration() {
     let protoContent = """
       syntax = "proto3";
-      
+
       service TestService {
         rpc GetUser(GetUserRequest) returns (GetUserResponse);
         rpc ListUsers(ListUsersRequest) returns (ListUsersResponse);
@@ -542,7 +542,7 @@ final class ParserTests: XCTestCase {
   func testNestedMessage() {
     let protoContent = """
       syntax = "proto3";
-      
+
       message OuterMessage {
         message InnerMessage {
           string value = 1;
@@ -567,7 +567,7 @@ final class ParserTests: XCTestCase {
   func testMultipleFieldTypes() {
     let protoContent = """
       syntax = "proto3";
-      
+
       message TestMessage {
         double double_field = 1;
         float float_field = 2;
@@ -584,27 +584,27 @@ final class ParserTests: XCTestCase {
     let result = SwiftProtoParser.parseProtoString(protoContent)
     XCTAssertTrue(result.isSuccess)
 
-          if case .success(let ast) = result {
-        let message = ast.messages[0]
-        XCTAssertEqual(message.fields.count, 9)
-        
-        // Test that basic types are parsed correctly
-        XCTAssertEqual(message.fields[0].type.protoTypeName, "double")
-        XCTAssertEqual(message.fields[1].type.protoTypeName, "float")
-        XCTAssertEqual(message.fields[2].type.protoTypeName, "int32")
-        XCTAssertEqual(message.fields[3].type.protoTypeName, "int64")
-        XCTAssertEqual(message.fields[4].type.protoTypeName, "uint32")
-        XCTAssertEqual(message.fields[5].type.protoTypeName, "uint64")
-        XCTAssertEqual(message.fields[6].type.protoTypeName, "bool")
-        XCTAssertEqual(message.fields[7].type.protoTypeName, "string")
-        XCTAssertEqual(message.fields[8].type.protoTypeName, "bytes")
+    if case .success(let ast) = result {
+      let message = ast.messages[0]
+      XCTAssertEqual(message.fields.count, 9)
+
+      // Test that basic types are parsed correctly
+      XCTAssertEqual(message.fields[0].type.protoTypeName, "double")
+      XCTAssertEqual(message.fields[1].type.protoTypeName, "float")
+      XCTAssertEqual(message.fields[2].type.protoTypeName, "int32")
+      XCTAssertEqual(message.fields[3].type.protoTypeName, "int64")
+      XCTAssertEqual(message.fields[4].type.protoTypeName, "uint32")
+      XCTAssertEqual(message.fields[5].type.protoTypeName, "uint64")
+      XCTAssertEqual(message.fields[6].type.protoTypeName, "bool")
+      XCTAssertEqual(message.fields[7].type.protoTypeName, "string")
+      XCTAssertEqual(message.fields[8].type.protoTypeName, "bytes")
     }
   }
 
   func testFieldOptions() {
     let protoContent = """
       syntax = "proto3";
-      
+
       message TestMessage {
         string name = 1 [deprecated = true];
         int32 id = 2 [packed = true];
@@ -626,7 +626,7 @@ final class ParserTests: XCTestCase {
   func testMessageWithOptions() {
     let protoContent = """
       syntax = "proto3";
-      
+
       message TestMessage {
         option deprecated = true;
         string name = 1;
@@ -647,11 +647,11 @@ final class ParserTests: XCTestCase {
   func testBasicOptionValues() {
     let protoContent = """
       syntax = "proto3";
-      
+
       option java_package = "com.example";
       option optimize_for = CODE_SIZE;
       option deprecated = true;
-      
+
       message TestMessage {
         string name = 1;
       }
@@ -662,18 +662,18 @@ final class ParserTests: XCTestCase {
 
     if case .success(let ast) = result {
       XCTAssertEqual(ast.options.count, 3)
-      
+
       // Test different option value types
       XCTAssertEqual(ast.options[0].name, "java_package")
       if case .string(let value) = ast.options[0].value {
         XCTAssertEqual(value, "com.example")
       }
-      
+
       XCTAssertEqual(ast.options[1].name, "optimize_for")
       if case .identifier(let value) = ast.options[1].value {
         XCTAssertEqual(value, "CODE_SIZE")
       }
-      
+
       XCTAssertEqual(ast.options[2].name, "deprecated")
       if case .boolean(let value) = ast.options[2].value {
         XCTAssertTrue(value)
@@ -684,11 +684,11 @@ final class ParserTests: XCTestCase {
   func testEmptyMessageParsing() {
     let protoContent = """
       syntax = "proto3";
-      
+
       message EmptyMessage {
       }
       """
-    
+
     let result = SwiftProtoParser.parseProtoString(protoContent)
     XCTAssertTrue(result.isSuccess)
 
@@ -702,19 +702,19 @@ final class ParserTests: XCTestCase {
   func testParserWithComments() {
     let protoContent = """
       syntax = "proto3";
-      
+
       // Package comment
       package com.test;
-      
+
       /* Message comment */
       message Test {
         string field = 1; // Field comment
       }
       """
-    
+
     let result = SwiftProtoParser.parseProtoString(protoContent)
     XCTAssertTrue(result.isSuccess)
-    
+
     if case .success(let ast) = result {
       XCTAssertEqual(ast.package, "com.test")
       XCTAssertEqual(ast.messages.count, 1)

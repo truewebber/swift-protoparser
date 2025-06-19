@@ -1,14 +1,14 @@
 import Foundation
 
-/// Represents a protobuf option declaration
+/// Represents a protobuf option declaration.
 public struct OptionNode: Equatable {
-  /// The option name (e.g., "java_package", "deprecated")
+  /// The option name (e.g., "java_package", "deprecated").
   public let name: String
 
-  /// The option value
+  /// The option value.
   public let value: OptionValue
 
-  /// Whether this is a custom option (starts with parentheses)
+  /// Whether this is a custom option (starts with parentheses).
   public let isCustom: Bool
 
   public init(name: String, value: OptionValue, isCustom: Bool = false) {
@@ -18,14 +18,14 @@ public struct OptionNode: Equatable {
   }
 }
 
-/// Represents the value of a protobuf option
+/// Represents the value of a protobuf option.
 public enum OptionValue: Equatable {
   case string(String)
   case number(Double)
   case boolean(Bool)
   case identifier(String)
 
-  /// Returns the string representation of the value as it would appear in a .proto file
+  /// Returns the string representation of the value as it would appear in a .proto file.
   public var protoRepresentation: String {
     switch self {
     case .string(let str):

@@ -5,7 +5,7 @@ import XCTest
 // MARK: - Result Extensions for Testing
 
 extension Result {
-  /// Convenience property to check if the result is a success
+  /// Convenience property to check if the result is a success.
   var isSuccess: Bool {
     switch self {
     case .success:
@@ -15,7 +15,7 @@ extension Result {
     }
   }
 
-  /// Convenience property to check if the result is a failure
+  /// Convenience property to check if the result is a failure.
   var isFailure: Bool {
     return !isSuccess
   }

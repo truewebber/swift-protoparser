@@ -4,32 +4,32 @@ import Foundation
 
 /// Main error type for SwiftProtoParser public API.
 ///
-/// This error type encapsulates all possible errors that can occur during
+/// This error type encapsulates all possible errors that can occur during.
 /// Protocol Buffers file parsing, from file system issues to syntax errors.
 public enum ProtoParseError: Error {
 
   // MARK: - File System Errors
 
-  /// File not found at the specified path
+  /// File not found at the specified path.
   case fileNotFound(String)
 
-  /// I/O error occurred while reading or writing files
+  /// I/O error occurred while reading or writing files.
   case ioError(underlying: Error)
 
   // MARK: - Dependency Resolution Errors
 
-  /// Failed to resolve import dependencies
+  /// Failed to resolve import dependencies.
   case dependencyResolutionError(message: String, importPath: String)
 
-  /// Circular dependency detected in import chain
+  /// Circular dependency detected in import chain.
   case circularDependency([String])
 
   // MARK: - Parsing Errors
 
-  /// Lexical analysis error (tokenization failure)
+  /// Lexical analysis error (tokenization failure).
   case lexicalError(message: String, file: String, line: Int, column: Int)
 
-  /// Syntax parsing error (grammar rule violation)
+  /// Syntax parsing error (grammar rule violation).
   case syntaxError(message: String, file: String, line: Int, column: Int)
 
   /// Semantic validation error (type checking, etc.)
@@ -37,7 +37,7 @@ public enum ProtoParseError: Error {
 
   // MARK: - Internal Errors
 
-  /// Internal parser state corruption or unexpected condition
+  /// Internal parser state corruption or unexpected condition.
   case internalError(message: String)
 }
 
@@ -146,27 +146,27 @@ extension ProtoParseError: CustomStringConvertible {
 
 extension ProtoParseError {
 
-  /// Creates a file not found error for the specified path
+  /// Creates a file not found error for the specified path.
   public static func fileNotFound(at path: String) -> ProtoParseError {
     return .fileNotFound(path)
   }
 
-  /// Creates a lexical error with position information
+  /// Creates a lexical error with position information.
   public static func lexical(_ message: String, in file: String, at line: Int, column: Int) -> ProtoParseError {
     return .lexicalError(message: message, file: file, line: line, column: column)
   }
 
-  /// Creates a syntax error with position information
+  /// Creates a syntax error with position information.
   public static func syntax(_ message: String, in file: String, at line: Int, column: Int) -> ProtoParseError {
     return .syntaxError(message: message, file: file, line: line, column: column)
   }
 
-  /// Creates a semantic error with context
+  /// Creates a semantic error with context.
   public static func semantic(_ message: String, context: String) -> ProtoParseError {
     return .semanticError(message: message, context: context)
   }
 
-  /// Creates a dependency resolution error
+  /// Creates a dependency resolution error.
   public static func dependencyResolution(_ message: String, importPath: String) -> ProtoParseError {
     return .dependencyResolutionError(message: message, importPath: importPath)
   }

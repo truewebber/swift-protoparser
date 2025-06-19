@@ -4,38 +4,38 @@ import Foundation
 
 /// Main tokenizer class for Protocol Buffers source code.
 ///
-/// The lexer performs character-by-character analysis of proto3 source files,
-/// converting the input string into a sequence of tokens while preserving
+/// The lexer performs character-by-character analysis of proto3 source files,.
+/// converting the input string into a sequence of tokens while preserving.
 /// position information for error reporting.
 public final class Lexer {
 
   // MARK: - Private Properties
 
-  /// The input string being tokenized
+  /// The input string being tokenized.
   private let input: String
 
-  /// Current position in the input string
+  /// Current position in the input string.
   private var currentIndex: String.Index
 
-  /// Current line number (1-based)
+  /// Current line number (1-based).
   private var currentLine: Int = 1
 
-  /// Current column number (1-based)
+  /// Current column number (1-based).
   private var currentColumn: Int = 1
 
-  /// Array to collect tokens
+  /// Array to collect tokens.
   private var tokens: [Token] = []
 
-  /// File name for error reporting (optional)
+  /// File name for error reporting (optional).
   private let fileName: String?
 
   // MARK: - Initialization
 
   /// Creates a new lexer for the given input.
   ///
-  /// - Parameters:
-  ///   - input: The proto3 source code to tokenize
-  ///   - fileName: Optional file name for error reporting
+  /// - Parameters:.
+  ///   - input: The proto3 source code to tokenize.
+  ///   - fileName: Optional file name for error reporting.
   public init(input: String, fileName: String? = nil) {
     self.input = input
     self.currentIndex = input.startIndex
@@ -46,7 +46,7 @@ public final class Lexer {
 
   /// Tokenizes the input string into a sequence of tokens.
   ///
-  /// - Returns: A `Result` containing either the array of tokens or a lexer error
+  /// - Returns: A `Result` containing either the array of tokens or a lexer error.
   internal func tokenize() -> Result<[Token], LexerError> {
     do {
       tokens.removeAll()
@@ -74,14 +74,14 @@ public final class Lexer {
 
   // MARK: - Private Tokenization Methods
 
-  /// Main tokenization loop
+  /// Main tokenization loop.
   private func tokenizeInput() throws {
     while !isAtEnd() {
       try tokenizeNext()
     }
   }
 
-  /// Tokenizes the next token from current position
+  /// Tokenizes the next token from current position.
   private func tokenizeNext() throws {
     let char = currentCharacter()
 
@@ -424,17 +424,17 @@ public final class Lexer {
 
   // MARK: - Helper Methods
 
-  /// Returns the current character without advancing
+  /// Returns the current character without advancing.
   private func currentCharacter() -> Character {
     return input[currentIndex]
   }
 
-  /// Checks if we've reached the end of input
+  /// Checks if we've reached the end of input.
   private func isAtEnd() -> Bool {
     return currentIndex >= input.endIndex
   }
 
-  /// Advances the current index and updates column position
+  /// Advances the current index and updates column position.
   private func advanceIndex() {
     if !isAtEnd() {
       currentIndex = input.index(after: currentIndex)
@@ -447,9 +447,9 @@ public final class Lexer {
 
 extension Lexer {
 
-  /// Tokenizes input and converts errors to public API format
+  /// Tokenizes input and converts errors to public API format.
   ///
-  /// - Returns: A `Result` containing tokens or a public API error
+  /// - Returns: A `Result` containing tokens or a public API error.
   public func tokenizeForPublicAPI() -> Result<[Token], ProtoParseError> {
     return tokenize().mapError { lexerError in
       lexerError.toProtoParseError(file: fileName ?? "<unknown>")
@@ -461,12 +461,12 @@ extension Lexer {
 
 extension Lexer {
 
-  /// Creates a lexer and immediately tokenizes the input
+  /// Creates a lexer and immediately tokenizes the input.
   ///
-  /// - Parameters:
-  ///   - input: The proto3 source code to tokenize
-  ///   - fileName: Optional file name for error reporting
-  /// - Returns: A `Result` containing tokens or a lexer error
+  /// - Parameters:.
+  ///   - input: The proto3 source code to tokenize.
+  ///   - fileName: Optional file name for error reporting.
+  /// - Returns: A `Result` containing tokens or a lexer error.
   internal static func tokenize(_ input: String, fileName: String? = nil) -> Result<[Token], LexerError> {
     let lexer = Lexer(input: input, fileName: fileName)
     return lexer.tokenize()

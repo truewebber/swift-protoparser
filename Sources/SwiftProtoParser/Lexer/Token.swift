@@ -6,10 +6,10 @@ import Foundation
 ///
 /// This struct contains the token type and position information for error reporting.
 public struct Token {
-  /// The type of the token
+  /// The type of the token.
   public let type: TokenType
 
-  /// The position of this token in the source file
+  /// The position of this token in the source file.
   public let position: Position
 
   public init(type: TokenType, position: Position) {
@@ -17,7 +17,7 @@ public struct Token {
     self.position = position
   }
 
-  /// Position information for a token
+  /// Position information for a token.
   public struct Position: Equatable {
     public let line: Int
     public let column: Int
@@ -29,7 +29,7 @@ public struct Token {
   }
 }
 
-/// Token types that can appear in a proto3 file
+/// Token types that can appear in a proto3 file.
 public enum TokenType {
 
   // MARK: - Language Elements
@@ -42,16 +42,16 @@ public enum TokenType {
 
   // MARK: - Literals
 
-  /// String literal with quotes ("hello world")
+  /// String literal with quotes ("hello world").
   case stringLiteral(String)
 
-  /// Integer literal (42, -17)
+  /// Integer literal (42, -17).
   case integerLiteral(Int64)
 
   /// Floating point literal (3.14, -2.5e10)
   case floatLiteral(Double)
 
-  /// Boolean literal (true, false)
+  /// Boolean literal (true, false).
   case boolLiteral(Bool)
 
   // MARK: - Symbols and Operators
@@ -61,18 +61,18 @@ public enum TokenType {
 
   // MARK: - Whitespace and Comments
 
-  /// Single or multi-line comment
+  /// Single or multi-line comment.
   case comment(String)
 
-  /// Whitespace (spaces, tabs)
+  /// Whitespace (spaces, tabs).
   case whitespace
 
-  /// Line terminator
+  /// Line terminator.
   case newline
 
   // MARK: - Special
 
-  /// End of file marker
+  /// End of file marker.
   case eof
 }
 
@@ -83,75 +83,75 @@ public enum ProtoKeyword: String, CaseIterable {
 
   // MARK: - Core Keywords
 
-  /// Syntax declaration
+  /// Syntax declaration.
   case syntax = "syntax"
 
-  /// Package declaration
+  /// Package declaration.
   case package = "package"
 
-  /// Import statement
+  /// Import statement.
   case `import` = "import"
 
-  /// Option declaration
+  /// Option declaration.
   case option = "option"
 
   // MARK: - Type Definition Keywords
 
-  /// Message type definition
+  /// Message type definition.
   case message = "message"
 
-  /// Enum type definition
+  /// Enum type definition.
   case `enum` = "enum"
 
-  /// Service definition
+  /// Service definition.
   case service = "service"
 
-  /// RPC method definition
+  /// RPC method definition.
   case rpc = "rpc"
 
   // MARK: - Field Modifiers
 
-  /// Repeated field modifier
+  /// Repeated field modifier.
   case repeated = "repeated"
 
-  /// Optional field modifier (proto2 compatibility)
+  /// Optional field modifier (proto2 compatibility).
   case optional = "optional"
 
-  /// Required field modifier (proto2 compatibility)
+  /// Required field modifier (proto2 compatibility).
   case required = "required"
 
   // MARK: - Service Keywords
 
-  /// RPC return type declaration
+  /// RPC return type declaration.
   case returns = "returns"
 
-  /// Streaming RPC modifier
+  /// Streaming RPC modifier.
   case stream = "stream"
 
   // MARK: - Reserved Keywords
 
-  /// Reserved field declaration
+  /// Reserved field declaration.
   case reserved = "reserved"
 
-  /// Oneof field group
+  /// Oneof field group.
   case oneof = "oneof"
 
-  /// Map field type
+  /// Map field type.
   case map = "map"
 
-  /// Extension definition (proto2 compatibility)
+  /// Extension definition (proto2 compatibility).
   case extend = "extend"
 
-  /// Extension range declaration
+  /// Extension range declaration.
   case extensions = "extensions"
 
-  /// Group definition (deprecated, proto2 compatibility)
+  /// Group definition (deprecated, proto2 compatibility).
   case group = "group"
 
-  /// Public import modifier
+  /// Public import modifier.
   case `public` = "public"
 
-  /// Weak import modifier
+  /// Weak import modifier.
   case weak = "weak"
 }
 
@@ -266,32 +266,32 @@ extension TokenType: CustomStringConvertible {
 
 extension Token {
 
-  /// Returns true if this token represents whitespace or comments
+  /// Returns true if this token represents whitespace or comments.
   public var isIgnorable: Bool {
     return type.isIgnorable
   }
 
-  /// Returns true if this token is a literal value
+  /// Returns true if this token is a literal value.
   public var isLiteral: Bool {
     return type.isLiteral
   }
 
-  /// Returns true if this token is a specific keyword
+  /// Returns true if this token is a specific keyword.
   public func isKeyword(_ keyword: ProtoKeyword) -> Bool {
     return type.isKeyword(keyword)
   }
 
-  /// Returns true if this token is a specific symbol
+  /// Returns true if this token is a specific symbol.
   public func isSymbol(_ symbol: Character) -> Bool {
     return type.isSymbol(symbol)
   }
 
-  /// Compares only the token type, ignoring position (useful for testing)
+  /// Compares only the token type, ignoring position (useful for testing).
   public func hasSameType(as other: Token) -> Bool {
     return self.type == other.type
   }
 
-  /// Compares token type with a given TokenType
+  /// Compares token type with a given TokenType.
   public func hasType(_ tokenType: TokenType) -> Bool {
     return self.type == tokenType
   }
@@ -301,7 +301,7 @@ extension Token {
 
 extension TokenType {
 
-  /// Returns true if this token represents whitespace or comments
+  /// Returns true if this token represents whitespace or comments.
   public var isIgnorable: Bool {
     switch self {
     case .whitespace, .comment, .newline:
@@ -311,7 +311,7 @@ extension TokenType {
     }
   }
 
-  /// Returns true if this token is a literal value
+  /// Returns true if this token is a literal value.
   public var isLiteral: Bool {
     switch self {
     case .stringLiteral, .integerLiteral, .floatLiteral, .boolLiteral:
@@ -321,7 +321,7 @@ extension TokenType {
     }
   }
 
-  /// Returns true if this token is a specific keyword
+  /// Returns true if this token is a specific keyword.
   public func isKeyword(_ keyword: ProtoKeyword) -> Bool {
     if case .keyword(let tokenKeyword) = self {
       return tokenKeyword == keyword
@@ -329,7 +329,7 @@ extension TokenType {
     return false
   }
 
-  /// Returns true if this token is a specific symbol
+  /// Returns true if this token is a specific symbol.
   public func isSymbol(_ symbol: Character) -> Bool {
     if case .symbol(let tokenSymbol) = self {
       return tokenSymbol == symbol
@@ -342,57 +342,57 @@ extension TokenType {
 
 #if DEBUG
   extension Token {
-    /// Creates a token with default position for testing
+    /// Creates a token with default position for testing.
     public static func keyword(_ keyword: ProtoKeyword) -> Token {
       return Token(type: .keyword(keyword), position: Position(line: 1, column: 1))
     }
 
-    /// Creates a token with default position for testing
+    /// Creates a token with default position for testing.
     public static func identifier(_ name: String) -> Token {
       return Token(type: .identifier(name), position: Position(line: 1, column: 1))
     }
 
-    /// Creates a token with default position for testing
+    /// Creates a token with default position for testing.
     public static func stringLiteral(_ value: String) -> Token {
       return Token(type: .stringLiteral(value), position: Position(line: 1, column: 1))
     }
 
-    /// Creates a token with default position for testing
+    /// Creates a token with default position for testing.
     public static func integerLiteral(_ value: Int64) -> Token {
       return Token(type: .integerLiteral(value), position: Position(line: 1, column: 1))
     }
 
-    /// Creates a token with default position for testing
+    /// Creates a token with default position for testing.
     public static func floatLiteral(_ value: Double) -> Token {
       return Token(type: .floatLiteral(value), position: Position(line: 1, column: 1))
     }
 
-    /// Creates a token with default position for testing
+    /// Creates a token with default position for testing.
     public static func boolLiteral(_ value: Bool) -> Token {
       return Token(type: .boolLiteral(value), position: Position(line: 1, column: 1))
     }
 
-    /// Creates a token with default position for testing
+    /// Creates a token with default position for testing.
     public static func symbol(_ char: Character) -> Token {
       return Token(type: .symbol(char), position: Position(line: 1, column: 1))
     }
 
-    /// Creates a token with default position for testing
+    /// Creates a token with default position for testing.
     public static func comment(_ value: String) -> Token {
       return Token(type: .comment(value), position: Position(line: 1, column: 1))
     }
 
-    /// Creates a token with default position for testing
+    /// Creates a token with default position for testing.
     public static var whitespace: Token {
       return Token(type: .whitespace, position: Position(line: 1, column: 1))
     }
 
-    /// Creates a token with default position for testing
+    /// Creates a token with default position for testing.
     public static var newline: Token {
       return Token(type: .newline, position: Position(line: 1, column: 1))
     }
 
-    /// Creates a token with default position for testing
+    /// Creates a token with default position for testing.
     public static var eof: Token {
       return Token(type: .eof, position: Position(line: 1, column: 1))
     }

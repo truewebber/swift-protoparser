@@ -1,53 +1,53 @@
 import Foundation
 
-/// Errors that can occur during parsing of .proto files
+/// Errors that can occur during parsing of .proto files.
 public enum ParserError: Error, Equatable {
-  /// Unexpected token encountered
+  /// Unexpected token encountered.
   case unexpectedToken(Token, expected: String, line: Int, column: Int)
 
-  /// Missing required element
+  /// Missing required element.
   case missingRequiredElement(String, line: Int, column: Int)
 
-  /// Duplicate element found
+  /// Duplicate element found.
   case duplicateElement(String, line: Int, column: Int)
 
-  /// Invalid field number
+  /// Invalid field number.
   case invalidFieldNumber(Int32, line: Int, column: Int)
 
-  /// Unexpected end of input
+  /// Unexpected end of input.
   case unexpectedEndOfInput(expected: String)
 
-  /// Invalid syntax declaration
+  /// Invalid syntax declaration.
   case invalidSyntax(String, line: Int, column: Int)
 
-  /// Reserved field number used
+  /// Reserved field number used.
   case reservedFieldNumber(Int32, line: Int, column: Int)
 
-  /// Field number out of range
+  /// Field number out of range.
   case fieldNumberOutOfRange(Int32, line: Int, column: Int)
 
-  /// Duplicate field number
+  /// Duplicate field number.
   case duplicateFieldNumber(Int32, line: Int, column: Int)
 
-  /// Invalid message definition
+  /// Invalid message definition.
   case invalidMessageDefinition(String, line: Int, column: Int)
 
-  /// Invalid enum definition
+  /// Invalid enum definition.
   case invalidEnumDefinition(String, line: Int, column: Int)
 
-  /// Invalid service definition
+  /// Invalid service definition.
   case invalidServiceDefinition(String, line: Int, column: Int)
 
-  /// Invalid option value
+  /// Invalid option value.
   case invalidOptionValue(String, line: Int, column: Int)
 
-  /// Missing zero value in enum (required in proto3)
+  /// Missing zero value in enum (required in proto3).
   case missingEnumZeroValue(String, line: Int, column: Int)
 
-  /// Internal parser error
+  /// Internal parser error.
   case internalError(String)
 
-  /// The line number where the error occurred
+  /// The line number where the error occurred.
   public var line: Int {
     switch self {
     case .unexpectedToken(_, _, let line, _),
@@ -69,7 +69,7 @@ public enum ParserError: Error, Equatable {
     }
   }
 
-  /// The column number where the error occurred
+  /// The column number where the error occurred.
   public var column: Int {
     switch self {
     case .unexpectedToken(_, _, _, let column),
@@ -91,7 +91,7 @@ public enum ParserError: Error, Equatable {
     }
   }
 
-  /// A user-friendly description of the error
+  /// A user-friendly description of the error.
   public var description: String {
     switch self {
     case .unexpectedToken(let token, let expected, let line, let column):
@@ -151,42 +151,42 @@ extension ParserError: CustomStringConvertible {
 
 // MARK: - Convenience constructors
 extension ParserError {
-  /// Creates an unexpected token error with token position
+  /// Creates an unexpected token error with token position.
   public static func unexpectedToken(_ token: Token, expected: String) -> ParserError {
     return .unexpectedToken(token, expected: expected, line: token.position.line, column: token.position.column)
   }
 
-  /// Creates a missing required element error
+  /// Creates a missing required element error.
   public static func missingElement(_ element: String, at position: Token.Position) -> ParserError {
     return .missingRequiredElement(element, line: position.line, column: position.column)
   }
 
-  /// Creates a duplicate element error
+  /// Creates a duplicate element error.
   public static func duplicateElement(_ element: String, at position: Token.Position) -> ParserError {
     return .duplicateElement(element, line: position.line, column: position.column)
   }
 
-  /// Creates an invalid field number error
+  /// Creates an invalid field number error.
   public static func invalidFieldNumber(_ number: Int32, at position: Token.Position) -> ParserError {
     return .invalidFieldNumber(number, line: position.line, column: position.column)
   }
 
-  /// Creates a reserved field number error
+  /// Creates a reserved field number error.
   public static func reservedFieldNumber(_ number: Int32, at position: Token.Position) -> ParserError {
     return .reservedFieldNumber(number, line: position.line, column: position.column)
   }
 
-  /// Creates a field number out of range error
+  /// Creates a field number out of range error.
   public static func fieldNumberOutOfRange(_ number: Int32, at position: Token.Position) -> ParserError {
     return .fieldNumberOutOfRange(number, line: position.line, column: position.column)
   }
 
-  /// Creates a duplicate field number error
+  /// Creates a duplicate field number error.
   public static func duplicateFieldNumber(_ number: Int32, at position: Token.Position) -> ParserError {
     return .duplicateFieldNumber(number, line: position.line, column: position.column)
   }
 
-  /// Creates a missing enum zero value error
+  /// Creates a missing enum zero value error.
   public static func missingEnumZeroValue(_ enumName: String, at position: Token.Position) -> ParserError {
     return .missingEnumZeroValue(enumName, line: position.line, column: position.column)
   }

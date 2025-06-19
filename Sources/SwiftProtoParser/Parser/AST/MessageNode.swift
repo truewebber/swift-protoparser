@@ -1,26 +1,26 @@
 import Foundation
 
-/// Represents a protobuf message definition
+/// Represents a protobuf message definition.
 public struct MessageNode: Equatable {
-  /// The message name
+  /// The message name.
   public let name: String
 
-  /// The message fields
+  /// The message fields.
   public let fields: [FieldNode]
 
-  /// Nested message definitions
+  /// Nested message definitions.
   public let nestedMessages: [MessageNode]
 
-  /// Nested enum definitions
+  /// Nested enum definitions.
   public let nestedEnums: [EnumNode]
 
-  /// Oneof groups
+  /// Oneof groups.
   public let oneofGroups: [OneofNode]
 
-  /// Message-specific options
+  /// Message-specific options.
   public let options: [OptionNode]
 
-  /// Reserved field numbers and names
+  /// Reserved field numbers and names.
   public let reservedNumbers: [Int32]
   public let reservedNames: [String]
 
@@ -44,7 +44,7 @@ public struct MessageNode: Equatable {
     self.reservedNames = reservedNames
   }
 
-  /// Returns all field numbers used in this message (including oneof fields)
+  /// Returns all field numbers used in this message (including oneof fields).
   public var usedFieldNumbers: Set<Int32> {
     var numbers = Set(fields.map { $0.number })
 
@@ -55,7 +55,7 @@ public struct MessageNode: Equatable {
     return numbers
   }
 
-  /// Returns all field names used in this message (including oneof fields)
+  /// Returns all field names used in this message (including oneof fields).
   public var usedFieldNames: Set<String> {
     var names = Set(fields.map { $0.name })
 
@@ -66,7 +66,7 @@ public struct MessageNode: Equatable {
     return names
   }
 
-  /// Returns the field with the given name, if it exists
+  /// Returns the field with the given name, if it exists.
   public func field(named name: String) -> FieldNode? {
     // Check regular fields
     if let field = fields.first(where: { $0.name == name }) {
@@ -83,7 +83,7 @@ public struct MessageNode: Equatable {
     return nil
   }
 
-  /// Returns the field with the given number, if it exists
+  /// Returns the field with the given number, if it exists.
   public func field(withNumber number: Int32) -> FieldNode? {
     // Check regular fields
     if let field = fields.first(where: { $0.number == number }) {
@@ -101,15 +101,15 @@ public struct MessageNode: Equatable {
   }
 }
 
-/// Represents a oneof group within a protobuf message
+/// Represents a oneof group within a protobuf message.
 public struct OneofNode: Equatable {
-  /// The oneof group name
+  /// The oneof group name.
   public let name: String
 
-  /// The fields within this oneof group
+  /// The fields within this oneof group.
   public let fields: [FieldNode]
 
-  /// Oneof-specific options
+  /// Oneof-specific options.
   public let options: [OptionNode]
 
   public init(

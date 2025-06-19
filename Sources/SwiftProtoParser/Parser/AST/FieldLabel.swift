@@ -1,17 +1,17 @@
 import Foundation
 
-/// Represents the label/cardinality of a protobuf field
+/// Represents the label/cardinality of a protobuf field.
 public enum FieldLabel: String, CaseIterable, Equatable {
-  /// Field appears exactly once (default in proto3)
+  /// Field appears exactly once (default in proto3).
   case singular = "singular"
 
-  /// Field can appear zero or more times
+  /// Field can appear zero or more times.
   case repeated = "repeated"
 
-  /// Field can appear zero or one time (explicit optional in proto3)
+  /// Field can appear zero or one time (explicit optional in proto3).
   case optional = "optional"
 
-  /// Returns true if this label allows multiple values
+  /// Returns true if this label allows multiple values.
   public var allowsMultipleValues: Bool {
     switch self {
     case .repeated:
@@ -21,13 +21,13 @@ public enum FieldLabel: String, CaseIterable, Equatable {
     }
   }
 
-  /// Returns true if this field is required (always false in proto3)
+  /// Returns true if this field is required (always false in proto3).
   public var isRequired: Bool {
     // Proto3 doesn't have required fields
     return false
   }
 
-  /// Returns the string representation as it would appear in a .proto file
+  /// Returns the string representation as it would appear in a .proto file.
   public var protoKeyword: String {
     switch self {
     case .singular:

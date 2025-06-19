@@ -2,7 +2,7 @@ import Foundation
 
 // MARK: - SwiftProtoParser
 
-/// SwiftProtoParser - A Swift library for parsing Protocol Buffers .proto files
+/// SwiftProtoParser - A Swift library for parsing Protocol Buffers .proto files.
 ///
 /// This is the main public API for the library. Currently supports parsing
 /// single .proto files without import dependencies.
@@ -17,10 +17,10 @@ public struct SwiftProtoParser {
 
 extension SwiftProtoParser {
 
-  /// Parse a single .proto file from a file path
+  /// Parse a single .proto file from a file path.
   ///
   /// - Parameter filePath: Path to the .proto file
-  /// - Returns: Result containing ProtoAST on success, or ProtoParseError on failure
+  /// - Returns: Result containing ProtoAST on success, or ProtoParseError on failure.
   ///
   /// Note: This MVP version doesn't resolve imports yet. Use for single-file .proto files.
   public static func parseProtoFile(_ filePath: String) -> Result<ProtoAST, ProtoParseError> {
@@ -37,12 +37,12 @@ extension SwiftProtoParser {
     }
   }
 
-  /// Parse .proto content from a string
+  /// Parse .proto content from a string.
   ///
-  /// - Parameters:
+  /// - Parameters:.
   ///   - content: The .proto file content as a string
-  ///   - fileName: Optional file name for error reporting (default: "string")
-  /// - Returns: Result containing ProtoAST on success, or ProtoParseError on failure
+  ///   - fileName: Optional file name for error reporting (default: "string").
+  /// - Returns: Result containing ProtoAST on success, or ProtoParseError on failure.
   public static func parseProtoString(_ content: String, fileName: String = "string") -> Result<
     ProtoAST, ProtoParseError
   > {
@@ -85,30 +85,30 @@ extension SwiftProtoParser {
 
 extension SwiftProtoParser {
 
-  /// Parse a .proto file and return the syntax version
+  /// Parse a .proto file and return the syntax version.
   ///
   /// - Parameter filePath: Path to the .proto file
-  /// - Returns: Result containing ProtoVersion on success, or ProtoParseError on failure
+  /// - Returns: Result containing ProtoVersion on success, or ProtoParseError on failure.
   public static func getProtoVersion(_ filePath: String) -> Result<ProtoVersion, ProtoParseError> {
     return parseProtoFile(filePath).map { ast in
       return ast.syntax
     }
   }
 
-  /// Parse a .proto file and return the package name (if any)
+  /// Parse a .proto file and return the package name (if any).
   ///
   /// - Parameter filePath: Path to the .proto file
-  /// - Returns: Result containing optional package name on success, or ProtoParseError on failure
+  /// - Returns: Result containing optional package name on success, or ProtoParseError on failure.
   public static func getPackageName(_ filePath: String) -> Result<String?, ProtoParseError> {
     return parseProtoFile(filePath).map { ast in
       return ast.package
     }
   }
 
-  /// Parse a .proto file and return all message names
+  /// Parse a .proto file and return all message names.
   ///
   /// - Parameter filePath: Path to the .proto file
-  /// - Returns: Result containing array of message names on success, or ProtoParseError on failure
+  /// - Returns: Result containing array of message names on success, or ProtoParseError on failure.
   public static func getMessageNames(_ filePath: String) -> Result<[String], ProtoParseError> {
     return parseProtoFile(filePath).map { ast in
       return ast.messages.map { $0.name }
@@ -122,9 +122,9 @@ extension SwiftProtoParser {
 
   // These will be implemented when DependencyResolver is added
 
-  /// Parse a .proto file with import resolution (Future)
+  /// Parse a .proto file with import resolution (Future).
   ///
-  /// - Note: This will be implemented when DependencyResolver module is added
+  /// - Note: This will be implemented when DependencyResolver module is added.
   public static func parseProtoFileWithImports(
     _ filePath: String,
     importPaths: [String] = []
@@ -133,9 +133,9 @@ extension SwiftProtoParser {
     return .failure(.internalError(message: "Import resolution not yet implemented"))
   }
 
-  /// Parse multiple .proto files in a directory (Future)
+  /// Parse multiple .proto files in a directory (Future).
   ///
-  /// - Note: This will be implemented when DependencyResolver module is added
+  /// - Note: This will be implemented when DependencyResolver module is added.
   public static func parseProtoDirectory(
     _ directoryPath: String,
     mainFile: String? = nil
