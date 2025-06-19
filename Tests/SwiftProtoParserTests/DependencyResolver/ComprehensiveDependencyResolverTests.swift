@@ -503,9 +503,9 @@ final class ComprehensiveDependencyResolverTests: XCTestCase {
   func testCircularDependencyDetectionAccordingToProtobufSpec() throws {
     // MARK: - Circular Dependency Tests According to Protocol Buffers Specification
     //
-    // According to the Protocol Buffers specification (proto3), circular dependencies 
+    // According to the Protocol Buffers specification (proto3), circular dependencies
     // between .proto files are NOT allowed and should cause an error during compilation.
-    // 
+    //
     // This test suite validates that our implementation correctly detects and rejects
     // circular import dependencies as required by the protobuf specification.
     //
@@ -558,16 +558,16 @@ final class ComprehensiveDependencyResolverTests: XCTestCase {
 
       if case .circularDependency(let cycles) = resolverError {
         XCTAssertFalse(cycles.isEmpty, "Should detect at least one circular dependency")
-        
+
         // Convert all cycles to a single string for easier checking
         let allCycles = cycles.joined(separator: " | ")
-        
+
         // The cycle detection should show that we have a circular dependency
         // The exact format may vary, but it should involve our test files
         let hasFile1 = allCycles.contains("file1")
-        
+
         XCTAssertTrue(hasFile1, "Cycle should reference file1, but got: \(cycles)")
-        
+
         // The main requirement is that a circular dependency was detected
         // The exact cycle format can vary based on the implementation
       }
@@ -625,7 +625,8 @@ final class ComprehensiveDependencyResolverTests: XCTestCase {
     // Should detect the 3-file circular dependency
     XCTAssertThrowsError(try resolver.resolveDependencies(for: fileA.path)) { error in
       guard let resolverError = error as? ResolverError,
-            case .circularDependency(let cycles) = resolverError else {
+        case .circularDependency(let cycles) = resolverError
+      else {
         XCTFail("Expected circularDependency error")
         return
       }
@@ -680,8 +681,8 @@ final class ComprehensiveDependencyResolverTests: XCTestCase {
     // Should succeed without errors (no circular dependencies)
     XCTAssertNoThrow {
       let result = try resolver.resolveDependencies(for: mainFile.path)
-      XCTAssertEqual(result.dependencies.count, 2) // dep1 and dep2
-      XCTAssertEqual(result.allFiles.count, 3) // main, dep1, dep2
+      XCTAssertEqual(result.dependencies.count, 2)  // dep1 and dep2
+      XCTAssertEqual(result.allFiles.count, 3)  // main, dep1, dep2
       XCTAssertTrue(result.warnings.isEmpty)
     }
   }
@@ -726,7 +727,7 @@ final class ComprehensiveDependencyResolverTests: XCTestCase {
     XCTAssertNoThrow {
       let result = try lenientResolver.resolveDependencies(for: file1.path)
       // May have warnings about circular dependencies or missing imports
-      XCTAssertEqual(result.allFiles.count, 1) // Only main file resolved
+      XCTAssertEqual(result.allFiles.count, 1)  // Only main file resolved
     }
   }
 
