@@ -500,8 +500,235 @@ final class ComprehensiveDependencyResolverTests: XCTestCase {
     XCTAssertTrue(result.warnings.isEmpty)
   }
 
-  // Circular dependency detection test disabled - system behavior differs from expected
-  // func testResolverWithoutCircularDependencyDetection() throws { ... }
+  func testCircularDependencyDetectionAccordingToProtobufSpec() throws {
+    // MARK: - Circular Dependency Tests According to Protocol Buffers Specification
+    //
+    // According to the Protocol Buffers specification (proto3), circular dependencies 
+    // between .proto files are NOT allowed and should cause an error during compilation.
+    // 
+    // This test suite validates that our implementation correctly detects and rejects
+    // circular import dependencies as required by the protobuf specification.
+    //
+    // Reference: https://protobuf.dev/programming-guides/proto3/#importing-definitions
+    //
+    // Key points:
+    // 1. Circular imports between .proto files are prohibited
+    // 2. The compiler should detect and report circular dependencies
+    // 3. Circular type references within a single file are allowed
+    // 4. This behavior is critical for protobuf compatibility
+
+    // Create circular dependency: file1 -> file2 -> file1
+    let file1Content = """
+      syntax = "proto3";
+      package file1;
+
+      import "file2.proto";
+
+      message File1Message {
+          File2Message other = 1;
+      }
+      """
+
+    let file2Content = """
+      syntax = "proto3";
+      package file2;
+
+      import "file1.proto";
+
+      message File2Message {
+          File1Message other = 1;
+      }
+      """
+
+    let file1 = tempDir.appendingPathComponent("file1.proto")
+    let file2 = tempDir.appendingPathComponent("file2.proto")
+
+    try file1Content.write(to: file1, atomically: true, encoding: .utf8)
+    try file2Content.write(to: file2, atomically: true, encoding: .utf8)
+
+    // Test with circular dependency detection enabled (default)
+    let strictResolver = DependencyResolver.strict(importPaths: [tempDir.path])
+
+    // Should throw circular dependency error as per protobuf spec
+    XCTAssertThrowsError(try strictResolver.resolveDependencies(for: file1.path)) { error in
+      guard let resolverError = error as? ResolverError else {
+        XCTFail("Expected ResolverError, got \(type(of: error))")
+        return
+      }
+
+      if case .circularDependency(let cycles) = resolverError {
+        XCTAssertFalse(cycles.isEmpty, "Should detect at least one circular dependency")
+        
+        // Convert all cycles to a single string for easier checking
+        let allCycles = cycles.joined(separator: " | ")
+        
+        // The cycle detection should show that we have a circular dependency
+        // The exact format may vary, but it should involve our test files
+        let hasFile1 = allCycles.contains("file1")
+        
+        XCTAssertTrue(hasFile1, "Cycle should reference file1, but got: \(cycles)")
+        
+        // The main requirement is that a circular dependency was detected
+        // The exact cycle format can vary based on the implementation
+      }
+      else {
+        XCTFail("Expected circularDependency error, got \(resolverError)")
+      }
+    }
+  }
+
+  func testComplexCircularDependencyDetection() throws {
+    // Test more complex circular dependency: A -> B -> C -> A
+    let fileAContent = """
+      syntax = "proto3";
+      package fileA;
+
+      import "fileB.proto";
+
+      message MessageA {
+          MessageB b = 1;
+      }
+      """
+
+    let fileBContent = """
+      syntax = "proto3";
+      package fileB;
+
+      import "fileC.proto";
+
+      message MessageB {
+          MessageC c = 1;
+      }
+      """
+
+    let fileCContent = """
+      syntax = "proto3";
+      package fileC;
+
+      import "fileA.proto";
+
+      message MessageC {
+          MessageA a = 1;
+      }
+      """
+
+    let fileA = tempDir.appendingPathComponent("fileA.proto")
+    let fileB = tempDir.appendingPathComponent("fileB.proto")
+    let fileC = tempDir.appendingPathComponent("fileC.proto")
+
+    try fileAContent.write(to: fileA, atomically: true, encoding: .utf8)
+    try fileBContent.write(to: fileB, atomically: true, encoding: .utf8)
+    try fileCContent.write(to: fileC, atomically: true, encoding: .utf8)
+
+    let resolver = DependencyResolver.strict(importPaths: [tempDir.path])
+
+    // Should detect the 3-file circular dependency
+    XCTAssertThrowsError(try resolver.resolveDependencies(for: fileA.path)) { error in
+      guard let resolverError = error as? ResolverError,
+            case .circularDependency(let cycles) = resolverError else {
+        XCTFail("Expected circularDependency error")
+        return
+      }
+
+      XCTAssertFalse(cycles.isEmpty, "Should detect circular dependency")
+    }
+  }
+
+  func testValidImportChainWithoutCircularDependency() throws {
+    // Test valid import chain: main -> dep1 -> dep2 (no cycles)
+    let dep2Content = """
+      syntax = "proto3";
+      package dep2;
+
+      message BaseMessage {
+          string value = 1;
+      }
+      """
+
+    let dep1Content = """
+      syntax = "proto3";
+      package dep1;
+
+      import "dep2.proto";
+
+      message MiddleMessage {
+          BaseMessage base = 1;
+      }
+      """
+
+    let mainContent = """
+      syntax = "proto3";
+      package main;
+
+      import "dep1.proto";
+
+      message MainMessage {
+          MiddleMessage middle = 1;
+      }
+      """
+
+    let dep2File = tempDir.appendingPathComponent("dep2.proto")
+    let dep1File = tempDir.appendingPathComponent("dep1.proto")
+    let mainFile = tempDir.appendingPathComponent("main.proto")
+
+    try dep2Content.write(to: dep2File, atomically: true, encoding: .utf8)
+    try dep1Content.write(to: dep1File, atomically: true, encoding: .utf8)
+    try mainContent.write(to: mainFile, atomically: true, encoding: .utf8)
+
+    let resolver = DependencyResolver.strict(importPaths: [tempDir.path])
+
+    // Should succeed without errors (no circular dependencies)
+    XCTAssertNoThrow {
+      let result = try resolver.resolveDependencies(for: mainFile.path)
+      XCTAssertEqual(result.dependencies.count, 2) // dep1 and dep2
+      XCTAssertEqual(result.allFiles.count, 3) // main, dep1, dep2
+      XCTAssertTrue(result.warnings.isEmpty)
+    }
+  }
+
+  func testCircularDependencyDetectionCanBeDisabled() throws {
+    // Test that circular dependency detection can be disabled (lenient mode)
+    // Note: This is useful for testing/debugging purposes, but not recommended
+    // for production use as it violates protobuf specification
+
+    let file1Content = """
+      syntax = "proto3";
+      package file1;
+
+      import "file2.proto";
+
+      message File1Message {
+          string name = 1;
+      }
+      """
+
+    let file2Content = """
+      syntax = "proto3";
+      package file2;
+
+      import "file1.proto";
+
+      message File2Message {
+          string value = 1;
+      }
+      """
+
+    let file1 = tempDir.appendingPathComponent("file1.proto")
+    let file2 = tempDir.appendingPathComponent("file2.proto")
+
+    try file1Content.write(to: file1, atomically: true, encoding: .utf8)
+    try file2Content.write(to: file2, atomically: true, encoding: .utf8)
+
+    // Use lenient resolver (circular dependency detection disabled)
+    let lenientResolver = DependencyResolver.lenient(importPaths: [tempDir.path])
+
+    // Should succeed with warnings in lenient mode
+    XCTAssertNoThrow {
+      let result = try lenientResolver.resolveDependencies(for: file1.path)
+      // May have warnings about circular dependencies or missing imports
+      XCTAssertEqual(result.allFiles.count, 1) // Only main file resolved
+    }
+  }
 
   // MARK: - Cache and Performance Tests
 
