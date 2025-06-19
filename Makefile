@@ -18,7 +18,7 @@ format:
 
 test:
 	@echo "Running swift test..."
-	swift test --enable-code-coverage --parallel
+	swift test --enable-code-coverage --parallel --disable-swift-testing
 	@echo "Tests complete."
 
 coverage:
