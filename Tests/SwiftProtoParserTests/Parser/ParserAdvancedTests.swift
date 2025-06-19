@@ -863,8 +863,8 @@ final class ParserAdvancedTests: XCTestCase {
       // Test string to int32 map
       let field1 = message.fields[0]
       if case .map(let keyType, let valueType) = field1.type {
-        XCTAssertEqual(keyType, .string)
-        XCTAssertEqual(valueType, .int32)
+        XCTAssertEqual(keyType.protoTypeName, "string")
+        XCTAssertEqual(valueType.protoTypeName, "int32")
       }
       else {
         // Map parsing might not be implemented, just check field exists

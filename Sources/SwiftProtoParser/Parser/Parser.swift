@@ -418,9 +418,27 @@ public final class Parser {
           let field = try parseFieldDeclaration()
           fields.append(field)
 
+        case .map:
+          // Map field type
+          let field = try parseFieldDeclaration()
+          fields.append(field)
+
         default:
-          state.addError(.unexpectedToken(token, expected: "message element"))
-          state.synchronize()
+          // Check if this is a scalar type keyword that starts a field
+          let scalarTypes: Set<String> = [
+            "double", "float", "int32", "int64", "uint32", "uint64",
+            "sint32", "sint64", "fixed32", "fixed64", "sfixed32", "sfixed64",
+            "bool", "string", "bytes"
+          ]
+          
+          if scalarTypes.contains(keyword.rawValue) {
+            // Scalar field type
+            let field = try parseFieldDeclaration()
+            fields.append(field)
+          } else {
+            state.addError(.unexpectedToken(token, expected: "message element"))
+            state.synchronize()
+          }
         }
 
       case .identifier:
@@ -605,11 +623,16 @@ public final class Parser {
   /// Parses a map field type: map<key_type, value_type>.
   private func parseMapType() throws -> FieldType {
     _ = state.expectKeyword(.map)
+    skipIgnorableTokens()
     _ = state.expectSymbol("<")
+    skipIgnorableTokens()
 
     let keyType = try parseFieldType()
+    skipIgnorableTokens()
     _ = state.expectSymbol(",")
+    skipIgnorableTokens()
     let valueType = try parseFieldType()
+    skipIgnorableTokens()
 
     _ = state.expectSymbol(">")
 
@@ -795,6 +818,7 @@ public final class Parser {
   /// Parses a oneof declaration.
   private func parseOneofDeclaration() throws -> OneofNode {
     _ = state.expectKeyword(.oneof)
+    skipIgnorableTokens()
 
     guard let oneofName = state.identifierName else {
       state.addError(
@@ -807,6 +831,7 @@ public final class Parser {
     }
 
     state.advance()
+    skipIgnorableTokens()
     _ = state.expectSymbol("{")
 
     var fields: [FieldNode] = []
@@ -819,9 +844,34 @@ public final class Parser {
       guard let token = state.currentToken else { break }
 
       switch token.type {
-      case .keyword(.option):
-        let option = try parseOptionDeclaration()
-        options.append(option)
+      case .keyword(let keyword):
+        switch keyword {
+        case .option:
+          let option = try parseOptionDeclaration()
+          options.append(option)
+        
+        case .map:
+          // Map field in oneof
+          let field = try parseFieldDeclaration()
+          fields.append(field)
+        
+        default:
+          // Check if this is a scalar type keyword
+          let scalarTypes: Set<String> = [
+            "double", "float", "int32", "int64", "uint32", "uint64",
+            "sint32", "sint64", "fixed32", "fixed64", "sfixed32", "sfixed64",
+            "bool", "string", "bytes"
+          ]
+          
+          if scalarTypes.contains(keyword.rawValue) {
+            // Scalar field in oneof
+            let field = try parseFieldDeclaration()
+            fields.append(field)
+          } else {
+            state.addError(.unexpectedToken(token, expected: "oneof element"))
+            state.synchronize()
+          }
+        }
 
       case .identifier:
         let field = try parseFieldDeclaration()
@@ -833,6 +883,7 @@ public final class Parser {
       }
     }
 
+    skipIgnorableTokens()
     _ = state.expectSymbol("}")
 
     return OneofNode(name: oneofName, fields: fields, options: options)
@@ -841,24 +892,29 @@ public final class Parser {
   /// Parses a reserved declaration: reserved 1, 2, 3 to 5, "field1", "field2";.
   private func parseReservedDeclaration() throws -> ([Int32], [String]) {
     _ = state.expectKeyword(.reserved)
+    skipIgnorableTokens()
 
     var numbers: [Int32] = []
     var names: [String] = []
 
     repeat {
+      skipIgnorableTokens()
       if let stringValue = state.stringLiteralValue {
         // Reserved field name
         names.append(stringValue)
         state.advance()
+        skipIgnorableTokens()
       }
       else if let intValue = state.integerLiteralValue {
         // Reserved field number or range
         let startNumber = Int32(intValue)
         state.advance()
+        skipIgnorableTokens()
 
         if state.checkIdentifier() && state.identifierName == "to" {
           // Range: start to end
           state.advance()  // consume "to"
+          skipIgnorableTokens()
 
           guard let endValue = state.integerLiteralValue else {
             state.addError(
@@ -872,10 +928,20 @@ public final class Parser {
 
           let endNumber = Int32(endValue)
           state.advance()
+          skipIgnorableTokens()
 
           // Add all numbers in range
-          for num in startNumber...endNumber {
-            numbers.append(num)
+          if startNumber <= endNumber {
+            for num in startNumber...endNumber {
+              numbers.append(num)
+            }
+          } else {
+            state.addError(
+              .unexpectedToken(
+                state.currentToken ?? Token(type: .eof, position: Token.Position(line: 0, column: 0)),
+                expected: "valid range (start <= end)"
+              )
+            )
           }
         }
         else {
@@ -895,6 +961,7 @@ public final class Parser {
 
       if state.checkSymbol(",") {
         state.advance()  // consume ","
+        skipIgnorableTokens()
       }
       else {
         break
