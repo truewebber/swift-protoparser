@@ -428,14 +428,15 @@ public final class Parser {
           let scalarTypes: Set<String> = [
             "double", "float", "int32", "int64", "uint32", "uint64",
             "sint32", "sint64", "fixed32", "fixed64", "sfixed32", "sfixed64",
-            "bool", "string", "bytes"
+            "bool", "string", "bytes",
           ]
-          
+
           if scalarTypes.contains(keyword.rawValue) {
             // Scalar field type
             let field = try parseFieldDeclaration()
             fields.append(field)
-          } else {
+          }
+          else {
             state.addError(.unexpectedToken(token, expected: "message element"))
             state.synchronize()
           }
@@ -889,14 +890,14 @@ public final class Parser {
     // Parse oneof body
     while !state.isAtEnd {
       skipIgnorableTokens()
-      
+
       // Check for end of oneof after skipping ignorable tokens
       if state.checkSymbol("}") {
         break
       }
 
-      guard let token = state.currentToken else { 
-        break 
+      guard let token = state.currentToken else {
+        break
       }
 
       switch token.type {
@@ -905,25 +906,26 @@ public final class Parser {
         case .option:
           let option = try parseOptionDeclaration()
           options.append(option)
-        
+
         case .map:
           // Map field in oneof - need to parse as oneof field
           let field = try parseOneofField()
           fields.append(field)
-        
+
         default:
           // Check if this is a scalar type keyword
           let scalarTypes: Set<String> = [
             "double", "float", "int32", "int64", "uint32", "uint64",
             "sint32", "sint64", "fixed32", "fixed64", "sfixed32", "sfixed64",
-            "bool", "string", "bytes"
+            "bool", "string", "bytes",
           ]
-          
+
           if scalarTypes.contains(keyword.rawValue) {
             // Scalar field in oneof
             let field = try parseOneofField()
             fields.append(field)
-          } else {
+          }
+          else {
             state.addError(.unexpectedToken(token, expected: "oneof element"))
             state.synchronize()
           }
@@ -1058,7 +1060,8 @@ public final class Parser {
             for num in startNumber...endNumber {
               numbers.append(num)
             }
-          } else {
+          }
+          else {
             state.addError(
               .unexpectedToken(
                 state.currentToken ?? Token(type: .eof, position: Token.Position(line: 0, column: 0)),
