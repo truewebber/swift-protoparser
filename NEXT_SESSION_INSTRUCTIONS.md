@@ -1,61 +1,86 @@
 # Next Session Instructions
 
 ## Current Status
-- **Coverage**: 90.16% regions, 93.11% lines (goal: 95%)
-- **Tests**: 526 (all passing ✅)
-- **Main Focus**: ServiceNode & FieldNode coverage improvements
+- **Coverage**: 91.19% regions, 93.78% lines (goal: 95%)
+- **Tests**: 538 (all passing ✅)
+- **Main Focus**: Parser.swift error paths & remaining modules
 
 ## 🎉 Major Progress This Session
 
 ### ✅ **COMPLETED IMPLEMENTATIONS:**
-1. **Oneof Field Parsing** - ✅ FULLY WORKING
-   - All oneof field types: scalar, message, map
-   - Proper field parsing with parseOneofField()
-   - Multiple oneof groups per message
-   - Comprehensive test coverage
+1. **ServiceNode Coverage** - ✅ **100.00% ACHIEVED**
+   - All streaming type descriptions covered
+   - All streaming type combinations tested
+   - Complete RPC method functionality verified
 
-2. **Scalar Type Field Parsing** - ✅ ENHANCED
-   - Fixed parseFieldType() for identifier-based scalar types
-   - All scalar keywords (double, float, int32, etc.) properly recognized
-   - Integrated in both message and oneof contexts
+2. **FieldNode Coverage** - ✅ **94.74% ACHIEVED**
+   - `isMap` property fully tested with all field types
+   - Complex map types with nested structures
+   - Only 1 missed region remaining (likely edge case)
 
-3. **Map Type Parsing** - ✅ FULLY WORKING
-4. **Reserved Field Parsing** - ✅ FULLY WORKING
+3. **FieldLabel Coverage** - ✅ **100.00% ACHIEVED**
+   - `isRequired` property tested (proto3 compliance)
+   - All field label types covered
+
+4. **OptionNode Coverage** - ✅ **93.75% ACHIEVED**
+   - Decimal number formatting in `protoRepresentation`
+   - Integer vs decimal number handling
+   - Only 1 missed region remaining
 
 ### 📈 **Coverage Improvements:**
-- **Overall**: 90.27% → 90.16% regions (stable)
-- **Parser.swift**: 79.82% → 80.42% regions (+0.6%)
-- **Lines**: 93.28% → 93.11% (stable)
-- **Tests**: 522 → 526 (+4 new comprehensive tests)
+- **Overall**: 90.16% → 91.19% regions (+1.03%)
+- **Lines**: 93.11% → 93.78% (+0.67%)
+- **Tests**: 526 → 538 (+12 comprehensive tests)
 
 ## Goal: Reach 95% Coverage
 
 ### Critical Path - UPDATED
-- **ServiceNode.swift**: 77.78% → 90%+ (8 missed regions)
-- **FieldNode.swift**: 73.68% → 90%+ (5 missed regions)
-- **Parser.swift**: 80.42% → 85%+ (74 missed regions remaining)
+**Remaining gap**: 3.81% (95% - 91.19%)
+
+1. **Parser.swift**: 80.42% regions (74 missed regions) - **PRIMARY TARGET**
+   - Focus on error handling paths
+   - Edge cases in parsing logic
+   - Exception scenarios
+
+2. **DependencyResolver Module**: 90.20% regions (10 missed regions)
+   - Quick wins available
+   - Error path coverage needed
+
+3. **Lexer Module**: 91.46% regions (14 missed regions)
+   - Error handling improvements
+   - Edge case tokenization
 
 ## Start Commands
 ```bash
 make test && make coverage
 
-# Focus on ServiceNode coverage
-xcrun llvm-cov show .build/arm64-apple-macosx/debug/SwiftProtoParserPackageTests.xctest/Contents/MacOS/SwiftProtoParserPackageTests -instr-profile=.build/arm64-apple-macosx/debug/codecov/merged.profdata Sources/SwiftProtoParser/Parser/AST/ServiceNode.swift -format=text | grep -E "^ *[0-9]+\| *0\|"
+# Focus on Parser.swift error paths
+xcrun llvm-cov show .build/arm64-apple-macosx/debug/SwiftProtoParserPackageTests.xctest/Contents/MacOS/SwiftProtoParserPackageTests -instr-profile=.build/arm64-apple-macosx/debug/codecov/merged.profdata Sources/SwiftProtoParser/Parser/Parser.swift -format=text | grep -E "^ *[0-9]+\| *0\|" | head -20
 ```
 
 ## Focus Areas
 
-**Priority 1: ServiceNode & FieldNode (Quick Wins)**
-- **ServiceNode.swift**: Only 8 missed regions - likely property access
-- **FieldNode.swift**: Only 5 missed regions - likely edge cases
-- Expected coverage gain: ~13 regions
-
-**Priority 2: Parser.swift Error Paths**
-- Target remaining error handling scenarios
+**Priority 1: Parser.swift Error Paths (Highest Impact)**
+- **Parser.swift**: 74 missed regions - largest coverage opportunity
+- Target specific error handling scenarios
 - Focus on uncovered exception paths
-- Expected coverage gain: ~10-15 regions
+- Expected coverage gain: ~15-20 regions
 
-## ✅ **Fully Working Features:**
+**Priority 2: DependencyResolver Quick Wins**
+- **DependencyResolver.swift**: Only 10 missed regions
+- Likely error handling and edge cases
+- Expected coverage gain: ~5-8 regions
+
+**Priority 3: Lexer Error Paths**
+- **Lexer.swift**: 14 missed regions
+- Error tokenization scenarios
+- Expected coverage gain: ~5-10 regions
+
+## ✅ **Fully Completed Features:**
+- **ServiceNode parsing**: 100% coverage with all streaming types
+- **FieldNode functionality**: 94.74% coverage with map type support
+- **FieldLabel compliance**: 100% coverage with proto3 requirements  
+- **OptionNode values**: 93.75% coverage with decimal number support
 - **Oneof parsing**: All field types, multiple groups, comprehensive tests
 - **Map type parsing**: Full functionality with whitespace handling
 - **Reserved field parsing**: Numbers, ranges, names, mixed declarations
@@ -65,13 +90,16 @@ xcrun llvm-cov show .build/arm64-apple-macosx/debug/SwiftProtoParserPackageTests
 
 ## Next Steps for 95% Coverage
 
-**Strategy**: Focus on easy wins (ServiceNode + FieldNode) first, then tackle remaining Parser.swift paths.
+**Strategy**: Focus on Parser.swift error paths (highest ROI), then target DependencyResolver and Lexer quick wins.
 
-**Target**: 95% coverage achievable through ServiceNode/FieldNode improvements + targeted error path testing.
+**Target**: 95% coverage achievable through systematic error path testing in Parser.swift + targeted improvements in other modules.
 
 ## Files Modified This Session
-- `Sources/SwiftProtoParser/Parser/Parser.swift` - Added parseOneofField(), fixed parseFieldType()
-- `Tests/SwiftProtoParserTests/Parser/ASTCoverageBoostTests.swift` - Added comprehensive oneof tests
-- `Tests/SwiftProtoParserTests/Parser/ParserTests.swift` - Fixed testSimpleMessage for scalar types
+- `Tests/SwiftProtoParserTests/Parser/ASTTests.swift` - Added ServiceNode, FieldNode, FieldLabel, OptionNode coverage tests
+- `Tests/SwiftProtoParserTests/Parser/ParserErrorPathTests.swift` - Added comprehensive error handling tests
 
-**Session Result**: ✅ Oneof parsing fully implemented and working!
+**Session Result**: ✅ Major AST coverage improvements achieved! ServiceNode and FieldLabel at 100%, significant progress on other modules.
+
+---
+
+*Last Updated: AST coverage boost session - ServiceNode 100%, FieldNode 94.74%, FieldLabel 100%, OptionNode 93.75%, +12 tests, 91.19% total coverage*

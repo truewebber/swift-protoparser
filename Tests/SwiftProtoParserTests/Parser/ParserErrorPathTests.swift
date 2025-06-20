@@ -526,4 +526,165 @@ final class ParserErrorPathTests: XCTestCase {
       }
     }
   }
+
+  /// Test for internal error handling during parsing
+  func testInternalErrorHandling() {
+    // This test covers the catch block in parseProtoString that handles unexpected errors
+    let malformedInput = "syntax = \"proto3\"; invalid_construct_that_causes_internal_error"
+    let result = SwiftProtoParser.parseProtoString(malformedInput)
+    
+    switch result {
+    case .success:
+      XCTFail("Expected parsing to fail with internal error")
+    case .failure(let error):
+      // Should contain error information
+      XCTAssertFalse(error.description.isEmpty)
+    }
+  }
+
+  /// Test for option value parsing error paths
+  func testOptionValueParsingErrors() {
+    // Test missing option value - covers line 325
+    let missingValueInput = """
+    syntax = "proto3";
+    option java_package =;
+    """
+    
+    let result = SwiftProtoParser.parseProtoString(missingValueInput)
+    switch result {
+    case .success:
+      XCTFail("Expected parsing to fail due to missing option value")
+    case .failure(let error):
+      // Should contain syntax error
+      XCTAssertTrue(error.description.contains("syntax") || error.description.contains("error"))
+    }
+  }
+
+  /// Test for field type parsing error paths
+  func testFieldTypeParsingErrors() {
+    // Test missing field type - covers line 550
+    let missingFieldTypeInput = """
+    syntax = "proto3";
+    message Test {
+      = 1;
+    }
+    """
+    
+    let result = SwiftProtoParser.parseProtoString(missingFieldTypeInput)
+    switch result {
+    case .success:
+      XCTFail("Expected parsing to fail due to missing field type")
+    case .failure(let error):
+      // Should contain syntax error
+      XCTAssertTrue(error.description.contains("syntax") || error.description.contains("error"))
+    }
+  }
+
+  /// Test for package declaration error paths
+  func testPackageDeclarationErrors() {
+    // Test incomplete package declaration - covers lines 230-233
+    let incompletePackageInput = """
+    syntax = "proto3";
+    package com.example
+    """
+    
+    let result = SwiftProtoParser.parseProtoString(incompletePackageInput)
+    switch result {
+    case .success:
+      XCTFail("Expected parsing to fail due to incomplete package declaration")
+    case .failure(let error):
+      // Should have error about missing semicolon or similar
+      XCTAssertFalse(error.description.isEmpty)
+    }
+  }
+
+  /// Test for scalar field type parsing in message context
+  func testScalarFieldTypeInMessageContext() {
+    // Test scalar field type handling - covers lines 435-438
+    let scalarFieldInput = """
+    syntax = "proto3";
+    message Test {
+      double price = 1;
+      float rating = 2;
+      int32 count = 3;
+      int64 timestamp = 4;
+      uint32 id = 5;
+      uint64 big_id = 6;
+      sint32 signed_count = 7;
+      sint64 signed_timestamp = 8;
+      fixed32 fixed_count = 9;
+      fixed64 fixed_timestamp = 10;
+      sfixed32 sfixed_count = 11;
+      sfixed64 sfixed_timestamp = 12;
+      bool active = 13;
+      string name = 14;
+      bytes data = 15;
+    }
+    """
+    
+    let result = SwiftProtoParser.parseProtoString(scalarFieldInput)
+    switch result {
+    case .success(let ast):
+      XCTAssertEqual(ast.messages.count, 1)
+      let message = ast.messages[0]
+      XCTAssertEqual(message.fields.count, 15)
+      
+      // Verify all scalar types are parsed correctly
+      let expectedTypes: [FieldType] = [
+        .double, .float, .int32, .int64, .uint32, .uint64,
+        .sint32, .sint64, .fixed32, .fixed64, .sfixed32, .sfixed64,
+        .bool, .string, .bytes
+      ]
+      
+      for (index, expectedType) in expectedTypes.enumerated() {
+        XCTAssertEqual(message.fields[index].type, expectedType)
+      }
+      
+    case .failure(let error):
+      XCTFail("Expected parsing to succeed, got error: \(error)")
+    }
+  }
+
+  /// Test for comprehensive error handling scenarios
+  func testComprehensiveErrorHandling() {
+    // Test various error scenarios that should trigger different error paths
+    let errorInputs = [
+      // Missing syntax
+      "message Test { string name = 1; }",
+      
+      // Invalid syntax version
+      "syntax = \"proto4\"; message Test { string name = 1; }",
+      
+      // Missing message name
+      "syntax = \"proto3\"; message { string name = 1; }",
+      
+      // Missing field name
+      "syntax = \"proto3\"; message Test { string = 1; }",
+      
+      // Missing field number
+      "syntax = \"proto3\"; message Test { string name; }",
+      
+      // Invalid field number
+      "syntax = \"proto3\"; message Test { string name = 0; }",
+      
+      // Reserved field number
+      "syntax = \"proto3\"; message Test { string name = 19000; }",
+      
+      // Missing enum name
+      "syntax = \"proto3\"; enum { VALUE = 0; }",
+      
+      // Missing service name
+      "syntax = \"proto3\"; service { }",
+    ]
+    
+    for (index, input) in errorInputs.enumerated() {
+      let result = SwiftProtoParser.parseProtoString(input)
+      switch result {
+      case .success:
+        XCTFail("Expected parsing to fail for input \(index): \(input)")
+      case .failure(let error):
+        XCTAssertFalse(error.description.isEmpty, "Expected error for input \(index): \(input)")
+      }
+    }
+  }
 }

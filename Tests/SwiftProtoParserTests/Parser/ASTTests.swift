@@ -789,4 +789,136 @@ final class ASTTests: XCTestCase {
     let description = ast.description
     XCTAssertFalse(description.isEmpty)
   }
+
+  // MARK: - Additional Coverage Tests
+
+  /// Test all RPCStreamingType descriptions to cover the uncovered description property
+  func testRPCStreamingTypeDescriptions() {
+    // Test all streaming type descriptions
+    XCTAssertEqual(RPCStreamingType.unary.description, "Unary")
+    XCTAssertEqual(RPCStreamingType.serverStreaming.description, "Server Streaming")
+    XCTAssertEqual(RPCStreamingType.clientStreaming.description, "Client Streaming")
+    XCTAssertEqual(RPCStreamingType.bidirectionalStreaming.description, "Bidirectional Streaming")
+  }
+
+  /// Test all streaming type combinations to cover uncovered streamingType property paths
+  func testRPCMethodStreamingTypes() {
+    // Unary (false, false) - already covered in existing tests
+    let unaryMethod = RPCMethodNode(
+      name: "UnaryCall",
+      inputType: "Request",
+      outputType: "Response",
+      inputStreaming: false,
+      outputStreaming: false
+    )
+    XCTAssertEqual(unaryMethod.streamingType, .unary)
+
+    // Server streaming (false, true) - covers line 77
+    let serverStreamingMethod = RPCMethodNode(
+      name: "ServerStreamingCall",
+      inputType: "Request",
+      outputType: "Response",
+      inputStreaming: false,
+      outputStreaming: true
+    )
+    XCTAssertEqual(serverStreamingMethod.streamingType, .serverStreaming)
+
+    // Client streaming (true, false) - covers line 79
+    let clientStreamingMethod = RPCMethodNode(
+      name: "ClientStreamingCall",
+      inputType: "Request",
+      outputType: "Response",
+      inputStreaming: true,
+      outputStreaming: false
+    )
+    XCTAssertEqual(clientStreamingMethod.streamingType, .clientStreaming)
+
+    // Bidirectional streaming (true, true) - already covered in existing tests
+    let bidirectionalMethod = RPCMethodNode(
+      name: "BidirectionalCall",
+      inputType: "Request",
+      outputType: "Response",
+      inputStreaming: true,
+      outputStreaming: true
+    )
+    XCTAssertEqual(bidirectionalMethod.streamingType, .bidirectionalStreaming)
+  }
+
+  /// Test FieldNode.isMap property to cover uncovered lines in FieldNode
+  func testFieldNodeIsMapProperty() {
+    // Test map field - covers lines 45-51
+    let mapField = FieldNode(
+      name: "user_scores",
+      type: .map(key: .string, value: .int32),
+      number: 1
+    )
+    XCTAssertTrue(mapField.isMap)
+
+    // Test non-map fields to ensure they return false
+    let stringField = FieldNode(name: "name", type: .string, number: 2)
+    XCTAssertFalse(stringField.isMap)
+
+    let messageField = FieldNode(name: "user", type: .message("User"), number: 3)
+    XCTAssertFalse(messageField.isMap)
+
+    let enumField = FieldNode(name: "status", type: .enumType("Status"), number: 4)
+    XCTAssertFalse(enumField.isMap)
+
+    let scalarField = FieldNode(name: "count", type: .int32, number: 5)
+    XCTAssertFalse(scalarField.isMap)
+  }
+
+  /// Test complex map types to ensure isMap works with nested types
+  func testFieldNodeIsMapWithComplexTypes() {
+    // Test map with message value type
+    let mapWithMessageField = FieldNode(
+      name: "user_data",
+      type: .map(key: .string, value: .message("UserData")),
+      number: 1
+    )
+    XCTAssertTrue(mapWithMessageField.isMap)
+
+    // Test map with enum value type
+    let mapWithEnumField = FieldNode(
+      name: "status_map",
+      type: .map(key: .int32, value: .enumType("Status")),
+      number: 2
+    )
+    XCTAssertTrue(mapWithEnumField.isMap)
+
+    // Test nested map type
+    let nestedMapField = FieldNode(
+      name: "nested_map",
+      type: .map(key: .string, value: .map(key: .int32, value: .bool)),
+      number: 3
+    )
+    XCTAssertTrue(nestedMapField.isMap)
+  }
+
+  /// Test FieldLabel.isRequired property to cover uncovered lines
+  func testFieldLabelIsRequired() {
+    // Test that all field labels return false for isRequired (proto3 doesn't have required fields)
+    XCTAssertFalse(FieldLabel.singular.isRequired)
+    XCTAssertFalse(FieldLabel.optional.isRequired)
+    XCTAssertFalse(FieldLabel.repeated.isRequired)
+  }
+
+  /// Test OptionValue.protoRepresentation for decimal numbers to cover uncovered lines
+  func testOptionValueDecimalNumbers() {
+    // Test integer number (already covered)
+    let integerValue = OptionValue.number(42.0)
+    XCTAssertEqual(integerValue.protoRepresentation, "42")
+    
+    // Test decimal number - covers lines 38-39 in OptionNode.swift
+    let decimalValue = OptionValue.number(3.14159)
+    XCTAssertEqual(decimalValue.protoRepresentation, "3.14159")
+    
+    // Test another decimal number
+    let anotherDecimalValue = OptionValue.number(2.5)
+    XCTAssertEqual(anotherDecimalValue.protoRepresentation, "2.5")
+    
+    // Test negative decimal number
+    let negativeDecimalValue = OptionValue.number(-1.5)
+    XCTAssertEqual(negativeDecimalValue.protoRepresentation, "-1.5")
+  }
 }
