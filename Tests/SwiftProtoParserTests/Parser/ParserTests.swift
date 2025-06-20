@@ -99,22 +99,22 @@ final class ParserTests: XCTestCase {
       let nameField = message.fields[0]
       XCTAssertEqual(nameField.name, "name")
       XCTAssertEqual(nameField.number, 1)
-      if case .message(let typeName) = nameField.type {
-        XCTAssertEqual(typeName, "string")
+      if case .string = nameField.type {
+        XCTAssertTrue(true)
       }
       else {
-        XCTFail("Expected string type for name field")
+        XCTFail("Expected string type for name field, got: \(nameField.type)")
       }
 
       // Test second field
       let ageField = message.fields[1]
       XCTAssertEqual(ageField.name, "age")
       XCTAssertEqual(ageField.number, 2)
-      if case .message(let typeName) = ageField.type {
-        XCTAssertEqual(typeName, "int32")
+      if case .int32 = ageField.type {
+        XCTAssertTrue(true)
       }
       else {
-        XCTFail("Expected int32 type for age field")
+        XCTFail("Expected int32 type for age field, got: \(ageField.type)")
       }
 
     case .failure(let errors):

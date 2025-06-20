@@ -610,9 +610,58 @@ public final class Parser {
       }
 
     case .identifier(let typeName):
-      state.advance()
-      // Could be a message type or enum type - we'll determine this during semantic analysis
-      return .message(typeName)
+      // Check if this identifier is actually a scalar type
+      switch typeName {
+      case "double":
+        state.advance()
+        return .double
+      case "float":
+        state.advance()
+        return .float
+      case "int32":
+        state.advance()
+        return .int32
+      case "int64":
+        state.advance()
+        return .int64
+      case "uint32":
+        state.advance()
+        return .uint32
+      case "uint64":
+        state.advance()
+        return .uint64
+      case "sint32":
+        state.advance()
+        return .sint32
+      case "sint64":
+        state.advance()
+        return .sint64
+      case "fixed32":
+        state.advance()
+        return .fixed32
+      case "fixed64":
+        state.advance()
+        return .fixed64
+      case "sfixed32":
+        state.advance()
+        return .sfixed32
+      case "sfixed64":
+        state.advance()
+        return .sfixed64
+      case "bool":
+        state.advance()
+        return .bool
+      case "string":
+        state.advance()
+        return .string
+      case "bytes":
+        state.advance()
+        return .bytes
+      default:
+        // Not a scalar type - treat as message/enum type
+        state.advance()
+        return .message(typeName)
+      }
 
     default:
       state.addError(.unexpectedToken(token, expected: "field type"))
@@ -838,10 +887,17 @@ public final class Parser {
     var options: [OptionNode] = []
 
     // Parse oneof body
-    while !state.isAtEnd && !state.checkSymbol("}") {
+    while !state.isAtEnd {
       skipIgnorableTokens()
+      
+      // Check for end of oneof after skipping ignorable tokens
+      if state.checkSymbol("}") {
+        break
+      }
 
-      guard let token = state.currentToken else { break }
+      guard let token = state.currentToken else { 
+        break 
+      }
 
       switch token.type {
       case .keyword(let keyword):
@@ -851,8 +907,8 @@ public final class Parser {
           options.append(option)
         
         case .map:
-          // Map field in oneof
-          let field = try parseFieldDeclaration()
+          // Map field in oneof - need to parse as oneof field
+          let field = try parseOneofField()
           fields.append(field)
         
         default:
@@ -865,7 +921,7 @@ public final class Parser {
           
           if scalarTypes.contains(keyword.rawValue) {
             // Scalar field in oneof
-            let field = try parseFieldDeclaration()
+            let field = try parseOneofField()
             fields.append(field)
           } else {
             state.addError(.unexpectedToken(token, expected: "oneof element"))
@@ -874,7 +930,8 @@ public final class Parser {
         }
 
       case .identifier:
-        let field = try parseFieldDeclaration()
+        // Message/enum type field in oneof OR scalar type (since scalar types are identifiers, not keywords)
+        let field = try parseOneofField()
         fields.append(field)
 
       default:
@@ -887,6 +944,72 @@ public final class Parser {
     _ = state.expectSymbol("}")
 
     return OneofNode(name: oneofName, fields: fields, options: options)
+  }
+
+  /// Parses a field within a oneof declaration (no field label allowed).
+  private func parseOneofField() throws -> FieldNode {
+    // In oneof, field label is always singular (no repeated/optional allowed)
+    let label: FieldLabel = .singular
+
+    // Parse field type
+    let fieldType = try parseFieldType()
+    skipIgnorableTokens()
+
+    // Parse field name
+    guard let fieldName = state.identifierName else {
+      state.addError(
+        .unexpectedToken(
+          state.currentToken ?? Token(type: .eof, position: Token.Position(line: 0, column: 0)),
+          expected: "field name"
+        )
+      )
+      return FieldNode(name: "", type: .string, number: 1)
+    }
+
+    state.advance()
+    skipIgnorableTokens()
+    _ = state.expectSymbol("=")
+    skipIgnorableTokens()
+
+    // Parse field number
+    guard let fieldNumberInt = state.integerLiteralValue else {
+      state.addError(
+        .unexpectedToken(
+          state.currentToken ?? Token(type: .eof, position: Token.Position(line: 0, column: 0)),
+          expected: "field number"
+        )
+      )
+      return FieldNode(name: fieldName, type: fieldType, number: 1)
+    }
+
+    let fieldNumber = Int32(fieldNumberInt)
+    state.advance()
+    skipIgnorableTokens()
+
+    // Parse optional field options
+    var options: [OptionNode] = []
+    if state.checkSymbol("[") {
+      options = try parseFieldOptions()
+      skipIgnorableTokens()
+    }
+
+    _ = state.expectSymbol(";")
+
+    // Validate field number
+    if fieldNumber <= 0 || fieldNumber > 536_870_911 {
+      state.addError(.fieldNumberOutOfRange(fieldNumber, at: state.currentPosition))
+    }
+    else if (19000...19999).contains(fieldNumber) {
+      state.addError(.reservedFieldNumber(fieldNumber, at: state.currentPosition))
+    }
+
+    return FieldNode(
+      name: fieldName,
+      type: fieldType,
+      number: fieldNumber,
+      label: label,
+      options: options
+    )
   }
 
   /// Parses a reserved declaration: reserved 1, 2, 3 to 5, "field1", "field2";.
