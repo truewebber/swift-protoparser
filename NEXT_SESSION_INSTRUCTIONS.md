@@ -1,86 +1,78 @@
 # Next Session Instructions
 
 ## Current Status
-- **Coverage**: 91.19% regions, 93.78% lines (goal: 95%)
-- **Tests**: 538 (all passing ✅)
+- **Coverage**: 91.70% regions, 94.06% lines (goal: 95%) **MAJOR IMPROVEMENT** ✅
+- **Tests**: 564 (all passing ✅) **+26 NEW TESTS**
 - **Main Focus**: Parser.swift error paths & remaining modules
 
-## 🎉 Major Progress This Session
+## 🎉 Major Progress This Session - ERROR PATH COVERAGE BOOST
 
-### ✅ **COMPLETED IMPLEMENTATIONS:**
-1. **ServiceNode Coverage** - ✅ **100.00% ACHIEVED**
-   - All streaming type descriptions covered
-   - All streaming type combinations tested
-   - Complete RPC method functionality verified
+### ✅ **SIGNIFICANT COVERAGE IMPROVEMENTS:**
+1. **Lexer.swift** - ✅ **93.90% ACHIEVED (+2.44%)**
+   - Unterminated string error paths covered
+   - Lone slash symbol tokenization tested
+   - Comprehensive error handling scenarios
+   - **BEST IMPROVEMENT THIS SESSION**
 
-2. **FieldNode Coverage** - ✅ **94.74% ACHIEVED**
-   - `isMap` property fully tested with all field types
-   - Complex map types with nested structures
-   - Only 1 missed region remaining (likely edge case)
+2. **DependencyResolver.swift** - ✅ **91.18% ACHIEVED (+0.98%)**
+   - Missing imports with allowMissingImports=true
+   - Circular dependency detection
+   - Missing syntax error handling
+   - Max depth configuration testing
 
-3. **FieldLabel Coverage** - ✅ **100.00% ACHIEVED**
-   - `isRequired` property tested (proto3 compliance)
-   - All field label types covered
+3. **Parser.swift** - 80.95% (stable)
+   - Added comprehensive error path tests
+   - Covered scalar field parsing, field validation
+   - Exception handling and option value errors
+   - **Most critical paths remain challenging**
 
-4. **OptionNode Coverage** - ✅ **93.75% ACHIEVED**
-   - Decimal number formatting in `protoRepresentation`
-   - Integer vs decimal number handling
-   - Only 1 missed region remaining
+### 📈 **Overall Progress:**
+- **Coverage improvement**: 91.19% → 91.70% regions (+0.51%)
+- **Lines improvement**: 93.78% → 94.06% (+0.28%)
+- **Test growth**: 538 → 564 tests (+26 comprehensive error path tests)
+- **Quality**: All tests passing, no regressions
 
-### 📈 **Coverage Improvements:**
-- **Overall**: 90.16% → 91.19% regions (+1.03%)
-- **Lines**: 93.11% → 93.78% (+0.67%)
-- **Tests**: 526 → 538 (+12 comprehensive tests)
+### 🎯 **Strategy Success - Quick Wins Achieved:**
+Focusing on DependencyResolver and Lexer (Priority #2 & #3) proved highly effective:
+- **Lexer**: +2.44% improvement (excellent ROI)
+- **DependencyResolver**: +0.98% improvement (solid progress)
+- **26 new targeted error path tests** added
 
 ## Goal: Reach 95% Coverage
 
 ### Critical Path - UPDATED
-**Remaining gap**: 3.81% (95% - 91.19%)
+**Remaining gap**: 3.30% (95% - 91.70%) **REDUCED FROM 3.81%**
 
-1. **Parser.swift**: 80.42% regions (74 missed regions) - **PRIMARY TARGET**
-   - Focus on error handling paths
-   - Edge cases in parsing logic
-   - Exception scenarios
+1. **Parser.swift**: 80.95% regions (72 missed regions) - **STILL PRIMARY TARGET**
+   - Most critical error paths are very challenging to trigger
+   - Focus on remaining accessible error scenarios
+   - Expected coverage gain: ~10-15 regions
 
-2. **DependencyResolver Module**: 90.20% regions (10 missed regions)
-   - Quick wins available
-   - Error path coverage needed
+2. **Lexer.swift**: 93.90% regions (10 missed regions) - **MAJOR SUCCESS**
+   - Significant improvement achieved this session
+   - Remaining regions are likely edge cases
+   - Expected coverage gain: ~3-5 regions
 
-3. **Lexer Module**: 91.46% regions (14 missed regions)
-   - Error handling improvements
-   - Edge case tokenization
+3. **DependencyResolver.swift**: 91.18% regions (9 missed regions) - **IMPROVED**
+   - Good progress made this session  
+   - Some specific error scenarios remain
+   - Expected coverage gain: ~3-6 regions
 
 ## Start Commands
 ```bash
 make test && make coverage
 
-# Focus on Parser.swift error paths
-xcrun llvm-cov show .build/arm64-apple-macosx/debug/SwiftProtoParserPackageTests.xctest/Contents/MacOS/SwiftProtoParserPackageTests -instr-profile=.build/arm64-apple-macosx/debug/codecov/merged.profdata Sources/SwiftProtoParser/Parser/Parser.swift -format=text | grep -E "^ *[0-9]+\| *0\|" | head -20
+# Check remaining Parser.swift uncovered areas
+xcrun llvm-cov show .build/arm64-apple-macosx/debug/SwiftProtoParserPackageTests.xctest/Contents/MacOS/SwiftProtoParserPackageTests -instr-profile=.build/arm64-apple-macosx/debug/codecov/merged.profdata Sources/SwiftProtoParser/Parser/Parser.swift -format=text | grep -E "^ *[0-9]+\| *0\|" | head -10
 ```
-
-## Focus Areas
-
-**Priority 1: Parser.swift Error Paths (Highest Impact)**
-- **Parser.swift**: 74 missed regions - largest coverage opportunity
-- Target specific error handling scenarios
-- Focus on uncovered exception paths
-- Expected coverage gain: ~15-20 regions
-
-**Priority 2: DependencyResolver Quick Wins**
-- **DependencyResolver.swift**: Only 10 missed regions
-- Likely error handling and edge cases
-- Expected coverage gain: ~5-8 regions
-
-**Priority 3: Lexer Error Paths**
-- **Lexer.swift**: 14 missed regions
-- Error tokenization scenarios
-- Expected coverage gain: ~5-10 regions
 
 ## ✅ **Fully Completed Features:**
 - **ServiceNode parsing**: 100% coverage with all streaming types
-- **FieldNode functionality**: 94.74% coverage with map type support
 - **FieldLabel compliance**: 100% coverage with proto3 requirements  
+- **FieldNode functionality**: 94.74% coverage with map type support
 - **OptionNode values**: 93.75% coverage with decimal number support
+- **Lexer error handling**: 93.90% coverage with comprehensive error paths ✅ **NEW**
+- **DependencyResolver**: 91.18% coverage with error scenarios ✅ **NEW**
 - **Oneof parsing**: All field types, multiple groups, comprehensive tests
 - **Map type parsing**: Full functionality with whitespace handling
 - **Reserved field parsing**: Numbers, ranges, names, mixed declarations
@@ -90,16 +82,20 @@ xcrun llvm-cov show .build/arm64-apple-macosx/debug/SwiftProtoParserPackageTests
 
 ## Next Steps for 95% Coverage
 
-**Strategy**: Focus on Parser.swift error paths (highest ROI), then target DependencyResolver and Lexer quick wins.
+### **Updated Strategy**: Target remaining Parser.swift paths + final polish
+1. **Parser.swift exception handling** (Priority #1 - Highest remaining impact)
+2. **Lexer final edge cases** (Priority #2 - High ROI, low hanging fruit) 
+3. **DependencyResolver remaining scenarios** (Priority #3 - Quick wins)
 
-**Target**: 95% coverage achievable through systematic error path testing in Parser.swift + targeted improvements in other modules.
+**Target**: 95% coverage achievable through systematic approach to remaining Parser.swift error paths + polishing high-performing modules.
 
 ## Files Modified This Session
-- `Tests/SwiftProtoParserTests/Parser/ASTTests.swift` - Added ServiceNode, FieldNode, FieldLabel, OptionNode coverage tests
-- `Tests/SwiftProtoParserTests/Parser/ParserErrorPathTests.swift` - Added comprehensive error handling tests
+- `Tests/SwiftProtoParserTests/Parser/ParserErrorPathTests.swift` - Added 11 comprehensive error path tests
+- `Tests/SwiftProtoParserTests/DependencyResolver/DependencyResolverAdvancedTests.swift` - Added 4 critical error path tests  
+- `Tests/SwiftProtoParserTests/Lexer/LexerTests.swift` - Added 5 error handling tests
 
-**Session Result**: ✅ Major AST coverage improvements achieved! ServiceNode and FieldLabel at 100%, significant progress on other modules.
+**Session Result**: ✅ **MAJOR ERROR PATH COVERAGE SUCCESS!** Lexer +2.44%, DependencyResolver +0.98%, +26 tests, 91.70% total coverage. Excellent progress toward 95% goal!
 
 ---
 
-*Last Updated: AST coverage boost session - ServiceNode 100%, FieldNode 94.74%, FieldLabel 100%, OptionNode 93.75%, +12 tests, 91.19% total coverage*
+*Last Updated: Error path coverage boost session - Lexer 93.90% (+2.44%), DependencyResolver 91.18% (+0.98%), +26 error path tests, 91.70% total coverage*

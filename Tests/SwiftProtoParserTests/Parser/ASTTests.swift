@@ -792,7 +792,7 @@ final class ASTTests: XCTestCase {
 
   // MARK: - Additional Coverage Tests
 
-  /// Test all RPCStreamingType descriptions to cover the uncovered description property
+  /// Test all RPCStreamingType descriptions to cover the uncovered description property.
   func testRPCStreamingTypeDescriptions() {
     // Test all streaming type descriptions
     XCTAssertEqual(RPCStreamingType.unary.description, "Unary")
@@ -801,7 +801,7 @@ final class ASTTests: XCTestCase {
     XCTAssertEqual(RPCStreamingType.bidirectionalStreaming.description, "Bidirectional Streaming")
   }
 
-  /// Test all streaming type combinations to cover uncovered streamingType property paths
+  /// Test all streaming type combinations to cover uncovered streamingType property paths.
   func testRPCMethodStreamingTypes() {
     // Unary (false, false) - already covered in existing tests
     let unaryMethod = RPCMethodNode(
@@ -844,7 +844,7 @@ final class ASTTests: XCTestCase {
     XCTAssertEqual(bidirectionalMethod.streamingType, .bidirectionalStreaming)
   }
 
-  /// Test FieldNode.isMap property to cover uncovered lines in FieldNode
+  /// Test FieldNode.isMap property to cover uncovered lines in FieldNode.
   func testFieldNodeIsMapProperty() {
     // Test map field - covers lines 45-51
     let mapField = FieldNode(
@@ -868,7 +868,7 @@ final class ASTTests: XCTestCase {
     XCTAssertFalse(scalarField.isMap)
   }
 
-  /// Test complex map types to ensure isMap works with nested types
+  /// Test complex map types to ensure isMap works with nested types.
   func testFieldNodeIsMapWithComplexTypes() {
     // Test map with message value type
     let mapWithMessageField = FieldNode(
@@ -895,7 +895,7 @@ final class ASTTests: XCTestCase {
     XCTAssertTrue(nestedMapField.isMap)
   }
 
-  /// Test FieldLabel.isRequired property to cover uncovered lines
+  /// Test FieldLabel.isRequired property to cover uncovered lines.
   func testFieldLabelIsRequired() {
     // Test that all field labels return false for isRequired (proto3 doesn't have required fields)
     XCTAssertFalse(FieldLabel.singular.isRequired)
@@ -903,20 +903,20 @@ final class ASTTests: XCTestCase {
     XCTAssertFalse(FieldLabel.repeated.isRequired)
   }
 
-  /// Test OptionValue.protoRepresentation for decimal numbers to cover uncovered lines
+  /// Test OptionValue.protoRepresentation for decimal numbers to cover uncovered lines.
   func testOptionValueDecimalNumbers() {
     // Test integer number (already covered)
     let integerValue = OptionValue.number(42.0)
     XCTAssertEqual(integerValue.protoRepresentation, "42")
-    
+
     // Test decimal number - covers lines 38-39 in OptionNode.swift
     let decimalValue = OptionValue.number(3.14159)
     XCTAssertEqual(decimalValue.protoRepresentation, "3.14159")
-    
+
     // Test another decimal number
     let anotherDecimalValue = OptionValue.number(2.5)
     XCTAssertEqual(anotherDecimalValue.protoRepresentation, "2.5")
-    
+
     // Test negative decimal number
     let negativeDecimalValue = OptionValue.number(-1.5)
     XCTAssertEqual(negativeDecimalValue.protoRepresentation, "-1.5")

@@ -527,12 +527,12 @@ final class ParserErrorPathTests: XCTestCase {
     }
   }
 
-  /// Test for internal error handling during parsing
+  /// Test for internal error handling during parsing.
   func testInternalErrorHandling() {
     // This test covers the catch block in parseProtoString that handles unexpected errors
     let malformedInput = "syntax = \"proto3\"; invalid_construct_that_causes_internal_error"
     let result = SwiftProtoParser.parseProtoString(malformedInput)
-    
+
     switch result {
     case .success:
       XCTFail("Expected parsing to fail with internal error")
@@ -542,14 +542,14 @@ final class ParserErrorPathTests: XCTestCase {
     }
   }
 
-  /// Test for option value parsing error paths
+  /// Test for option value parsing error paths.
   func testOptionValueParsingErrors() {
     // Test missing option value - covers line 325
     let missingValueInput = """
-    syntax = "proto3";
-    option java_package =;
-    """
-    
+      syntax = "proto3";
+      option java_package =;
+      """
+
     let result = SwiftProtoParser.parseProtoString(missingValueInput)
     switch result {
     case .success:
@@ -560,16 +560,16 @@ final class ParserErrorPathTests: XCTestCase {
     }
   }
 
-  /// Test for field type parsing error paths
+  /// Test for field type parsing error paths.
   func testFieldTypeParsingErrors() {
     // Test missing field type - covers line 550
     let missingFieldTypeInput = """
-    syntax = "proto3";
-    message Test {
-      = 1;
-    }
-    """
-    
+      syntax = "proto3";
+      message Test {
+        = 1;
+      }
+      """
+
     let result = SwiftProtoParser.parseProtoString(missingFieldTypeInput)
     switch result {
     case .success:
@@ -580,14 +580,14 @@ final class ParserErrorPathTests: XCTestCase {
     }
   }
 
-  /// Test for package declaration error paths
+  /// Test for package declaration error paths.
   func testPackageDeclarationErrors() {
     // Test incomplete package declaration - covers lines 230-233
     let incompletePackageInput = """
-    syntax = "proto3";
-    package com.example
-    """
-    
+      syntax = "proto3";
+      package com.example
+      """
+
     let result = SwiftProtoParser.parseProtoString(incompletePackageInput)
     switch result {
     case .success:
@@ -598,85 +598,85 @@ final class ParserErrorPathTests: XCTestCase {
     }
   }
 
-  /// Test for scalar field type parsing in message context
+  /// Test for scalar field type parsing in message context.
   func testScalarFieldTypeInMessageContext() {
     // Test scalar field type handling - covers lines 435-438
     let scalarFieldInput = """
-    syntax = "proto3";
-    message Test {
-      double price = 1;
-      float rating = 2;
-      int32 count = 3;
-      int64 timestamp = 4;
-      uint32 id = 5;
-      uint64 big_id = 6;
-      sint32 signed_count = 7;
-      sint64 signed_timestamp = 8;
-      fixed32 fixed_count = 9;
-      fixed64 fixed_timestamp = 10;
-      sfixed32 sfixed_count = 11;
-      sfixed64 sfixed_timestamp = 12;
-      bool active = 13;
-      string name = 14;
-      bytes data = 15;
-    }
-    """
-    
+      syntax = "proto3";
+      message Test {
+        double price = 1;
+        float rating = 2;
+        int32 count = 3;
+        int64 timestamp = 4;
+        uint32 id = 5;
+        uint64 big_id = 6;
+        sint32 signed_count = 7;
+        sint64 signed_timestamp = 8;
+        fixed32 fixed_count = 9;
+        fixed64 fixed_timestamp = 10;
+        sfixed32 sfixed_count = 11;
+        sfixed64 sfixed_timestamp = 12;
+        bool active = 13;
+        string name = 14;
+        bytes data = 15;
+      }
+      """
+
     let result = SwiftProtoParser.parseProtoString(scalarFieldInput)
     switch result {
     case .success(let ast):
       XCTAssertEqual(ast.messages.count, 1)
       let message = ast.messages[0]
       XCTAssertEqual(message.fields.count, 15)
-      
+
       // Verify all scalar types are parsed correctly
       let expectedTypes: [FieldType] = [
         .double, .float, .int32, .int64, .uint32, .uint64,
         .sint32, .sint64, .fixed32, .fixed64, .sfixed32, .sfixed64,
-        .bool, .string, .bytes
+        .bool, .string, .bytes,
       ]
-      
+
       for (index, expectedType) in expectedTypes.enumerated() {
         XCTAssertEqual(message.fields[index].type, expectedType)
       }
-      
+
     case .failure(let error):
       XCTFail("Expected parsing to succeed, got error: \(error)")
     }
   }
 
-  /// Test for comprehensive error handling scenarios
+  /// Test for comprehensive error handling scenarios.
   func testComprehensiveErrorHandling() {
     // Test various error scenarios that should trigger different error paths
     let errorInputs = [
       // Missing syntax
       "message Test { string name = 1; }",
-      
+
       // Invalid syntax version
       "syntax = \"proto4\"; message Test { string name = 1; }",
-      
+
       // Missing message name
       "syntax = \"proto3\"; message { string name = 1; }",
-      
+
       // Missing field name
       "syntax = \"proto3\"; message Test { string = 1; }",
-      
+
       // Missing field number
       "syntax = \"proto3\"; message Test { string name; }",
-      
+
       // Invalid field number
       "syntax = \"proto3\"; message Test { string name = 0; }",
-      
+
       // Reserved field number
       "syntax = \"proto3\"; message Test { string name = 19000; }",
-      
+
       // Missing enum name
       "syntax = \"proto3\"; enum { VALUE = 0; }",
-      
+
       // Missing service name
       "syntax = \"proto3\"; service { }",
     ]
-    
+
     for (index, input) in errorInputs.enumerated() {
       let result = SwiftProtoParser.parseProtoString(input)
       switch result {
@@ -685,6 +685,517 @@ final class ParserErrorPathTests: XCTestCase {
       case .failure(let error):
         XCTAssertFalse(error.description.isEmpty, "Expected error for input \(index): \(input)")
       }
+    }
+  }
+
+  // MARK: - Critical Error Path Tests (Parser.swift Coverage)
+
+  /// Test exception handling in main parsing function (lines 49-57).
+  func testParserExceptionHandling() {
+    // Create a parser that will cause an unexpected internal error
+    let invalidInput = "syntax = \"proto3\";\n\nmessage Test {\n  \0invalid_token_causing_internal_error\n}"
+
+    // This should trigger the catch block and internal error handling
+    let result = SwiftProtoParser.parseProtoString(invalidInput)
+
+    switch result {
+    case .success:
+      XCTFail("Expected parsing to fail with internal error")
+    case .failure(_):
+      // Should contain an error from parsing
+      // The error should be handled gracefully without crashing
+      XCTAssertTrue(true)  // If we reach here, exception handling worked
+    }
+  }
+
+  /// Test scalar field type parsing in message (lines 435-438).
+  func testScalarFieldTypeInMessage() {
+    let input = """
+      syntax = "proto3";
+
+      message Test {
+        double score = 1;
+        float value = 2; 
+        int32 count = 3;
+        bool flag = 4;
+        string name = 5;
+        bytes data = 6;
+      }
+      """
+
+    let result = SwiftProtoParser.parseProtoString(input)
+
+    switch result {
+    case .success(let ast):
+      XCTAssertEqual(ast.messages.count, 1)
+      let message = ast.messages[0]
+      XCTAssertEqual(message.fields.count, 6)
+
+      // Verify scalar types are correctly parsed
+      if case .double = message.fields[0].type {
+        XCTAssertTrue(true)
+      }
+      else {
+        XCTFail("Expected double type")
+      }
+      if case .float = message.fields[1].type {
+        XCTAssertTrue(true)
+      }
+      else {
+        XCTFail("Expected float type")
+      }
+      if case .int32 = message.fields[2].type {
+        XCTAssertTrue(true)
+      }
+      else {
+        XCTFail("Expected int32 type")
+      }
+      if case .bool = message.fields[3].type {
+        XCTAssertTrue(true)
+      }
+      else {
+        XCTFail("Expected bool type")
+      }
+      if case .string = message.fields[4].type {
+        XCTAssertTrue(true)
+      }
+      else {
+        XCTFail("Expected string type")
+      }
+      if case .bytes = message.fields[5].type {
+        XCTAssertTrue(true)
+      }
+      else {
+        XCTFail("Expected bytes type")
+      }
+
+    case .failure(let error):
+      XCTFail("Expected parsing to succeed, got error: \(error)")
+    }
+  }
+
+  /// Test field type error handling (lines 550-551).
+  func testFieldTypeMissingError() {
+    let input = """
+      syntax = "proto3";
+
+      message Test {
+        = 1;  // Missing field type
+      }
+      """
+
+    let result = SwiftProtoParser.parseProtoString(input)
+
+    switch result {
+    case .success:
+      XCTFail("Expected parsing to fail due to missing field type")
+    case .failure(_):
+      // Should contain syntax error for missing field type
+      XCTAssertTrue(true)  // If we reach here, error handling worked
+    }
+  }
+
+  /// Test scalar type keywords parsing (lines 560-568).
+  func testScalarTypeKeywordsParsing() {
+    let input = """
+      syntax = "proto3";
+
+      message Test {
+        sint32 signed_int = 1;
+        uint64 unsigned_long = 2;
+        fixed32 fixed_int = 3;
+        sfixed64 signed_fixed = 4;
+      }
+      """
+
+    let result = SwiftProtoParser.parseProtoString(input)
+
+    switch result {
+    case .success(let ast):
+      XCTAssertEqual(ast.messages.count, 1)
+      let message = ast.messages[0]
+      XCTAssertEqual(message.fields.count, 4)
+
+      // Verify all scalar type keywords are handled
+      if case .sint32 = message.fields[0].type {
+        XCTAssertTrue(true)
+      }
+      else {
+        XCTFail("Expected sint32 type")
+      }
+      if case .uint64 = message.fields[1].type {
+        XCTAssertTrue(true)
+      }
+      else {
+        XCTFail("Expected uint64 type")
+      }
+      if case .fixed32 = message.fields[2].type {
+        XCTAssertTrue(true)
+      }
+      else {
+        XCTFail("Expected fixed32 type")
+      }
+      if case .sfixed64 = message.fields[3].type {
+        XCTAssertTrue(true)
+      }
+      else {
+        XCTFail("Expected sfixed64 type")
+      }
+
+    case .failure(let error):
+      XCTFail("Expected parsing to succeed, got error: \(error)")
+    }
+  }
+
+  /// Test field name missing error (lines 967-968).
+  func testFieldNameMissingError() {
+    let input = """
+      syntax = "proto3";
+
+      message Test {
+        string = 1;  // Missing field name
+      }
+      """
+
+    let result = SwiftProtoParser.parseProtoString(input)
+
+    switch result {
+    case .success:
+      XCTFail("Expected parsing to fail due to missing field name")
+    case .failure(_):
+      // Should contain syntax error for missing field name
+      XCTAssertTrue(true)  // If we reach here, error handling worked
+    }
+  }
+
+  /// Test field number missing error (lines 978-984).
+  func testFieldNumberMissingError() {
+    let input = """
+      syntax = "proto3";
+
+      message Test {
+        string name =;  // Missing field number
+      }
+      """
+
+    let result = SwiftProtoParser.parseProtoString(input)
+
+    switch result {
+    case .success:
+      XCTFail("Expected parsing to fail due to missing field number")
+    case .failure(_):
+      // Should contain syntax error for missing field number
+      XCTAssertTrue(true)  // If we reach here, error handling worked
+    }
+  }
+
+  /// Test field number out of range validation (lines 1002-1003).
+  func testFieldNumberOutOfRange() {
+    let input = """
+      syntax = "proto3";
+
+      message Test {
+        string name = 536870912;  // Out of range (> 536,870,911)
+      }
+      """
+
+    let result = SwiftProtoParser.parseProtoString(input)
+
+    switch result {
+    case .success:
+      XCTFail("Expected parsing to fail due to field number out of range")
+    case .failure(_):
+      // Should contain error for out of range field number
+      XCTAssertTrue(true)  // If we reach here, error handling worked
+    }
+  }
+
+  /// Test reserved field number validation (lines 1005-1006).
+  func testReservedFieldNumberValidation() {
+    let input = """
+      syntax = "proto3";
+
+      message Test {
+        string name = 19500;  // Reserved range (19000-19999)
+      }
+      """
+
+    let result = SwiftProtoParser.parseProtoString(input)
+
+    switch result {
+    case .success:
+      XCTFail("Expected parsing to fail due to reserved field number")
+    case .failure(_):
+      // Should contain error for reserved field number
+      XCTAssertTrue(true)  // If we reach here, error handling worked
+    }
+  }
+
+  /// Test oneof field options parsing (lines 994-995).
+  func testOneofFieldWithOptions() {
+    let input = """
+      syntax = "proto3";
+
+      message Test {
+        oneof choice {
+          string name = 1 [deprecated = true];
+          int32 age = 2 [packed = true];
+        }
+      }
+      """
+
+    let result = SwiftProtoParser.parseProtoString(input)
+
+    switch result {
+    case .success(let ast):
+      XCTAssertEqual(ast.messages.count, 1)
+      let message = ast.messages[0]
+      XCTAssertEqual(message.oneofGroups.count, 1)
+
+      let oneof = message.oneofGroups[0]
+      XCTAssertEqual(oneof.fields.count, 2)
+
+      // Verify options are parsed for oneof fields
+      XCTAssertEqual(oneof.fields[0].options.count, 1)
+      XCTAssertEqual(oneof.fields[1].options.count, 1)
+
+    case .failure(let error):
+      XCTFail("Expected parsing to succeed, got error: \(error)")
+    }
+  }
+
+  /// Test option value missing error (lines 325-326).
+  func testOptionValueMissingError() {
+    let input = """
+      syntax = "proto3";
+
+      option java_package =;  // Missing option value
+
+      message Test {
+        string name = 1;
+      }
+      """
+
+    let result = SwiftProtoParser.parseProtoString(input)
+
+    switch result {
+    case .success:
+      XCTFail("Expected parsing to fail due to missing option value")
+    case .failure(_):
+      // Should contain syntax error for missing option value
+      XCTAssertTrue(true)  // If we reach here, error handling worked
+    }
+  }
+
+  /// Test complete scalar types coverage as identifiers.
+  func testAllScalarTypesAsIdentifiers() {
+    let input = """
+      syntax = "proto3";
+
+      message Test {
+        double d = 1;
+        float f = 2;
+        int32 i32 = 3;
+        int64 i64 = 4;
+        uint32 u32 = 5;
+        uint64 u64 = 6;
+        sint32 s32 = 7;
+        sint64 s64 = 8;
+        fixed32 f32 = 9;
+        fixed64 f64 = 10;
+        sfixed32 sf32 = 11;
+        sfixed64 sf64 = 12;
+        bool b = 13;
+        string s = 14;
+        bytes by = 15;
+      }
+      """
+
+    let result = SwiftProtoParser.parseProtoString(input)
+
+    switch result {
+    case .success(let ast):
+      XCTAssertEqual(ast.messages.count, 1)
+      let message = ast.messages[0]
+      XCTAssertEqual(message.fields.count, 15)
+
+      // Verify all scalar types are correctly identified using protoTypeName
+      let expectedTypeNames = [
+        "double", "float", "int32", "int64", "uint32", "uint64",
+        "sint32", "sint64", "fixed32", "fixed64", "sfixed32", "sfixed64",
+        "bool", "string", "bytes",
+      ]
+
+      for (index, expectedTypeName) in expectedTypeNames.enumerated() {
+        XCTAssertEqual(message.fields[index].type.protoTypeName, expectedTypeName)
+      }
+
+    case .failure(let error):
+      XCTFail("Expected parsing to succeed, got error: \(error)")
+    }
+  }
+
+  // MARK: - Precise Error Path Coverage Tests
+
+  /// Test package parsing completion (lines 230-233) - simple package without dots.
+  func testSimplePackageCompletion() {
+    let input = """
+      syntax = "proto3";
+
+      package simple;
+
+      message Test {
+        string name = 1;
+      }
+      """
+
+    let result = SwiftProtoParser.parseProtoString(input)
+
+    switch result {
+    case .success(let ast):
+      // This should cover lines 230-233 where package parsing completes
+      XCTAssertEqual(ast.package, "simple")
+      XCTAssertEqual(ast.messages.count, 1)
+
+    case .failure(let error):
+      XCTFail("Expected parsing to succeed, got error: \(error)")
+    }
+  }
+
+  /// Test option value at end of file (lines 325-326) - triggers unexpectedEndOfInput.
+  func testOptionValueAtEOF() {
+    let input = """
+      syntax = "proto3";
+
+      option java_package =
+      """
+    // Note: Missing value and semicolon at EOF
+
+    let result = SwiftProtoParser.parseProtoString(input)
+
+    switch result {
+    case .success:
+      XCTFail("Expected parsing to fail due to EOF after option =")
+    case .failure(_):
+      // This should cover lines 325-326 - unexpectedEndOfInput for option value
+      XCTAssertTrue(true)  // If we reach here, error path was covered
+    }
+  }
+
+  /// Test reserved declaration completion (lines 1096-1099).
+  func testReservedDeclarationCompletion() {
+    let input = """
+      syntax = "proto3";
+
+      message Test {
+        reserved 1, 2, "old_field";
+        string name = 10;
+      }
+      """
+
+    let result = SwiftProtoParser.parseProtoString(input)
+
+    switch result {
+    case .success(let ast):
+      // This should cover reserved parsing completion
+      XCTAssertEqual(ast.messages.count, 1)
+      let message = ast.messages[0]
+      XCTAssertEqual(message.reservedNumbers, [1, 2])
+      XCTAssertEqual(message.reservedNames, ["old_field"])
+
+    case .failure(let error):
+      XCTFail("Expected parsing to succeed, got error: \(error)")
+    }
+  }
+
+  /// Test package parsing with keywords (covers alternative package path).
+  func testPackageWithKeywordComponents() {
+    let input = """
+      syntax = "proto3";
+
+      package service.message.enum;
+
+      message Test {
+        string name = 1;
+      }
+      """
+
+    let result = SwiftProtoParser.parseProtoString(input)
+
+    switch result {
+    case .success(let ast):
+      // This should cover package parsing with keyword components
+      XCTAssertEqual(ast.package, "service.message.enum")
+
+    case .failure(let error):
+      XCTFail("Expected parsing to succeed, got error: \(error)")
+    }
+  }
+
+  /// Test service parsing completion (line 1272) - service method break.
+  func testServiceParsingCompletion() {
+    let input = """
+      syntax = "proto3";
+
+      service TestService {
+        rpc GetUser(UserRequest) returns (UserResponse);
+      }
+
+      message UserRequest {
+        string id = 1;
+      }
+
+      message UserResponse {
+        string name = 1;
+      }
+      """
+
+    let result = SwiftProtoParser.parseProtoString(input)
+
+    switch result {
+    case .success(let ast):
+      // This should cover service parsing completion
+      XCTAssertEqual(ast.services.count, 1)
+      let service = ast.services[0]
+      XCTAssertEqual(service.name, "TestService")
+      XCTAssertEqual(service.methods.count, 1)
+
+    case .failure(let error):
+      XCTFail("Expected parsing to succeed, got error: \(error)")
+    }
+  }
+
+  /// Test scalar field parsing in message default branch (lines 435-438).
+  func testScalarFieldInMessageDefault() {
+    let input = """
+      syntax = "proto3";
+
+      message Test {
+        // This should trigger the default scalar field parsing branch
+        uint32 count = 1;
+        sint64 value = 2;
+        fixed64 timestamp = 3;
+      }
+      """
+
+    let result = SwiftProtoParser.parseProtoString(input)
+
+    switch result {
+    case .success(let ast):
+      XCTAssertEqual(ast.messages.count, 1)
+      let message = ast.messages[0]
+      XCTAssertEqual(message.fields.count, 3)
+
+      // Verify the scalar types that go through the default branch
+      if case .uint32 = message.fields[0].type {
+        XCTAssertTrue(true)
+      }
+      else {
+        XCTFail("Expected uint32 type")
+      }
+
+    case .failure(let error):
+      XCTFail("Expected parsing to succeed, got error: \(error)")
     }
   }
 }
