@@ -115,6 +115,7 @@ public final class Parser {
 
         default:
           state.addError(.unexpectedToken(token, expected: "top-level declaration"))
+          state.advance()
           state.synchronize()
         }
 
@@ -426,6 +427,7 @@ public final class Parser {
         default:
           // Other keywords are not valid message elements
           state.addError(.unexpectedToken(token, expected: "message element"))
+          state.advance()
           state.synchronize()
         }
 
@@ -547,6 +549,7 @@ public final class Parser {
 
       // Other keywords are not valid field types
       state.addError(.unexpectedToken(token, expected: "field type"))
+      state.advance()
       return .string
 
     case .identifier(let typeName):
@@ -605,6 +608,7 @@ public final class Parser {
 
     default:
       state.addError(.unexpectedToken(token, expected: "field type"))
+      state.advance()
       return .string
     }
   }
@@ -747,6 +751,7 @@ public final class Parser {
 
       default:
         state.addError(.unexpectedToken(token, expected: "enum element"))
+        state.advance()
         state.synchronize()
       }
     }
@@ -854,6 +859,7 @@ public final class Parser {
         default:
           // Other keywords are not valid oneof elements
           state.addError(.unexpectedToken(token, expected: "oneof element"))
+          state.advance()
           state.synchronize()
         }
 
@@ -864,6 +870,7 @@ public final class Parser {
 
       default:
         state.addError(.unexpectedToken(token, expected: "oneof element"))
+        state.advance()
         state.synchronize()
       }
     }
@@ -1069,6 +1076,7 @@ public final class Parser {
 
       default:
         state.addError(.unexpectedToken(token, expected: "service element"))
+        state.advance()
         state.synchronize()
       }
     }
@@ -1165,6 +1173,7 @@ public final class Parser {
               expected: "option or '}'"
             )
           )
+          state.advance()
           state.synchronize()
           break
         }
