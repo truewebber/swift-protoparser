@@ -424,22 +424,9 @@ public final class Parser {
           fields.append(field)
 
         default:
-          // Check if this is a scalar type keyword that starts a field
-          let scalarTypes: Set<String> = [
-            "double", "float", "int32", "int64", "uint32", "uint64",
-            "sint32", "sint64", "fixed32", "fixed64", "sfixed32", "sfixed64",
-            "bool", "string", "bytes",
-          ]
-
-          if scalarTypes.contains(keyword.rawValue) {
-            // Scalar field type
-            let field = try parseFieldDeclaration()
-            fields.append(field)
-          }
-          else {
-            state.addError(.unexpectedToken(token, expected: "message element"))
-            state.synchronize()
-          }
+          // Other keywords are not valid message elements
+          state.addError(.unexpectedToken(token, expected: "message element"))
+          state.synchronize()
         }
 
       case .identifier:
@@ -558,57 +545,9 @@ public final class Parser {
         return try parseMapType()
       }
 
-      // Handle scalar types
-      switch keyword.rawValue {
-      case "double":
-        state.advance()
-        return .double
-      case "float":
-        state.advance()
-        return .float
-      case "int32":
-        state.advance()
-        return .int32
-      case "int64":
-        state.advance()
-        return .int64
-      case "uint32":
-        state.advance()
-        return .uint32
-      case "uint64":
-        state.advance()
-        return .uint64
-      case "sint32":
-        state.advance()
-        return .sint32
-      case "sint64":
-        state.advance()
-        return .sint64
-      case "fixed32":
-        state.advance()
-        return .fixed32
-      case "fixed64":
-        state.advance()
-        return .fixed64
-      case "sfixed32":
-        state.advance()
-        return .sfixed32
-      case "sfixed64":
-        state.advance()
-        return .sfixed64
-      case "bool":
-        state.advance()
-        return .bool
-      case "string":
-        state.advance()
-        return .string
-      case "bytes":
-        state.advance()
-        return .bytes
-      default:
-        state.addError(.unexpectedToken(token, expected: "field type"))
-        return .string
-      }
+      // Other keywords are not valid field types
+      state.addError(.unexpectedToken(token, expected: "field type"))
+      return .string
 
     case .identifier(let typeName):
       // Check if this identifier is actually a scalar type
@@ -913,22 +852,9 @@ public final class Parser {
           fields.append(field)
 
         default:
-          // Check if this is a scalar type keyword
-          let scalarTypes: Set<String> = [
-            "double", "float", "int32", "int64", "uint32", "uint64",
-            "sint32", "sint64", "fixed32", "fixed64", "sfixed32", "sfixed64",
-            "bool", "string", "bytes",
-          ]
-
-          if scalarTypes.contains(keyword.rawValue) {
-            // Scalar field in oneof
-            let field = try parseOneofField()
-            fields.append(field)
-          }
-          else {
-            state.addError(.unexpectedToken(token, expected: "oneof element"))
-            state.synchronize()
-          }
+          // Other keywords are not valid oneof elements
+          state.addError(.unexpectedToken(token, expected: "oneof element"))
+          state.synchronize()
         }
 
       case .identifier:

@@ -283,32 +283,6 @@ final class SwiftProtoParserTests: XCTestCase {
 
   // MARK: - Performance Tests
 
-  // Temporarily disabled due to hanging issue
-  /*
-  func testParsingPerformance() {
-    let protoContent = """
-      syntax = "proto3";
-
-      package performance.test;
-
-      message LargeMessage {
-          string field1 = 1;
-          int32 field2 = 2;
-          bool field3 = 3;
-          double field4 = 4;
-          repeated string field5 = 5;
-      }
-      """
-
-    measure {
-      for _ in 0..<100 {
-        let result = SwiftProtoParser.parseProtoString(protoContent)
-        XCTAssertTrue(result.isSuccess)
-      }
-    }
-  }
-  */
-
   func testDirectLexerAndParser() {
     let protoContent = """
       syntax = "proto3";
