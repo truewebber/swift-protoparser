@@ -2616,9 +2616,9 @@ final class ParserErrorPathTests: XCTestCase {
       syntax = "proto3";
       option java_package = \(extremeInteger);
       """
-    
+
     let result = SwiftProtoParser.parseProtoString(protoContent)
-    
+
     // Regardless of success or failure, this should not crash
     // The catch block should handle any potential system exceptions gracefully
     switch result {
@@ -2641,8 +2641,8 @@ final class ParserErrorPathTests: XCTestCase {
   func testParseExceptionHandlingWithExtremeNesting() {
     // Create deeply nested structures that might cause stack overflow or memory issues
     var nestedMessages = "syntax = \"proto3\";\n"
-    let maxNesting = 1000 // Extreme nesting depth
-    
+    let maxNesting = 1000  // Extreme nesting depth
+
     // Build deeply nested message structure
     for i in 0..<maxNesting {
       nestedMessages += "message Nested\(i) {\n"
@@ -2651,9 +2651,9 @@ final class ParserErrorPathTests: XCTestCase {
     for _ in 0..<maxNesting {
       nestedMessages += "}\n"
     }
-    
+
     let result = SwiftProtoParser.parseProtoString(nestedMessages)
-    
+
     // The goal is to test exception handling, not necessarily successful parsing
     switch result {
     case .success:
@@ -2673,9 +2673,9 @@ final class ParserErrorPathTests: XCTestCase {
         string field = 1 [default = "\u{0000}\u{001F}"];
       }
       """
-    
+
     let result = SwiftProtoParser.parseProtoString(malformedContent)
-    
+
     // Test that parser doesn't crash on unusual unicode
     switch result {
     case .success:
@@ -2693,16 +2693,18 @@ final class ParserErrorPathTests: XCTestCase {
       syntax = "proto3";
       option java_package =
       """
-    
+
     let result = SwiftProtoParser.parseProtoString(protoContent)
-    
+
     switch result {
     case .success:
       XCTFail("Should have failed on unexpected EOF in option value")
     case .failure(let error):
       let description = error.description
-      XCTAssertTrue(description.contains("option value") || description.contains("EOF") || description.contains("end"), 
-                   "Error should mention option value or EOF: \(description)")
+      XCTAssertTrue(
+        description.contains("option value") || description.contains("EOF") || description.contains("end"),
+        "Error should mention option value or EOF: \(description)"
+      )
     }
   }
 
@@ -2713,16 +2715,18 @@ final class ParserErrorPathTests: XCTestCase {
       message Test {
         repeated
       """
-    
+
     let result = SwiftProtoParser.parseProtoString(protoContent)
-    
+
     switch result {
     case .success:
       XCTFail("Should have failed on unexpected EOF in field type")
     case .failure(let error):
       let description = error.description
-      XCTAssertTrue(description.contains("field type") || description.contains("EOF") || description.contains("end"), 
-                   "Error should mention field type or EOF: \(description)")
+      XCTAssertTrue(
+        description.contains("field type") || description.contains("EOF") || description.contains("end"),
+        "Error should mention field type or EOF: \(description)"
+      )
     }
   }
 
@@ -2733,16 +2737,19 @@ final class ParserErrorPathTests: XCTestCase {
       enum Status {
         UNKNOWN = 0;
       """
-    
+
     let result = SwiftProtoParser.parseProtoString(protoContent)
-    
+
     switch result {
     case .success:
       XCTFail("Should have failed on unexpected EOF in enum body")
     case .failure(let error):
       let description = error.description
-      XCTAssertTrue(description.contains("enum") || description.contains("EOF") || description.contains("end") || description.contains("}"), 
-                   "Error should mention enum or EOF: \(description)")
+      XCTAssertTrue(
+        description.contains("enum") || description.contains("EOF") || description.contains("end")
+          || description.contains("}"),
+        "Error should mention enum or EOF: \(description)"
+      )
     }
   }
 
@@ -2753,16 +2760,18 @@ final class ParserErrorPathTests: XCTestCase {
       message Test {
         oneof
       """
-    
+
     let result = SwiftProtoParser.parseProtoString(protoContent)
-    
+
     switch result {
     case .success:
       XCTFail("Should have failed on unexpected EOF in oneof declaration")
     case .failure(let error):
       let description = error.description
-      XCTAssertTrue(description.contains("oneof") || description.contains("EOF") || description.contains("end"), 
-                   "Error should mention oneof or EOF: \(description)")
+      XCTAssertTrue(
+        description.contains("oneof") || description.contains("EOF") || description.contains("end"),
+        "Error should mention oneof or EOF: \(description)"
+      )
     }
   }
 
@@ -2772,16 +2781,18 @@ final class ParserErrorPathTests: XCTestCase {
       syntax = "proto3";
       package com.example.test
       """
-    
+
     let result = SwiftProtoParser.parseProtoString(protoContent)
-    
+
     switch result {
     case .success:
       XCTFail("Should have failed on missing semicolon in package declaration")
     case .failure(let error):
       let description = error.description
-      XCTAssertTrue(description.contains("package") || description.contains(";") || description.contains("semicolon"), 
-                   "Error should mention package or semicolon: \(description)")
+      XCTAssertTrue(
+        description.contains("package") || description.contains(";") || description.contains("semicolon"),
+        "Error should mention package or semicolon: \(description)"
+      )
     }
   }
 
@@ -2794,31 +2805,31 @@ final class ParserErrorPathTests: XCTestCase {
       service TestService {
         rpc GetUser(
       """,
-      
-      // Message field declaration EOF  
+
+      // Message field declaration EOF
       """
       syntax = "proto3";
       message Test {
         string name =
       """,
-      
+
       // Import declaration EOF
       """
       syntax = "proto3";
       import
       """,
-      
+
       // Reserved declaration EOF
       """
       syntax = "proto3";
       message Test {
         reserved
-      """
+      """,
     ]
-    
+
     for (index, scenario) in eofScenarios.enumerated() {
       let result = SwiftProtoParser.parseProtoString(scenario)
-      
+
       switch result {
       case .success:
         XCTFail("EOF scenario \(index) should have failed")
@@ -2839,16 +2850,19 @@ final class ParserErrorPathTests: XCTestCase {
         string field = 1 [(];
       }
       """
-    
+
     let result = SwiftProtoParser.parseProtoString(protoContent)
-    
+
     switch result {
     case .success:
       XCTFail("Should have failed on missing custom option name")
     case .failure(let error):
       let description = error.description
-      XCTAssertTrue(description.contains("custom option") || description.contains("option name") || description.contains("expected"), 
-                   "Error should mention custom option name: \(description)")
+      XCTAssertTrue(
+        description.contains("custom option") || description.contains("option name")
+          || description.contains("expected"),
+        "Error should mention custom option name: \(description)"
+      )
     }
   }
 
@@ -2860,16 +2874,18 @@ final class ParserErrorPathTests: XCTestCase {
         string field = 1 [= "value"];
       }
       """
-    
+
     let result = SwiftProtoParser.parseProtoString(protoContent)
-    
+
     switch result {
     case .success:
       XCTFail("Should have failed on missing option name")
     case .failure(let error):
       let description = error.description
-      XCTAssertTrue(description.contains("option name") || description.contains("expected") || description.contains("="), 
-                   "Error should mention option name: \(description)")
+      XCTAssertTrue(
+        description.contains("option name") || description.contains("expected") || description.contains("="),
+        "Error should mention option name: \(description)"
+      )
     }
   }
 
@@ -2882,16 +2898,18 @@ final class ParserErrorPathTests: XCTestCase {
         UNKNOWN = 0;
         // Token stream ends here during enum body processing
       """
-    
+
     let result = SwiftProtoParser.parseProtoString(protoContent)
-    
+
     switch result {
     case .success:
       XCTFail("Should have failed on unexpected end in enum body")
     case .failure(let error):
       let description = error.description
-      XCTAssertTrue(description.contains("enum") || description.contains("}") || description.contains("end"), 
-                   "Error should mention enum or missing end: \(description)")
+      XCTAssertTrue(
+        description.contains("enum") || description.contains("}") || description.contains("end"),
+        "Error should mention enum or missing end: \(description)"
+      )
     }
   }
 
@@ -2904,16 +2922,18 @@ final class ParserErrorPathTests: XCTestCase {
         = 1;
       }
       """
-    
+
     let result = SwiftProtoParser.parseProtoString(protoContent)
-    
+
     switch result {
     case .success:
       XCTFail("Should have failed on missing enum value name")
     case .failure(let error):
       let description = error.description
-      XCTAssertTrue(description.contains("enum value name") || description.contains("identifier") || description.contains("="), 
-                   "Error should mention enum value name: \(description)")
+      XCTAssertTrue(
+        description.contains("enum value name") || description.contains("identifier") || description.contains("="),
+        "Error should mention enum value name: \(description)"
+      )
     }
   }
 
@@ -2926,16 +2946,18 @@ final class ParserErrorPathTests: XCTestCase {
         ACTIVE = "not_a_number";
       }
       """
-    
+
     let result = SwiftProtoParser.parseProtoString(protoContent)
-    
+
     switch result {
     case .success:
       XCTFail("Should have failed on missing enum value number")
     case .failure(let error):
       let description = error.description
-      XCTAssertTrue(description.contains("enum value number") || description.contains("number") || description.contains("integer"), 
-                   "Error should mention enum value number: \(description)")
+      XCTAssertTrue(
+        description.contains("enum value number") || description.contains("number") || description.contains("integer"),
+        "Error should mention enum value number: \(description)"
+      )
     }
   }
 
@@ -2949,16 +2971,19 @@ final class ParserErrorPathTests: XCTestCase {
           string name = 1;
           // Token stream ends here during oneof body processing
       """
-    
+
     let result = SwiftProtoParser.parseProtoString(protoContent)
-    
+
     switch result {
     case .success:
       XCTFail("Should have failed on unexpected end in oneof body")
     case .failure(let error):
       let description = error.description
-      XCTAssertTrue(description.contains("oneof") || description.contains("}") || description.contains("end") || description.contains("message"), 
-                   "Error should mention oneof or missing end: \(description)")
+      XCTAssertTrue(
+        description.contains("oneof") || description.contains("}") || description.contains("end")
+          || description.contains("message"),
+        "Error should mention oneof or missing end: \(description)"
+      )
     }
   }
 
@@ -2972,7 +2997,7 @@ final class ParserErrorPathTests: XCTestCase {
         rpc ( TestRequest) returns (TestResponse);
       }
       """,
-      
+
       // RPC input type missing
       """
       syntax = "proto3";
@@ -2980,7 +3005,7 @@ final class ParserErrorPathTests: XCTestCase {
         rpc GetUser() returns (User);
       }
       """,
-      
+
       // RPC output type missing
       """
       syntax = "proto3";
@@ -2988,7 +3013,7 @@ final class ParserErrorPathTests: XCTestCase {
         rpc GetUser(Request) returns ();
       }
       """,
-      
+
       // Field name missing in regular fields
       """
       syntax = "proto3";
@@ -2996,19 +3021,19 @@ final class ParserErrorPathTests: XCTestCase {
         string = 1;
       }
       """,
-      
+
       // Field number missing in regular fields
       """
       syntax = "proto3";
       message Test {
         string name = "not_a_number";
       }
-      """
+      """,
     ]
-    
+
     for (index, scenario) in missingGuardScenarios.enumerated() {
       let result = SwiftProtoParser.parseProtoString(scenario)
-      
+
       switch result {
       case .success:
         XCTFail("Missing guard scenario \(index) should have failed")
@@ -3026,7 +3051,7 @@ final class ParserErrorPathTests: XCTestCase {
     // This is challenging - we need to create a scenario where skipIgnorableTokens
     // would potentially infinite loop, triggering the safety check
     // This can happen with malformed token streams or parser state corruption
-    
+
     let problematicContent = """
       syntax = "proto3";
       message Test {
@@ -3034,9 +3059,9 @@ final class ParserErrorPathTests: XCTestCase {
         /*/* nested comment */ string field = 1; */
       }
       """
-    
+
     let result = SwiftProtoParser.parseProtoString(problematicContent)
-    
+
     // The goal is to test the safety mechanism, not necessarily successful parsing
     switch result {
     case .success:
@@ -3057,16 +3082,18 @@ final class ParserErrorPathTests: XCTestCase {
         }
       }
       """
-    
+
     let result = SwiftProtoParser.parseProtoString(protoContent)
-    
+
     switch result {
     case .success:
       XCTFail("Should have failed on invalid RPC method option")
     case .failure(let error):
       let description = error.description
-      XCTAssertTrue(description.contains("option") || description.contains("RPC") || description.contains("unexpected"), 
-                   "Error should mention RPC method parsing issue: \(description)")
+      XCTAssertTrue(
+        description.contains("option") || description.contains("RPC") || description.contains("unexpected"),
+        "Error should mention RPC method parsing issue: \(description)"
+      )
     }
   }
 
@@ -3080,7 +3107,7 @@ final class ParserErrorPathTests: XCTestCase {
         reserved 5 to invalid_end;
       }
       """,
-      
+
       // Reserved declaration missing value
       """
       syntax = "proto3";
@@ -3088,7 +3115,7 @@ final class ParserErrorPathTests: XCTestCase {
         reserved ;
       }
       """,
-      
+
       // Field options parsing with syntax error
       """
       syntax = "proto3";
@@ -3096,7 +3123,7 @@ final class ParserErrorPathTests: XCTestCase {
         string field = 1 [invalid option syntax here];
       }
       """,
-      
+
       // Enum body with unexpected EOF during parsing loop
       """
       syntax = "proto3";
@@ -3104,7 +3131,7 @@ final class ParserErrorPathTests: XCTestCase {
         UNKNOWN = 0
         // Missing semicolon and closing brace to trigger loop edge case
       """,
-      
+
       // Oneof body with syntax errors
       """
       syntax = "proto3";
@@ -3113,12 +3140,12 @@ final class ParserErrorPathTests: XCTestCase {
           invalid syntax here
         }
       }
-      """
+      """,
     ]
-    
+
     for (index, scenario) in breakScenarios.enumerated() {
       let result = SwiftProtoParser.parseProtoString(scenario)
-      
+
       switch result {
       case .success:
         XCTFail("Break scenario \(index) should have failed")
@@ -3140,9 +3167,9 @@ final class ParserErrorPathTests: XCTestCase {
         string field = 1;
       }
       """
-    
+
     let result = SwiftProtoParser.parseProtoString(extremeContent)
-    
+
     // Testing robustness - should not crash or infinite loop
     switch result {
     case .success:
@@ -3164,7 +3191,7 @@ final class ParserErrorPathTests: XCTestCase {
       }
       another_invalid_construct;
       """,
-      
+
       // Nested invalid structures
       """
       syntax = "proto3";
@@ -3174,12 +3201,12 @@ final class ParserErrorPathTests: XCTestCase {
         }
         string valid_field = 1;
       }
-      """
+      """,
     ]
-    
+
     for (index, scenario) in recoveryScenarios.enumerated() {
       let result = SwiftProtoParser.parseProtoString(scenario)
-      
+
       switch result {
       case .success:
         // If parser successfully recovered, that's good
@@ -3203,9 +3230,9 @@ final class ParserErrorPathTests: XCTestCase {
         string field = 1;
       }
       """
-    
+
     let result = SwiftProtoParser.parseProtoString(protoContent)
-    
+
     switch result {
     case .success(let ast):
       XCTAssertEqual(ast.package, "com.example.test")
@@ -3224,9 +3251,9 @@ final class ParserErrorPathTests: XCTestCase {
         string field = 1 [deprecated = true, packed = false];
       }
       """
-    
+
     let result = SwiftProtoParser.parseProtoString(protoContent)
-    
+
     switch result {
     case .success(let ast):
       XCTAssertEqual(ast.messages.count, 1)
@@ -3250,15 +3277,15 @@ final class ParserErrorPathTests: XCTestCase {
         string current_field = 10;
       }
       """
-    
+
     let result = SwiftProtoParser.parseProtoString(protoContent)
-    
+
     switch result {
     case .success(let ast):
       XCTAssertEqual(ast.messages.count, 1)
       let message = ast.messages[0]
-      XCTAssertEqual(message.reservedNumbers.count, 5) // 1, 2, 3, 4, 5
-      XCTAssertEqual(message.reservedNames.count, 2) // "old_field", "deprecated_field"
+      XCTAssertEqual(message.reservedNumbers.count, 5)  // 1, 2, 3, 4, 5
+      XCTAssertEqual(message.reservedNames.count, 2)  // "old_field", "deprecated_field"
       XCTAssertTrue(true, "Reserved declaration completion path covered")
     case .failure(let error):
       XCTFail("Reserved declaration should succeed: \(error)")
@@ -3271,7 +3298,7 @@ final class ParserErrorPathTests: XCTestCase {
     let protoContent = """
       syntax = "proto3";
       package com.example.complex;
-      
+
       message ComplexMessage {
         // Field with options (completion path)
         string name = 1 [deprecated = true];
@@ -3282,16 +3309,16 @@ final class ParserErrorPathTests: XCTestCase {
         int32 id = 2;
       }
       """
-    
+
     let result = SwiftProtoParser.parseProtoString(protoContent)
-    
+
     switch result {
     case .success(let ast):
       XCTAssertEqual(ast.package, "com.example.complex")
       XCTAssertEqual(ast.messages.count, 1)
       let message = ast.messages[0]
       XCTAssertEqual(message.fields.count, 2)
-      XCTAssertEqual(message.reservedNumbers.count, 11) // 100 to 110
+      XCTAssertEqual(message.reservedNumbers.count, 11)  // 100 to 110
       XCTAssertEqual(message.reservedNames.count, 1)
       XCTAssertTrue(true, "Multiple completion paths covered")
     case .failure(let error):
@@ -3308,16 +3335,19 @@ final class ParserErrorPathTests: XCTestCase {
       syntax = "proto3";
       option java_package =
       """
-    
+
     let result = SwiftProtoParser.parseProtoString(protoContent)
-    
+
     switch result {
     case .success:
       XCTFail("Should have failed on missing option value at EOF")
     case .failure(let error):
       let description = error.description
-      XCTAssertTrue(description.contains("option value") || description.contains("end") || description.contains("EOF") || description.contains("expected"),
-                   "Error should mention option value EOF: \(description)")
+      XCTAssertTrue(
+        description.contains("option value") || description.contains("end") || description.contains("EOF")
+          || description.contains("expected"),
+        "Error should mention option value EOF: \(description)"
+      )
     }
   }
 
@@ -3329,16 +3359,19 @@ final class ParserErrorPathTests: XCTestCase {
       message Test {
         
       """
-    
+
     let result = SwiftProtoParser.parseProtoString(protoContent)
-    
+
     switch result {
     case .success:
       XCTFail("Should have failed on missing field type at EOF")
     case .failure(let error):
       let description = error.description
-      XCTAssertTrue(description.contains("field") || description.contains("type") || description.contains("end") || description.contains("EOF") || description.contains("expected"),
-                   "Error should mention field type EOF: \(description)")
+      XCTAssertTrue(
+        description.contains("field") || description.contains("type") || description.contains("end")
+          || description.contains("EOF") || description.contains("expected"),
+        "Error should mention field type EOF: \(description)"
+      )
     }
   }
 
@@ -3350,33 +3383,33 @@ final class ParserErrorPathTests: XCTestCase {
       syntax = "proto3";
       option optimize_for =
       """,
-      
+
       // Option value EOF in field option
       """
       syntax = "proto3";
       message Test {
         string field = 1 [default =
       """,
-      
+
       // Field type EOF in message
       """
       syntax = "proto3";
       message Test {
         // Type missing here, EOF follows
       """,
-      
+
       // Field type EOF in oneof
       """
       syntax = "proto3";
       message Test {
         oneof choice {
           // Type missing here, EOF follows
-      """
+      """,
     ]
-    
+
     for (index, scenario) in eofScenarios.enumerated() {
       let result = SwiftProtoParser.parseProtoString(scenario)
-      
+
       switch result {
       case .success:
         XCTFail("EOF scenario \(index) should have failed")
@@ -3398,16 +3431,19 @@ final class ParserErrorPathTests: XCTestCase {
         = 0;
       }
       """
-    
+
     let result = SwiftProtoParser.parseProtoString(protoContent)
-    
+
     switch result {
     case .success:
       XCTFail("Should have failed on missing enum value name")
     case .failure(let error):
       let description = error.description
-      XCTAssertTrue(description.contains("enum") || description.contains("name") || description.contains("value") || description.contains("expected"),
-                   "Error should mention enum value name missing: \(description)")
+      XCTAssertTrue(
+        description.contains("enum") || description.contains("name") || description.contains("value")
+          || description.contains("expected"),
+        "Error should mention enum value name missing: \(description)"
+      )
     }
   }
 
@@ -3421,7 +3457,7 @@ final class ParserErrorPathTests: XCTestCase {
         = 0;
       }
       """,
-      
+
       // Enum value name missing (unexpected token)
       """
       syntax = "proto3";
@@ -3429,7 +3465,7 @@ final class ParserErrorPathTests: XCTestCase {
         123 = 0;
       }
       """,
-      
+
       // Enum value name missing (keyword instead)
       """
       syntax = "proto3";
@@ -3437,7 +3473,7 @@ final class ParserErrorPathTests: XCTestCase {
         syntax = 0;
       }
       """,
-      
+
       // Field name missing in complex scenario
       """
       syntax = "proto3";
@@ -3445,19 +3481,19 @@ final class ParserErrorPathTests: XCTestCase {
         string = 1;
       }
       """,
-      
+
       // Field name missing with type
       """
       syntax = "proto3";
       message Test {
         int32 = 2;
       }
-      """
+      """,
     ]
-    
+
     for (index, scenario) in missingGuardScenarios.enumerated() {
       let result = SwiftProtoParser.parseProtoString(scenario)
-      
+
       switch result {
       case .success:
         XCTFail("Missing guard scenario \(index) should have failed")
@@ -3478,7 +3514,7 @@ final class ParserErrorPathTests: XCTestCase {
         { = 0;
       }
       """,
-      
+
       // Missing name with nested structure
       """
       syntax = "proto3";
@@ -3486,7 +3522,7 @@ final class ParserErrorPathTests: XCTestCase {
         message = 1;
       }
       """,
-      
+
       // Missing identifier in option context
       """
       syntax = "proto3";
@@ -3494,19 +3530,19 @@ final class ParserErrorPathTests: XCTestCase {
         string field = 1 [= true];
       }
       """,
-      
+
       // Missing identifier in custom option
       """
       syntax = "proto3";
       message Test {
         string field = 1 [() = true];
       }
-      """
+      """,
     ]
-    
+
     for (index, edgeCase) in edgeCases.enumerated() {
       let result = SwiftProtoParser.parseProtoString(edgeCase)
-      
+
       switch result {
       case .success:
         XCTFail("Missing guards edge case \(index) should have failed")
@@ -3526,19 +3562,19 @@ final class ParserErrorPathTests: XCTestCase {
       syntax = "proto3";
       package ;
       """,
-      
+
       // Import declaration missing path
       """
       syntax = "proto3";
       import ;
       """,
-      
+
       // Option declaration missing name
       """
       syntax = "proto3";
       option = "value";
       """,
-      
+
       // Message declaration missing name
       """
       syntax = "proto3";
@@ -3546,7 +3582,7 @@ final class ParserErrorPathTests: XCTestCase {
         string field = 1;
       }
       """,
-      
+
       // Service declaration missing name
       """
       syntax = "proto3";
@@ -3554,19 +3590,19 @@ final class ParserErrorPathTests: XCTestCase {
         rpc GetUser(Request) returns (Response);
       }
       """,
-      
+
       // RPC method missing name
       """
       syntax = "proto3";
       service TestService {
         rpc (Request) returns (Response);
       }
-      """
+      """,
     ]
-    
+
     for (index, scenario) in systematicScenarios.enumerated() {
       let result = SwiftProtoParser.parseProtoString(scenario)
-      
+
       switch result {
       case .success:
         XCTFail("Systematic missing guard scenario \(index) should have failed")
@@ -3583,18 +3619,19 @@ final class ParserErrorPathTests: XCTestCase {
   func testSurgicalPackageCompletion() {
     // Create minimal package scenario that will reach the final return statement
     let lexer = Lexer(input: "package test;")
-    
+
     let result = lexer.tokenize()
     if case .success(let tokens) = result {
-      let parser = Parser(tokens: tokens)
+      _ = Parser(tokens: tokens)
       // Test surgical completion - method might be private
       XCTAssertTrue(true, "Package completion path test setup successful")
-    } else {
+    }
+    else {
       XCTAssertTrue(true, "Package completion path lexer error as expected")
     }
   }
 
-  /// Tests surgical field options completion path (lines 702-705).  
+  /// Tests surgical field options completion path (lines 702-705).
   func testSurgicalFieldOptionsCompletion() {
     // Test field options that must reach final return statement
     let protoContent = """
@@ -3603,9 +3640,9 @@ final class ParserErrorPathTests: XCTestCase {
         string field = 1 [deprecated = true];
       }
       """
-    
+
     let result = SwiftProtoParser.parseProtoString(protoContent)
-    
+
     switch result {
     case .success(let ast):
       // Force access to field options to trigger completion path
@@ -3620,16 +3657,16 @@ final class ParserErrorPathTests: XCTestCase {
 
   /// Tests surgical reserved completion path (lines 1030-1032).
   func testSurgicalReservedCompletion() {
-    // Test reserved declaration that must reach final return statement  
+    // Test reserved declaration that must reach final return statement
     let protoContent = """
       syntax = "proto3";
       message Test {
         reserved 1;
       }
       """
-    
+
     let result = SwiftProtoParser.parseProtoString(protoContent)
-    
+
     switch result {
     case .success(let ast):
       // Force access to reserved to trigger completion path
@@ -3647,24 +3684,25 @@ final class ParserErrorPathTests: XCTestCase {
     let eofTests = [
       // Option value EOF - must be exactly at option value position
       ("option test", "Option value EOF"),
-      // Field type EOF - must be exactly at field type position  
-      ("message Test { ", "Field type EOF")
+      // Field type EOF - must be exactly at field type position
+      ("message Test { ", "Field type EOF"),
     ]
-    
+
     for (input, description) in eofTests {
       let lexer = Lexer(input: input)
       let tokenResult = lexer.tokenize()
       if case .success(let tokens) = tokenResult {
         let parser = Parser(tokens: tokens)
         let result = parser.parse()
-        
+
         switch result {
         case .success:
           XCTFail("\(description) should have failed")
         case .failure:
           XCTAssertTrue(true, "\(description) scenario created")
         }
-      } else {
+      }
+      else {
         XCTAssertTrue(true, "\(description) lexer error as expected")
       }
     }
@@ -3675,19 +3713,20 @@ final class ParserErrorPathTests: XCTestCase {
     // Create token stream where enum value name guard specifically fails
     let input = "enum Status { = 0; }"
     let lexer = Lexer(input: input)
-    
+
     let tokenResult = lexer.tokenize()
     if case .success(let tokens) = tokenResult {
       let parser = Parser(tokens: tokens)
       let result = parser.parse()
-      
+
       switch result {
       case .success:
         XCTFail("Enum value missing guard should have failed")
       case .failure:
         XCTAssertTrue(true, "Enum value missing guard scenario created")
       }
-    } else {
+    }
+    else {
       XCTAssertTrue(true, "Enum value missing guard lexer error as expected")
     }
   }
@@ -3698,26 +3737,27 @@ final class ParserErrorPathTests: XCTestCase {
     let breakTests = [
       // Enum body break (line 740)
       ("enum Test { ", "Enum body break"),
-      // Oneof body break (line 844)  
+      // Oneof body break (line 844)
       ("message Test { oneof choice { ", "Oneof body break"),
       // skipIgnorableTokens safety break (line 1207) - very hard to trigger
-      ("/* unclosed comment", "Safety break")
+      ("/* unclosed comment", "Safety break"),
     ]
-    
+
     for (input, description) in breakTests {
       let lexer = Lexer(input: input)
       let tokenResult = lexer.tokenize()
       if case .success(let tokens) = tokenResult {
         let parser = Parser(tokens: tokens)
         let result = parser.parse()
-        
+
         switch result {
         case .success:
           XCTAssertTrue(true, "\(description) scenario completed")
         case .failure:
           XCTAssertTrue(true, "\(description) scenario created")
         }
-      } else {
+      }
+      else {
         XCTAssertTrue(true, "\(description) lexer error as expected")
       }
     }
@@ -3732,9 +3772,9 @@ final class ParserErrorPathTests: XCTestCase {
         syntax field = 1;
       }
       """
-    
+
     let result = SwiftProtoParser.parseProtoString(protoContent)
-    
+
     switch result {
     case .success:
       XCTFail("Invalid keyword in field type should have failed")
@@ -3747,12 +3787,12 @@ final class ParserErrorPathTests: XCTestCase {
   func testSurgicalExceptionHandling() {
     // Try to create genuine exception that would trigger catch block
     // This is architecturally very difficult as parser uses graceful error handling
-    
+
     // Test with extremely malformed input that might cause system exception
-    let extremeInput = String(repeating: "x", count: 100000) // Very long input
-    
+    let extremeInput = String(repeating: "x", count: 100000)  // Very long input
+
     let result = SwiftProtoParser.parseProtoString(extremeInput)
-    
+
     switch result {
     case .success:
       XCTAssertTrue(true, "Extreme input handled gracefully")
