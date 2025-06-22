@@ -374,3 +374,200 @@ extension SwiftProtoParser {
     }
   }
 }
+
+// MARK: - Performance & Caching API
+
+extension SwiftProtoParser {
+
+  /// Shared performance cache instance for optimized parsing.
+  public static let sharedCache = PerformanceCache(configuration: .default)
+  
+  /// Shared incremental parser instance for large projects.
+  public static let sharedIncrementalParser = IncrementalParser(
+    configuration: .default,
+    cache: sharedCache
+  )
+
+  /// Parse a .proto file with performance caching enabled.
+  ///
+  /// This method uses content-based caching to avoid re-parsing unchanged files.
+  /// Ideal for development workflows where files are parsed repeatedly.
+  ///
+  /// - Parameters:
+  ///   - filePath: Path to the .proto file
+  ///   - enableCaching: Whether to use performance caching (default: true)
+  /// - Returns: Result containing ProtoAST on success, or ProtoParseError on failure.
+  public static func parseProtoFileWithCaching(
+    _ filePath: String,
+    enableCaching: Bool = true
+  ) -> Result<ProtoAST, ProtoParseError> {
+    
+    guard enableCaching else {
+      return parseProtoFile(filePath)
+    }
+    
+    do {
+      let content = try String(contentsOfFile: filePath, encoding: .utf8)
+      let contentHash = PerformanceCache.contentHash(for: content)
+      
+      // Check cache first
+      if let cachedAST = sharedCache.getCachedAST(for: filePath, contentHash: contentHash) {
+        return .success(cachedAST)
+      }
+      
+      // Parse and cache result
+      let startTime = Date()
+      let result = parseProtoString(content, fileName: filePath)
+      let parseTime = Date().timeIntervalSince(startTime)
+      
+      if case .success(let ast) = result {
+        let fileSize = try getFileSize(filePath)
+        sharedCache.cacheAST(ast, for: filePath, contentHash: contentHash, fileSize: fileSize, parseTime: parseTime)
+      }
+      
+      return result
+      
+    } catch {
+      return .failure(.ioError(underlying: error))
+    }
+  }
+
+  /// Parse a directory incrementally, only re-parsing changed files.
+  ///
+  /// This method detects file changes and only parses modified files and their dependents.
+  /// Significantly faster for large projects with frequent changes.
+  ///
+  /// - Parameters:
+  ///   - directoryPath: Path to the directory containing .proto files
+  ///   - recursive: Whether to scan subdirectories (default: false)
+  ///   - importPaths: Additional import paths to search (default: includes the directory itself)
+  /// - Returns: Result containing array of ProtoAST for all files, or ProtoParseError on failure.
+  public static func parseProtoDirectoryIncremental(
+    _ directoryPath: String,
+    recursive: Bool = false,
+    importPaths: [String] = []
+  ) -> Result<[ProtoAST], ProtoParseError> {
+    
+    do {
+      // Detect changes
+      let changeSet = try sharedIncrementalParser.detectChanges(in: directoryPath, recursive: recursive)
+      
+      if !changeSet.hasChanges {
+        // No changes - return cached results if available
+        // For now, fall back to regular parsing
+        return parseProtoDirectory(directoryPath, recursive: recursive, importPaths: importPaths)
+      }
+      
+      // Parse incrementally
+      let allImportPaths = [directoryPath] + importPaths
+      let results = try sharedIncrementalParser.parseIncremental(
+        changeSet: changeSet,
+        importPaths: allImportPaths
+      )
+      
+      // Extract successful ASTs
+      var asts: [ProtoAST] = []
+      for (_, result) in results {
+        switch result {
+        case .success(let ast):
+          asts.append(ast)
+        case .failure(let error):
+          return .failure(error)
+        }
+      }
+      
+      return .success(asts)
+      
+    } catch {
+      // Fall back to regular parsing on incremental parsing errors
+      return parseProtoDirectory(directoryPath, recursive: recursive, importPaths: importPaths)
+    }
+  }
+
+  /// Parse a large .proto file using streaming for memory efficiency.
+  ///
+  /// This method is optimized for very large proto files (>50MB) that might cause
+  /// memory issues with regular parsing.
+  ///
+  /// - Parameters:
+  ///   - filePath: Path to the large .proto file
+  ///   - importPaths: Import paths for dependency resolution (default: empty)
+  /// - Returns: Result containing ProtoAST on success, or ProtoParseError on failure.
+  public static func parseProtoFileStreaming(
+    _ filePath: String,
+    importPaths: [String] = []
+  ) -> Result<ProtoAST, ProtoParseError> {
+    
+    do {
+      return try sharedIncrementalParser.parseStreamingFile(filePath, importPaths: importPaths)
+    } catch {
+      return .failure(.ioError(underlying: error))
+    }
+  }
+
+  /// Get performance statistics for the shared cache.
+  ///
+  /// - Returns: Current cache performance statistics.
+  public static func getCacheStatistics() -> PerformanceCache.Statistics {
+    return sharedCache.getStatistics()
+  }
+
+  /// Get incremental parsing statistics.
+  ///
+  /// - Returns: Current incremental parsing statistics.
+  public static func getIncrementalStatistics() -> IncrementalParser.Statistics {
+    return sharedIncrementalParser.getStatistics()
+  }
+
+  /// Clear all performance caches.
+  ///
+  /// Use this to free memory or reset performance tracking.
+  public static func clearPerformanceCaches() {
+    sharedCache.clearAll()
+    sharedIncrementalParser.reset()
+  }
+
+  /// Benchmark parsing performance for a file or directory.
+  ///
+  /// This method runs comprehensive performance tests and returns detailed metrics.
+  /// Useful for performance optimization and regression testing.
+  ///
+  /// - Parameters:
+  ///   - path: Path to file or directory to benchmark
+  ///   - configuration: Benchmark configuration (default: .default)
+  /// - Returns: Benchmark results with detailed performance metrics.
+  public static func benchmarkPerformance(
+    _ path: String,
+    configuration: PerformanceBenchmark.Configuration = .default
+  ) -> PerformanceBenchmark.BenchmarkResult {
+    
+    let benchmark = PerformanceBenchmark(
+      configuration: configuration,
+      cache: sharedCache,
+      incrementalParser: sharedIncrementalParser
+    )
+    
+    // Determine if path is file or directory
+    var isDirectory: ObjCBool = false
+    guard FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory) else {
+      return PerformanceBenchmark.BenchmarkResult(
+        operation: "benchmark(\(path)) - not found",
+        measurements: [],
+        configuration: configuration
+      )
+    }
+    
+    if isDirectory.boolValue {
+      return benchmark.benchmarkDirectory(path)
+    } else {
+      return benchmark.benchmarkSingleFile(path)
+    }
+  }
+
+  // MARK: - Private Helpers
+
+  private static func getFileSize(_ filePath: String) throws -> Int64 {
+    let attributes = try FileManager.default.attributesOfItem(atPath: filePath)
+    return attributes[.size] as? Int64 ?? 0
+  }
+}

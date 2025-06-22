@@ -40,6 +40,12 @@ public enum ProtoParseError: Error {
   /// Error occurred during AST to descriptor conversion.
   case descriptorError(DescriptorError)
 
+  /// Cache-related errors.
+  case cacheError(message: String)
+
+  /// Performance limit exceeded.
+  case performanceLimitExceeded(message: String, limit: String)
+
   // MARK: - Internal Errors
 
   /// Internal parser state corruption or unexpected condition.
@@ -77,6 +83,12 @@ extension ProtoParseError: LocalizedError {
     case .descriptorError(let descriptorError):
       return "Descriptor building error: \(descriptorError.localizedDescription)"
 
+    case .cacheError(let message):
+      return "Cache error: \(message)"
+
+    case .performanceLimitExceeded(let message, let limit):
+      return "Performance limit exceeded (\(limit)): \(message)"
+
     case .internalError(let message):
       return "Internal parser error: \(message)"
     }
@@ -109,6 +121,12 @@ extension ProtoParseError: LocalizedError {
     case .descriptorError:
       return "Failed to convert parsed AST to Protocol Buffers descriptor format."
 
+    case .cacheError:
+      return "An error occurred in the caching system."
+
+    case .performanceLimitExceeded:
+      return "A performance limit was exceeded during processing."
+
     case .internalError:
       return "An unexpected internal error occurred."
     }
@@ -140,6 +158,12 @@ extension ProtoParseError: LocalizedError {
 
     case .descriptorError:
       return "Check that all AST nodes contain valid data for descriptor conversion."
+
+    case .cacheError:
+      return "Try clearing the cache or check file system permissions."
+
+    case .performanceLimitExceeded:
+      return "Consider reducing file size, using incremental parsing, or increasing limits."
 
     case .internalError:
       return "This may be a bug in SwiftProtoParser. Please report it."
