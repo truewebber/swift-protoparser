@@ -117,4 +117,154 @@ class MessageDescriptorBuilderTests: XCTestCase {
     XCTAssertEqual(descriptor.enumType.count, 0)
     XCTAssertEqual(descriptor.oneofDecl.count, 0)
   }
+  
+  // MARK: - Tests for New Functionality
+  
+  func testBuildMessageWithReservedNumbers() throws {
+    // Create message with reserved numbers
+    let field = FieldNode(name: "id", type: .int32, number: 1)
+    let message = MessageNode(
+      name: "MessageWithReserved", 
+      fields: [field],
+      reservedNumbers: [5, 6, 7, 10, 15, 16, 17]
+    )
+    
+    let descriptor = try MessageDescriptorBuilder.build(from: message)
+    
+    XCTAssertEqual(descriptor.name, "MessageWithReserved")
+    XCTAssertEqual(descriptor.field.count, 1)
+    
+    // Check reserved ranges (numbers should be converted to ranges)
+    XCTAssertTrue(descriptor.reservedRange.count > 0)
+    
+    // Verify ranges: [5,8), [10,11), [15,18)
+    XCTAssertEqual(descriptor.reservedRange[0].start, 5)
+    XCTAssertEqual(descriptor.reservedRange[0].end, 8)  // end is exclusive
+    XCTAssertEqual(descriptor.reservedRange[1].start, 10)
+    XCTAssertEqual(descriptor.reservedRange[1].end, 11)
+    XCTAssertEqual(descriptor.reservedRange[2].start, 15)
+    XCTAssertEqual(descriptor.reservedRange[2].end, 18)
+  }
+  
+  func testBuildMessageWithReservedNames() throws {
+    // Create message with reserved names
+    let field = FieldNode(name: "id", type: .int32, number: 1)
+    let message = MessageNode(
+      name: "MessageWithReservedNames", 
+      fields: [field],
+      reservedNames: ["foo", "bar", "deprecated_field"]
+    )
+    
+    let descriptor = try MessageDescriptorBuilder.build(from: message)
+    
+    XCTAssertEqual(descriptor.name, "MessageWithReservedNames")
+    XCTAssertEqual(descriptor.field.count, 1)
+    XCTAssertEqual(descriptor.reservedName.count, 3)
+    XCTAssertEqual(descriptor.reservedName[0], "foo")
+    XCTAssertEqual(descriptor.reservedName[1], "bar")
+    XCTAssertEqual(descriptor.reservedName[2], "deprecated_field")
+  }
+  
+  func testBuildMessageWithOptions() throws {
+    // Create message with options
+    let field = FieldNode(name: "id", type: .int32, number: 1)
+    let options = [
+      OptionNode(name: "deprecated", value: .boolean(true)),
+      OptionNode(name: "map_entry", value: .boolean(false)),
+      OptionNode(name: "custom_option", value: .string("test_value"), isCustom: true)
+    ]
+    let message = MessageNode(
+      name: "MessageWithOptions", 
+      fields: [field],
+      options: options
+    )
+    
+    let descriptor = try MessageDescriptorBuilder.build(from: message)
+    
+    XCTAssertEqual(descriptor.name, "MessageWithOptions")
+    XCTAssertEqual(descriptor.field.count, 1)
+    
+    // Check that options were set
+    XCTAssertTrue(descriptor.hasOptions)
+    XCTAssertTrue(descriptor.options.deprecated)
+    XCTAssertFalse(descriptor.options.mapEntry)
+    
+    // Custom options should be in uninterpreted_option
+    XCTAssertEqual(descriptor.options.uninterpretedOption.count, 1)
+    XCTAssertEqual(descriptor.options.uninterpretedOption[0].name[0].namePart, "custom_option")
+  }
+  
+  func testBuildMessageWithOneofOptions() throws {
+    // Create oneof group with options
+    let oneofFields = [
+      FieldNode(name: "text_value", type: .string, number: 1),
+      FieldNode(name: "number_value", type: .int32, number: 2)
+    ]
+    let oneofOptions = [
+      OptionNode(name: "custom_oneof_option", value: .string("oneof_test"), isCustom: true)
+    ]
+    let oneof = OneofNode(name: "value", fields: oneofFields, options: oneofOptions)
+    
+    let message = MessageNode(
+      name: "MessageWithOneofOptions",
+      oneofGroups: [oneof]
+    )
+    
+    let descriptor = try MessageDescriptorBuilder.build(from: message)
+    
+    XCTAssertEqual(descriptor.name, "MessageWithOneofOptions")
+    XCTAssertEqual(descriptor.oneofDecl.count, 1)
+    XCTAssertEqual(descriptor.oneofDecl[0].name, "value")
+    
+    // Check that oneof has options
+    XCTAssertTrue(descriptor.oneofDecl[0].hasOptions)
+    XCTAssertEqual(descriptor.oneofDecl[0].options.uninterpretedOption.count, 1)
+    XCTAssertEqual(descriptor.oneofDecl[0].options.uninterpretedOption[0].name[0].namePart, "custom_oneof_option")
+  }
+  
+  func testBuildMessageWithSingleReservedNumber() throws {
+    // Test single reserved number
+    let field = FieldNode(name: "id", type: .int32, number: 1)
+    let message = MessageNode(
+      name: "MessageWithSingleReserved", 
+      fields: [field],
+      reservedNumbers: [42]
+    )
+    
+    let descriptor = try MessageDescriptorBuilder.build(from: message)
+    
+    XCTAssertEqual(descriptor.reservedRange.count, 1)
+    XCTAssertEqual(descriptor.reservedRange[0].start, 42)
+    XCTAssertEqual(descriptor.reservedRange[0].end, 43)  // end is exclusive
+  }
+  
+  func testBuildMessageWithComplexReservedRanges() throws {
+    // Test complex reserved numbers that should create multiple ranges
+    let field = FieldNode(name: "id", type: .int32, number: 1)
+    let message = MessageNode(
+      name: "MessageWithComplexReserved", 
+      fields: [field],
+      reservedNumbers: [5, 7, 8, 9, 15, 20, 21, 22, 100]
+    )
+    
+    let descriptor = try MessageDescriptorBuilder.build(from: message)
+    
+    // Should create ranges: [5,6), [7,10), [15,16), [20,23), [100,101)
+    XCTAssertEqual(descriptor.reservedRange.count, 5)
+    
+    XCTAssertEqual(descriptor.reservedRange[0].start, 5)
+    XCTAssertEqual(descriptor.reservedRange[0].end, 6)
+    
+    XCTAssertEqual(descriptor.reservedRange[1].start, 7)
+    XCTAssertEqual(descriptor.reservedRange[1].end, 10)
+    
+    XCTAssertEqual(descriptor.reservedRange[2].start, 15)
+    XCTAssertEqual(descriptor.reservedRange[2].end, 16)
+    
+    XCTAssertEqual(descriptor.reservedRange[3].start, 20)
+    XCTAssertEqual(descriptor.reservedRange[3].end, 23)
+    
+    XCTAssertEqual(descriptor.reservedRange[4].start, 100)
+    XCTAssertEqual(descriptor.reservedRange[4].end, 101)
+  }
 }
