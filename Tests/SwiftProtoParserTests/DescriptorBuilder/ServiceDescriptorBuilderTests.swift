@@ -33,14 +33,14 @@ final class ServiceDescriptorBuilderTests: XCTestCase {
     
     // Verify methods
     XCTAssertEqual(serviceProto.method[0].name, "GetUser")
-    XCTAssertEqual(serviceProto.method[0].inputType, "GetUserRequest")
-    XCTAssertEqual(serviceProto.method[0].outputType, "GetUserResponse")
+    XCTAssertEqual(serviceProto.method[0].inputType, ".GetUserRequest")
+    XCTAssertEqual(serviceProto.method[0].outputType, ".GetUserResponse")
     XCTAssertFalse(serviceProto.method[0].clientStreaming)
     XCTAssertFalse(serviceProto.method[0].serverStreaming)
     
     XCTAssertEqual(serviceProto.method[1].name, "ListUsers")
-    XCTAssertEqual(serviceProto.method[1].inputType, "ListUsersRequest")
-    XCTAssertEqual(serviceProto.method[1].outputType, "ListUsersResponse")
+    XCTAssertEqual(serviceProto.method[1].inputType, ".ListUsersRequest")
+    XCTAssertEqual(serviceProto.method[1].outputType, ".ListUsersResponse")
     XCTAssertFalse(serviceProto.method[1].clientStreaming)
     XCTAssertFalse(serviceProto.method[1].serverStreaming)
   }
@@ -370,11 +370,11 @@ final class ServiceDescriptorBuilderTests: XCTestCase {
     // Then: Special characters are preserved
     XCTAssertEqual(serviceProto.name, "Special_Service")
     XCTAssertEqual(serviceProto.method[0].name, "Method_With_Underscores")
-    XCTAssertEqual(serviceProto.method[0].inputType, "Request_Type")
-    XCTAssertEqual(serviceProto.method[0].outputType, "Response_Type")
+    XCTAssertEqual(serviceProto.method[0].inputType, ".Request_Type")
+    XCTAssertEqual(serviceProto.method[0].outputType, ".Response_Type")
     XCTAssertEqual(serviceProto.method[1].name, "Method123")
-    XCTAssertEqual(serviceProto.method[1].inputType, "RequestType123")
-    XCTAssertEqual(serviceProto.method[1].outputType, "ResponseType456")
+    XCTAssertEqual(serviceProto.method[1].inputType, ".RequestType123")
+    XCTAssertEqual(serviceProto.method[1].outputType, ".ResponseType456")
   }
   
   func testBuildServiceWithLongNames() throws {
@@ -400,8 +400,8 @@ final class ServiceDescriptorBuilderTests: XCTestCase {
     // Then: Long names are handled correctly
     XCTAssertEqual(serviceProto.name, longServiceName)
     XCTAssertEqual(serviceProto.method[0].name, longMethodName)
-    XCTAssertEqual(serviceProto.method[0].inputType, longTypeName + "Request")
-    XCTAssertEqual(serviceProto.method[0].outputType, longTypeName + "Response")
+    XCTAssertEqual(serviceProto.method[0].inputType, "." + longTypeName + "Request")
+    XCTAssertEqual(serviceProto.method[0].outputType, "." + longTypeName + "Response")
   }
   
   // MARK: - Error Handling Tests
@@ -478,7 +478,7 @@ final class ServiceDescriptorBuilderTests: XCTestCase {
     XCTAssertEqual(serviceProto.method.count, 2)
     XCTAssertEqual(serviceProto.method[0].name, "SameMethod")
     XCTAssertEqual(serviceProto.method[1].name, "SameMethod")
-    XCTAssertEqual(serviceProto.method[0].inputType, "Request1")
-    XCTAssertEqual(serviceProto.method[1].inputType, "Request2")
+    XCTAssertEqual(serviceProto.method[0].inputType, ".Request1")
+    XCTAssertEqual(serviceProto.method[1].inputType, ".Request2")
   }
 }

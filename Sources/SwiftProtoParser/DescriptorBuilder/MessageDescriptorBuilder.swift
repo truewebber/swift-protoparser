@@ -5,7 +5,7 @@ import SwiftProtobuf
 struct MessageDescriptorBuilder {
   
   /// Convert MessageNode to DescriptorProto.
-  static func build(from messageNode: MessageNode) throws -> Google_Protobuf_DescriptorProto {
+  static func build(from messageNode: MessageNode, packageName: String? = nil) throws -> Google_Protobuf_DescriptorProto {
     var messageProto = Google_Protobuf_DescriptorProto()
     
     // Set message name
@@ -13,13 +13,13 @@ struct MessageDescriptorBuilder {
     
     // Convert fields
     for (index, fieldNode) in messageNode.fields.enumerated() {
-      let fieldProto = try FieldDescriptorBuilder.build(from: fieldNode, index: Int32(index))
+      let fieldProto = try FieldDescriptorBuilder.build(from: fieldNode, index: Int32(index), packageName: packageName)
       messageProto.field.append(fieldProto)
     }
     
     // Convert nested messages
     for nestedMessage in messageNode.nestedMessages {
-      let nestedProto = try build(from: nestedMessage)
+      let nestedProto = try build(from: nestedMessage, packageName: packageName)
       messageProto.nestedType.append(nestedProto)
     }
     

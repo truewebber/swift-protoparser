@@ -5,7 +5,7 @@ import SwiftProtobuf
 struct ServiceDescriptorBuilder {
   
   /// Convert ServiceNode to ServiceDescriptorProto.
-  static func build(from serviceNode: ServiceNode) throws -> Google_Protobuf_ServiceDescriptorProto {
+  static func build(from serviceNode: ServiceNode, packageName: String? = nil) throws -> Google_Protobuf_ServiceDescriptorProto {
     var serviceProto = Google_Protobuf_ServiceDescriptorProto()
     
     // Set service name
@@ -13,7 +13,7 @@ struct ServiceDescriptorBuilder {
     
     // Convert RPC methods
     for methodNode in serviceNode.methods {
-      let methodProto = try buildMethod(from: methodNode)
+      let methodProto = try buildMethod(from: methodNode, packageName: packageName)
       serviceProto.method.append(methodProto)
     }
     
@@ -26,12 +26,12 @@ struct ServiceDescriptorBuilder {
   }
   
   /// Build MethodDescriptorProto from RPCMethodNode.
-  private static func buildMethod(from methodNode: RPCMethodNode) throws -> Google_Protobuf_MethodDescriptorProto {
+  private static func buildMethod(from methodNode: RPCMethodNode, packageName: String?) throws -> Google_Protobuf_MethodDescriptorProto {
     var methodProto = Google_Protobuf_MethodDescriptorProto()
     
     methodProto.name = methodNode.name
-    methodProto.inputType = methodNode.inputType
-    methodProto.outputType = methodNode.outputType
+    methodProto.inputType = buildFullyQualifiedTypeName(methodNode.inputType, packageName: packageName)
+    methodProto.outputType = buildFullyQualifiedTypeName(methodNode.outputType, packageName: packageName)
     
     // Set streaming flags
     methodProto.clientStreaming = methodNode.inputStreaming
@@ -43,6 +43,21 @@ struct ServiceDescriptorBuilder {
     }
     
     return methodProto
+  }
+  
+  /// Build fully qualified type name with package prefix.
+  private static func buildFullyQualifiedTypeName(_ typeName: String, packageName: String?) -> String {
+    // If already starts with dot, it's already fully qualified
+    if typeName.hasPrefix(".") {
+      return typeName
+    }
+    
+    // Build fully qualified name
+    if let package = packageName, !package.isEmpty {
+      return ".\(package).\(typeName)"
+    } else {
+      return ".\(typeName)"
+    }
   }
   
   /// Build ServiceOptions from AST options.

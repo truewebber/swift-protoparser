@@ -35,6 +35,11 @@ public enum ProtoParseError: Error {
   /// Semantic validation error (type checking, etc.)
   case semanticError(message: String, context: String)
 
+  // MARK: - Descriptor Builder Errors
+
+  /// Error occurred during AST to descriptor conversion.
+  case descriptorError(DescriptorError)
+
   // MARK: - Internal Errors
 
   /// Internal parser state corruption or unexpected condition.
@@ -69,6 +74,9 @@ extension ProtoParseError: LocalizedError {
     case .semanticError(let message, let context):
       return "Semantic error in \(context): \(message)"
 
+    case .descriptorError(let descriptorError):
+      return "Descriptor building error: \(descriptorError.localizedDescription)"
+
     case .internalError(let message):
       return "Internal parser error: \(message)"
     }
@@ -98,6 +106,9 @@ extension ProtoParseError: LocalizedError {
     case .semanticError:
       return "The file contains semantically invalid constructs."
 
+    case .descriptorError:
+      return "Failed to convert parsed AST to Protocol Buffers descriptor format."
+
     case .internalError:
       return "An unexpected internal error occurred."
     }
@@ -126,6 +137,9 @@ extension ProtoParseError: LocalizedError {
 
     case .semanticError:
       return "Review field types, message definitions, and naming conventions."
+
+    case .descriptorError:
+      return "Check that all AST nodes contain valid data for descriptor conversion."
 
     case .internalError:
       return "This may be a bug in SwiftProtoParser. Please report it."

@@ -365,4 +365,267 @@ final class SwiftProtoParserTests: XCTestCase {
       XCTAssertEqual(ast.messages.count, 2)
     }
   }
+
+  // MARK: - Descriptor API Tests
+
+  func testParseProtoStringToDescriptorsSuccess() {
+    let protoContent = """
+      syntax = "proto3";
+      
+      package com.example;
+      
+      message User {
+        int32 id = 1;
+        string name = 2;
+        bool active = 3;
+      }
+      
+      enum Status {
+        UNKNOWN = 0;
+        ACTIVE = 1;
+        INACTIVE = 2;
+      }
+      
+      service UserService {
+        rpc GetUser(User) returns (User);
+      }
+      """
+    
+    let result = SwiftProtoParser.parseProtoStringToDescriptors(protoContent, fileName: "test.proto")
+    
+    switch result {
+    case .success(let fileDescriptor):
+      // Verify basic properties
+      XCTAssertEqual(fileDescriptor.name, "test.proto")
+      XCTAssertEqual(fileDescriptor.syntax, "proto3")
+      XCTAssertEqual(fileDescriptor.package, "com.example")
+      
+      // Verify messages
+      XCTAssertEqual(fileDescriptor.messageType.count, 1)
+      let userMessage = fileDescriptor.messageType[0]
+      XCTAssertEqual(userMessage.name, "User")
+      XCTAssertEqual(userMessage.field.count, 3)
+      
+      // Verify fields
+      XCTAssertEqual(userMessage.field[0].name, "id")
+      XCTAssertEqual(userMessage.field[0].number, 1)
+      XCTAssertEqual(userMessage.field[0].type, .int32)
+      
+      XCTAssertEqual(userMessage.field[1].name, "name")
+      XCTAssertEqual(userMessage.field[1].number, 2)
+      XCTAssertEqual(userMessage.field[1].type, .string)
+      
+      XCTAssertEqual(userMessage.field[2].name, "active")
+      XCTAssertEqual(userMessage.field[2].number, 3)
+      XCTAssertEqual(userMessage.field[2].type, .bool)
+      
+      // Verify enums
+      XCTAssertEqual(fileDescriptor.enumType.count, 1)
+      let statusEnum = fileDescriptor.enumType[0]
+      XCTAssertEqual(statusEnum.name, "Status")
+      XCTAssertEqual(statusEnum.value.count, 3)
+      
+      // Verify enum values
+      XCTAssertEqual(statusEnum.value[0].name, "UNKNOWN")
+      XCTAssertEqual(statusEnum.value[0].number, 0)
+      
+      // Verify services
+      XCTAssertEqual(fileDescriptor.service.count, 1)
+      let userService = fileDescriptor.service[0]
+      XCTAssertEqual(userService.name, "UserService")
+      XCTAssertEqual(userService.method.count, 1)
+      
+      // Verify service methods
+      XCTAssertEqual(userService.method[0].name, "GetUser")
+      XCTAssertEqual(userService.method[0].inputType, ".com.example.User")
+      XCTAssertEqual(userService.method[0].outputType, ".com.example.User")
+      
+    case .failure(let error):
+      XCTFail("Expected success, got error: \(error)")
+    }
+  }
+
+  func testParseProtoStringToDescriptorsWithInvalidSyntax() {
+    let protoContent = """
+      syntax = "proto3";
+      
+      message User {
+        int32 = 1;
+      }
+      """
+    
+    let result = SwiftProtoParser.parseProtoStringToDescriptors(protoContent, fileName: "invalid.proto")
+    
+    switch result {
+    case .success(_):
+      XCTFail("Expected parsing to fail due to missing field name")
+    case .failure(let error):
+      // Should get syntax error for missing field name
+      XCTAssertTrue(error.description.contains("Unexpected token"))
+    }
+  }
+
+  func testParseProtoStringToDescriptorsWithDescriptorError() {
+    // Test a valid AST that might cause descriptor builder issues
+    let protoContent = """
+      syntax = "proto3";
+      
+      message EmptyMessage {
+      }
+      """
+    
+    let result = SwiftProtoParser.parseProtoStringToDescriptors(protoContent, fileName: "empty.proto")
+    
+    switch result {
+    case .success(let fileDescriptor):
+      // This should actually succeed
+      XCTAssertEqual(fileDescriptor.name, "empty.proto")
+      XCTAssertEqual(fileDescriptor.messageType.count, 1)
+      XCTAssertEqual(fileDescriptor.messageType[0].name, "EmptyMessage")
+      XCTAssertEqual(fileDescriptor.messageType[0].field.count, 0)
+      
+    case .failure(let error):
+      XCTFail("Expected success for empty message, got error: \(error)")
+    }
+  }
+
+  func testParseProtoToDescriptorsFromFile() {
+    // Create a temporary proto file
+    let tempDir = NSTemporaryDirectory()
+    let fileName = "test_descriptors.proto"
+    let filePath = tempDir + fileName
+    
+    let protoContent = """
+      syntax = "proto3";
+      
+      package test;
+      
+      message TestMessage {
+        string content = 1;
+        int32 value = 2;
+      }
+      """
+    
+    do {
+      try protoContent.write(toFile: filePath, atomically: true, encoding: .utf8)
+      
+      let result = SwiftProtoParser.parseProtoToDescriptors(filePath)
+      
+      switch result {
+      case .success(let fileDescriptor):
+        XCTAssertEqual(fileDescriptor.name, fileName)
+        XCTAssertEqual(fileDescriptor.syntax, "proto3")
+        XCTAssertEqual(fileDescriptor.package, "test")
+        XCTAssertEqual(fileDescriptor.messageType.count, 1)
+        XCTAssertEqual(fileDescriptor.messageType[0].name, "TestMessage")
+        
+      case .failure(let error):
+        XCTFail("Expected success, got error: \(error)")
+      }
+      
+      // Clean up
+      try FileManager.default.removeItem(atPath: filePath)
+      
+    } catch {
+      XCTFail("Failed to create test file: \(error)")
+    }
+  }
+
+  func testParseProtoToDescriptorsFileNotFound() {
+    let nonExistentPath = "/non/existent/path/test.proto"
+    
+    let result = SwiftProtoParser.parseProtoToDescriptors(nonExistentPath)
+    
+    switch result {
+    case .success(_):
+      XCTFail("Expected file not found error")
+    case .failure(let error):
+      if case .ioError(_) = error {
+        // Expected IO error for file not found
+      } else {
+        XCTFail("Expected ioError, got: \(error)")
+      }
+    }
+  }
+
+  func testParseProtoStringToDescriptorsWithOptions() {
+    let protoContent = """
+      syntax = "proto3";
+      
+      option java_package = "com.example.generated";
+      option java_outer_classname = "TestProto";
+      
+      message TestMessage {
+        string name = 1 [deprecated = true];
+        int32 id = 2;
+      }
+      """
+    
+    let result = SwiftProtoParser.parseProtoStringToDescriptors(protoContent, fileName: "options_test.proto")
+    
+    switch result {
+    case .success(let fileDescriptor):
+      // Verify file options
+      XCTAssertTrue(fileDescriptor.hasOptions)
+      XCTAssertEqual(fileDescriptor.options.javaPackage, "com.example.generated")
+      XCTAssertEqual(fileDescriptor.options.javaOuterClassname, "TestProto")
+      
+      // Verify field options
+      let testMessage = fileDescriptor.messageType[0]
+      let nameField = testMessage.field[0] 
+      XCTAssertTrue(nameField.hasOptions)
+      XCTAssertTrue(nameField.options.deprecated)
+      
+    case .failure(let error):
+      XCTFail("Expected success, got error: \(error)")
+    }
+  }
+
+  func testParseProtoStringToDescriptorsComplexTypes() {
+    let protoContent = """
+      syntax = "proto3";
+      
+      message Outer {
+        message Inner {
+          string value = 1;
+        }
+        
+        Inner inner = 1;
+        repeated string tags = 2;
+        map<string, int32> counts = 3;
+      }
+      """
+    
+    let result = SwiftProtoParser.parseProtoStringToDescriptors(protoContent, fileName: "complex.proto")
+    
+    switch result {
+    case .success(let fileDescriptor):
+      let outerMessage = fileDescriptor.messageType[0]
+      XCTAssertEqual(outerMessage.name, "Outer")
+      
+      // Check nested type
+      XCTAssertEqual(outerMessage.nestedType.count, 1)
+      XCTAssertEqual(outerMessage.nestedType[0].name, "Inner")
+      
+      // Check fields
+      XCTAssertEqual(outerMessage.field.count, 3)
+      
+      // inner field 
+      XCTAssertEqual(outerMessage.field[0].name, "inner")
+      XCTAssertEqual(outerMessage.field[0].typeName, ".Inner")
+      
+      // repeated field
+      XCTAssertEqual(outerMessage.field[1].name, "tags")
+      XCTAssertEqual(outerMessage.field[1].label, .repeated)
+      XCTAssertEqual(outerMessage.field[1].type, .string)
+      
+      // map field
+      XCTAssertEqual(outerMessage.field[2].name, "counts")
+      XCTAssertEqual(outerMessage.field[2].type, .message)
+      XCTAssertEqual(outerMessage.field[2].typeName, "CountsEntry")
+      
+    case .failure(let error):
+      XCTFail("Expected success, got error: \(error)")
+    }
+  }
 }

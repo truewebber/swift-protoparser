@@ -24,7 +24,7 @@ public struct DescriptorBuilder {
     
     // Convert messages
     for messageNode in ast.messages {
-      let messageProto = try MessageDescriptorBuilder.build(from: messageNode)
+      let messageProto = try MessageDescriptorBuilder.build(from: messageNode, packageName: ast.package)
       fileProto.messageType.append(messageProto)
     }
     
@@ -36,7 +36,7 @@ public struct DescriptorBuilder {
     
     // Convert services
     for serviceNode in ast.services {
-      let serviceProto = try ServiceDescriptorBuilder.build(from: serviceNode)
+      let serviceProto = try ServiceDescriptorBuilder.build(from: serviceNode, packageName: ast.package)
       fileProto.service.append(serviceProto)
     }
     

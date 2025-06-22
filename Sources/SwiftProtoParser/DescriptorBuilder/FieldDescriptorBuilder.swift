@@ -5,7 +5,7 @@ import SwiftProtobuf
 struct FieldDescriptorBuilder {
   
   /// Convert FieldNode to FieldDescriptorProto.
-  static func build(from fieldNode: FieldNode, index: Int32) throws -> Google_Protobuf_FieldDescriptorProto {
+  static func build(from fieldNode: FieldNode, index: Int32, packageName: String? = nil) throws -> Google_Protobuf_FieldDescriptorProto {
     var fieldProto = Google_Protobuf_FieldDescriptorProto()
     
     // Set basic field properties
@@ -23,7 +23,7 @@ struct FieldDescriptorBuilder {
     }
     
     // Convert field type
-    try setFieldType(fieldProto: &fieldProto, fieldType: fieldNode.type)
+    try setFieldType(fieldProto: &fieldProto, fieldType: fieldNode.type, packageName: packageName)
     
     // Convert field options
     if !fieldNode.options.isEmpty {
@@ -34,7 +34,7 @@ struct FieldDescriptorBuilder {
   }
   
   /// Set field type in FieldDescriptorProto with proper type enum mapping.
-  private static func setFieldType(fieldProto: inout Google_Protobuf_FieldDescriptorProto, fieldType: FieldType) throws {
+  private static func setFieldType(fieldProto: inout Google_Protobuf_FieldDescriptorProto, fieldType: FieldType, packageName: String?) throws {
     switch fieldType {
     // Scalar types
     case .double:
@@ -71,17 +71,33 @@ struct FieldDescriptorBuilder {
     // Complex types
     case .message(let typeName):
       fieldProto.type = .message
-      fieldProto.typeName = typeName
+      fieldProto.typeName = buildFullyQualifiedTypeName(typeName, packageName: packageName)
       
     case .enumType(let typeName):
       fieldProto.type = .enum
-      fieldProto.typeName = typeName
+      fieldProto.typeName = buildFullyQualifiedTypeName(typeName, packageName: packageName)
       
-    case .map(let keyType, let valueType):
+    case .map(_, _):
       // Maps are represented as repeated message with special structure
       fieldProto.type = .message
-      fieldProto.typeName = "map<\(keyType.protoTypeName), \(valueType.protoTypeName)>"
+      let capitalizedName = fieldProto.name.prefix(1).uppercased() + fieldProto.name.dropFirst()
+      fieldProto.typeName = "\(capitalizedName)Entry"
       fieldProto.label = .repeated
+    }
+  }
+  
+  /// Build fully qualified type name with package prefix.
+  private static func buildFullyQualifiedTypeName(_ typeName: String, packageName: String?) -> String {
+    // If already starts with dot, it's already fully qualified
+    if typeName.hasPrefix(".") {
+      return typeName
+    }
+    
+    // Build fully qualified name
+    if let package = packageName, !package.isEmpty {
+      return ".\(package).\(typeName)"
+    } else {
+      return ".\(typeName)"
     }
   }
   

@@ -1,4 +1,5 @@
 import Foundation
+import SwiftProtobuf
 
 // MARK: - SwiftProtoParser
 
@@ -77,6 +78,66 @@ extension SwiftProtoParser {
 
     case .failure(let error):
       return .failure(error)
+    }
+  }
+}
+
+// MARK: - Descriptor API
+
+extension SwiftProtoParser {
+
+  /// Parse a single .proto file from a file path and return Google Protocol Buffers descriptor.
+  ///
+  /// - Parameter filePath: Path to the .proto file
+  /// - Returns: Result containing Google_Protobuf_FileDescriptorProto on success, or ProtoParseError on failure.
+  ///
+  /// This method performs the complete pipeline: Lexer → Parser → AST → DescriptorBuilder → FileDescriptorProto
+  public static func parseProtoToDescriptors(_ filePath: String) -> Result<Google_Protobuf_FileDescriptorProto, ProtoParseError> {
+    do {
+      // Read file content
+      let content = try String(contentsOfFile: filePath, encoding: .utf8)
+      
+      // Extract file name from path for descriptor
+      let fileName = URL(fileURLWithPath: filePath).lastPathComponent
+
+      // Parse from string content
+      return parseProtoStringToDescriptors(content, fileName: fileName)
+
+    }
+    catch {
+      return .failure(.ioError(underlying: error))
+    }
+  }
+
+  /// Parse .proto content from a string and return Google Protocol Buffers descriptor.
+  ///
+  /// - Parameters:
+  ///   - content: The .proto file content as a string
+  ///   - fileName: File name for descriptor metadata (default: "string.proto")
+  /// - Returns: Result containing Google_Protobuf_FileDescriptorProto on success, or ProtoParseError on failure.
+  ///
+  /// This method performs the complete pipeline: Lexer → Parser → AST → DescriptorBuilder → FileDescriptorProto
+  public static func parseProtoStringToDescriptors(_ content: String, fileName: String = "string.proto") -> Result<Google_Protobuf_FileDescriptorProto, ProtoParseError> {
+    // Step 1: Parse to AST
+    let astResult = parseProtoString(content, fileName: fileName)
+    
+    switch astResult {
+    case .success(let ast):
+      // Step 2: Convert AST to FileDescriptorProto using DescriptorBuilder
+      do {
+        let fileDescriptor = try DescriptorBuilder.buildFileDescriptor(from: ast, fileName: fileName)
+        return .success(fileDescriptor)
+      }
+      catch let descriptorError as DescriptorError {
+        // Convert DescriptorError to ProtoParseError
+        return .failure(.descriptorError(descriptorError))
+      }
+      catch {
+        return .failure(.internalError(message: "DescriptorBuilder failed: \(error.localizedDescription)"))
+      }
+      
+    case .failure(let parseError):
+      return .failure(parseError)
     }
   }
 }

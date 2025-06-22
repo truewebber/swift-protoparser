@@ -119,8 +119,8 @@ class DescriptorBuilderTests: XCTestCase {
     XCTAssertEqual(descriptor.service[0].name, "TestService")
     XCTAssertEqual(descriptor.service[0].method.count, 1)
     XCTAssertEqual(descriptor.service[0].method[0].name, "TestMethod")
-    XCTAssertEqual(descriptor.service[0].method[0].inputType, "TestRequest")
-    XCTAssertEqual(descriptor.service[0].method[0].outputType, "TestResponse")
+    XCTAssertEqual(descriptor.service[0].method[0].inputType, ".TestRequest")
+    XCTAssertEqual(descriptor.service[0].method[0].outputType, ".TestResponse")
   }
   
   func testBuildComplexFileDescriptor() throws {
