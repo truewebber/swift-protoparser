@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package test.base;
+
+message BaseMessage {
+  int32 id = 1;
+  string name = 2;
+}
+
+enum BaseStatus {
+  UNKNOWN = 0;
+  ACTIVE = 1;
+  INACTIVE = 2;
+}

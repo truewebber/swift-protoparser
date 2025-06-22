@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+import "base.proto";
+
+package test.user;
+
+message User {
+  BaseMessage base = 1;
+  string email = 2;
+  BaseStatus status = 3;
+  repeated Address addresses = 4;
+}
+
+message Address {
+  string street = 1;
+  string city = 2;
+  string postal_code = 3;
+}

@@ -183,25 +183,194 @@ extension SwiftProtoParser {
 
   // These will be implemented when DependencyResolver is added
 
-  /// Parse a .proto file with import resolution (Future).
+  /// Parse a .proto file with import resolution.
   ///
-  /// - Note: This will be implemented when DependencyResolver module is added.
+  /// This method resolves all import dependencies and parses the main file.
+  /// All dependencies are resolved but only the main file's AST is returned.
+  ///
+  /// - Parameters:
+  ///   - filePath: Path to the main .proto file
+  ///   - importPaths: Array of directory paths to search for imported files (default: empty)
+  ///   - allowMissingImports: Whether to continue if some imports can't be found (default: false)
+  /// - Returns: Result containing ProtoAST of the main file on success, or ProtoParseError on failure.
   public static func parseProtoFileWithImports(
     _ filePath: String,
-    importPaths: [String] = []
+    importPaths: [String] = [],
+    allowMissingImports: Bool = false
   ) -> Result<ProtoAST, ProtoParseError> {
-    // TODO: Implement when DependencyResolver is ready
-    return .failure(.internalError(message: "Import resolution not yet implemented"))
+    do {
+      // Create DependencyResolver with appropriate options
+      let options = DependencyResolver.Options(
+        allowMissingImports: allowMissingImports,
+        recursive: true,
+        validateSyntax: true,
+        detectCircularDependencies: true,
+        maxDepth: 50
+      )
+      let resolver = DependencyResolver(importPaths: importPaths, options: options)
+      
+      // Resolve all dependencies
+      let resolutionResult = try resolver.resolveDependencies(for: filePath)
+      
+      // Parse the main file content to AST
+      let mainFile = resolutionResult.mainFile
+      return parseProtoString(mainFile.content, fileName: mainFile.fileName)
+      
+    }
+    catch let resolverError as ResolverError {
+      return .failure(.dependencyResolutionError(message: resolverError.localizedDescription, importPath: filePath))
+    }
+    catch {
+      return .failure(.ioError(underlying: error))
+    }
   }
 
-  /// Parse multiple .proto files in a directory (Future).
+  /// Parse multiple .proto files in a directory.
   ///
-  /// - Note: This will be implemented when DependencyResolver module is added.
+  /// This method finds all .proto files in the specified directory and parses each one
+  /// with full dependency resolution.
+  ///
+  /// - Parameters:
+  ///   - directoryPath: Path to the directory containing .proto files
+  ///   - recursive: Whether to search subdirectories (default: false)
+  ///   - importPaths: Additional import paths to search (default: includes the directory itself)
+  ///   - allowMissingImports: Whether to continue if some imports can't be found (default: false)
+  /// - Returns: Result containing array of ProtoAST on success, or ProtoParseError on failure.
   public static func parseProtoDirectory(
     _ directoryPath: String,
-    mainFile: String? = nil
+    recursive: Bool = false,
+    importPaths: [String] = [],
+    allowMissingImports: Bool = false
   ) -> Result<[ProtoAST], ProtoParseError> {
-    // TODO: Implement when DependencyResolver is ready
-    return .failure(.internalError(message: "Directory parsing not yet implemented"))
+    do {
+      // Include the directory itself in import paths
+      let allImportPaths = [directoryPath] + importPaths
+      
+      // Create DependencyResolver with appropriate options
+      let options = DependencyResolver.Options(
+        allowMissingImports: allowMissingImports,
+        recursive: true,
+        validateSyntax: true,
+        detectCircularDependencies: true,
+        maxDepth: 50
+      )
+      let resolver = DependencyResolver(importPaths: allImportPaths, options: options)
+      
+      // Resolve all files in directory
+      let resolutionResults = try resolver.resolveDirectory(directoryPath, recursive: recursive)
+      
+      // Parse each main file to AST
+      var allASTs: [ProtoAST] = []
+      for result in resolutionResults {
+        let mainFile = result.mainFile
+        let astResult = parseProtoString(mainFile.content, fileName: mainFile.fileName)
+        
+        switch astResult {
+        case .success(let ast):
+          allASTs.append(ast)
+        case .failure(let error):
+          return .failure(error)
+        }
+      }
+      
+      return .success(allASTs)
+      
+    }
+    catch let resolverError as ResolverError {
+      return .failure(.dependencyResolutionError(message: resolverError.localizedDescription, importPath: directoryPath))
+    }
+    catch {
+      return .failure(.ioError(underlying: error))
+    }
+  }
+}
+
+// MARK: - Descriptor API with Dependencies
+
+extension SwiftProtoParser {
+
+  /// Parse a .proto file with import resolution and return Google Protocol Buffers descriptors.
+  ///
+  /// This method resolves all import dependencies, parses the main file, and converts it to
+  /// a FileDescriptorProto with complete type information.
+  ///
+  /// - Parameters:
+  ///   - filePath: Path to the main .proto file
+  ///   - importPaths: Array of directory paths to search for imported files (default: empty)
+  ///   - allowMissingImports: Whether to continue if some imports can't be found (default: false)
+  /// - Returns: Result containing Google_Protobuf_FileDescriptorProto on success, or ProtoParseError on failure.
+  public static func parseProtoFileWithImportsToDescriptors(
+    _ filePath: String,
+    importPaths: [String] = [],
+    allowMissingImports: Bool = false
+  ) -> Result<Google_Protobuf_FileDescriptorProto, ProtoParseError> {
+    // First parse with imports to get AST
+    let astResult = parseProtoFileWithImports(filePath, importPaths: importPaths, allowMissingImports: allowMissingImports)
+    
+    switch astResult {
+    case .success(let ast):
+      // Convert AST to FileDescriptorProto
+      do {
+        let fileName = URL(fileURLWithPath: filePath).lastPathComponent
+        let fileDescriptor = try DescriptorBuilder.buildFileDescriptor(from: ast, fileName: fileName)
+        return .success(fileDescriptor)
+      }
+      catch let descriptorError as DescriptorError {
+        return .failure(.descriptorError(descriptorError))
+      }
+      catch {
+        return .failure(.internalError(message: "DescriptorBuilder failed: \(error.localizedDescription)"))
+      }
+      
+    case .failure(let error):
+      return .failure(error)
+    }
+  }
+
+  /// Parse multiple .proto files in a directory and return Google Protocol Buffers descriptors.
+  ///
+  /// This method finds all .proto files in the specified directory, parses each one with full
+  /// dependency resolution, and converts them to FileDescriptorProto objects.
+  ///
+  /// - Parameters:
+  ///   - directoryPath: Path to the directory containing .proto files
+  ///   - recursive: Whether to search subdirectories (default: false)
+  ///   - importPaths: Additional import paths to search (default: includes the directory itself)
+  ///   - allowMissingImports: Whether to continue if some imports can't be found (default: false)
+  /// - Returns: Result containing array of Google_Protobuf_FileDescriptorProto on success, or ProtoParseError on failure.
+  public static func parseProtoDirectoryToDescriptors(
+    _ directoryPath: String,
+    recursive: Bool = false,
+    importPaths: [String] = [],
+    allowMissingImports: Bool = false
+  ) -> Result<[Google_Protobuf_FileDescriptorProto], ProtoParseError> {
+    // First parse directory to get ASTs
+    let astResults = parseProtoDirectory(directoryPath, recursive: recursive, importPaths: importPaths, allowMissingImports: allowMissingImports)
+    
+    switch astResults {
+    case .success(let asts):
+      // Convert each AST to FileDescriptorProto
+      var fileDescriptors: [Google_Protobuf_FileDescriptorProto] = []
+      
+      for (index, ast) in asts.enumerated() {
+        do {
+          // Generate file name based on index since AST doesn't contain file name
+          let fileName = "file_\(index).proto"
+          let fileDescriptor = try DescriptorBuilder.buildFileDescriptor(from: ast, fileName: fileName)
+          fileDescriptors.append(fileDescriptor)
+        }
+        catch let descriptorError as DescriptorError {
+          return .failure(.descriptorError(descriptorError))
+        }
+        catch {
+          return .failure(.internalError(message: "DescriptorBuilder failed: \(error.localizedDescription)"))
+        }
+      }
+      
+      return .success(fileDescriptors)
+      
+    case .failure(let error):
+      return .failure(error)
+    }
   }
 }

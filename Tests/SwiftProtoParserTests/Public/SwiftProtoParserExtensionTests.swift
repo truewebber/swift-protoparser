@@ -297,26 +297,16 @@ final class SwiftProtoParserExtensionTests: XCTestCase {
 
     XCTAssertTrue(result.isFailure)
     if case .failure(let error) = result {
-      if case .internalError(let message) = error {
-        XCTAssertTrue(message.contains("Import resolution not yet implemented"))
-      }
-      else {
-        XCTFail("Expected internalError, got \(error)")
-      }
+      XCTAssertTrue(error.description.contains("Dependency resolution failed") || error.description.contains("I/O error"))
     }
   }
 
-  func testParseProtoDirectoryWithMainFile() {
-    let result = SwiftProtoParser.parseProtoDirectory("/some/directory", mainFile: "main.proto")
+  func testParseProtoDirectoryWithOptions() {
+    let result = SwiftProtoParser.parseProtoDirectory("/some/directory", recursive: true, importPaths: ["/path1"])
 
     XCTAssertTrue(result.isFailure)
     if case .failure(let error) = result {
-      if case .internalError(let message) = error {
-        XCTAssertTrue(message.contains("Directory parsing not yet implemented"))
-      }
-      else {
-        XCTFail("Expected internalError, got \(error)")
-      }
+      XCTAssertTrue(error.description.contains("Dependency resolution failed") || error.description.contains("I/O error"))
     }
   }
 
