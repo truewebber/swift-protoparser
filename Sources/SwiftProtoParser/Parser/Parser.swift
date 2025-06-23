@@ -1167,7 +1167,24 @@ public final class Parser {
       skipIgnorableTokens()
     }
 
-    guard let inputType = state.identifierName else {
+    // Parse input type - support qualified types like google.protobuf.Empty
+    let inputType: String
+    if let firstPart = state.identifierName {
+      // Use qualified type parsing logic to support google.protobuf.Empty
+      let fieldType = try parseQualifiedTypeName(firstPart: firstPart)
+      switch fieldType {
+      case .message(let typeName), .enumType(let typeName), .qualifiedType(let typeName):
+        inputType = typeName
+      default:
+        state.addError(
+          .unexpectedToken(
+            state.currentToken ?? Token(type: .eof, position: Token.Position(line: 0, column: 0)),
+            expected: "RPC input type"
+          )
+        )
+        return RPCMethodNode(name: methodName, inputType: "", outputType: "")
+      }
+    } else {
       state.addError(
         .unexpectedToken(
           state.currentToken ?? Token(type: .eof, position: Token.Position(line: 0, column: 0)),
@@ -1176,8 +1193,6 @@ public final class Parser {
       )
       return RPCMethodNode(name: methodName, inputType: "", outputType: "")
     }
-
-    state.advance()
     skipIgnorableTokens()
     _ = state.expectSymbol(")")
     skipIgnorableTokens()
@@ -1193,7 +1208,24 @@ public final class Parser {
       skipIgnorableTokens()
     }
 
-    guard let outputType = state.identifierName else {
+    // Parse output type - support qualified types like google.protobuf.Empty
+    let outputType: String
+    if let firstPart = state.identifierName {
+      // Use qualified type parsing logic to support google.protobuf.Empty
+      let fieldType = try parseQualifiedTypeName(firstPart: firstPart)
+      switch fieldType {
+      case .message(let typeName), .enumType(let typeName), .qualifiedType(let typeName):
+        outputType = typeName
+      default:
+        state.addError(
+          .unexpectedToken(
+            state.currentToken ?? Token(type: .eof, position: Token.Position(line: 0, column: 0)),
+            expected: "RPC output type"
+          )
+        )
+        return RPCMethodNode(name: methodName, inputType: inputType, outputType: "")
+      }
+    } else {
       state.addError(
         .unexpectedToken(
           state.currentToken ?? Token(type: .eof, position: Token.Position(line: 0, column: 0)),
@@ -1202,8 +1234,6 @@ public final class Parser {
       )
       return RPCMethodNode(name: methodName, inputType: inputType, outputType: "")
     }
-
-    state.advance()
     skipIgnorableTokens()
     _ = state.expectSymbol(")")
     skipIgnorableTokens()
