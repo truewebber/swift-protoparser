@@ -1,86 +1,144 @@
 # Next Session Instructions
 
 ## Current Status ✅
-- **Tests**: **1038 passing** ✅ (96.10% lines coverage maintained!)
-- **Coverage**: **EXCELLENT** - Lines: 96.10%, Functions: 93.46% ✅
-- **Progress**: **ПРОДУКТОВОЕ ТЕСТИРОВАНИЕ НАЧАТО** 
-- **Last Completed**: Started product testing ✅ - **9 product tests implemented**
+- **Tests**: **1050 total** (6 Complex Tests added) ✅
+- **Coverage**: **EXCELLENT** - Lines: 96.10%, Functions: 93.46% ✅  
+- **Progress**: **COMPLEX CASES ЗАВЕРШЕНЫ** → **PARSER ENHANCEMENT REQUIRED** 🔧
+- **Last Completed**: Complex Cases implementation - **2/6 tests working, важные ограничения обнаружены**
+- **Issues Found**: **23 failing tests** + **Parser Limitations** discovered
 
 ## Session Startup
 ```bash
 make start-session
-make test    # Verify 1038 tests passing
+make test    # Currently shows 23 failures (1027/1050 passing)
 make coverage # Confirm excellent coverage maintained
 ```
 
-## **CURRENT PRIORITY**: ПРОДУКТОВОЕ ТЕСТИРОВАНИЕ PROTO3 🎯
+## **CURRENT PRIORITY**: PARSER ENHANCEMENT & BUG FIXES 🔧
 
-### **STATUS**: Simple Cases ✅ Started → Medium Cases 🟡 Next
+### **IMMEDIATE GOALS** (Session Priority Order):
 
-**ЦЕЛЬ**: Comprehensive proto3 product testing через реальные сценарии
+#### **1. FIX ERRORS & WARNINGS** 🚨 **← URGENT**
+- **GOAL**: Исправить все 23 failing tests НЕ ПОНИЖАЯ покрытие
+- **STATUS**: ⚠️ **23 tests failing** из 1050 total
+- **APPROACH**: 
+  - Analyze failed tests with `swift test 2>&1 | grep -A 2 -B 2 "failed"`
+  - Fix structural issues (warnings partially fixed in ComplexProtoTests.swift)
+  - Ensure no coverage regression
+  - Target: **1050/1050 tests passing** ✅
 
-**COMPLETED**:
-- ✅ **Simple Cases**: 9 product tests implemented and passing
-- ✅ **Test Structure**: Comprehensive proto files created for all categories
-- ✅ **Test Resources**: Proto files in Tests/TestResources/ProductTests/
+#### **2. ENHANCE PARSER - ELIMINATE LIMITATIONS** 🔧 **← CRITICAL**
+- **GOAL**: Полноценный парсер который не имеет недостатков
+- **DISCOVERED LIMITATIONS**:
+  - ❌ **Qualified Names**: `Level1.Level2.Level3` не поддерживается
+  - ❌ **Google Well-Known Types**: `google.protobuf.Timestamp` не работает
+  - ❌ **Advanced Proto3 Features**: Complex imports и dependency chains
+  - ❌ **Complex Streaming**: Advanced gRPC service patterns
 
-**NEXT PRIORITIES**:
+- **ENHANCEMENT TASKS**:
+  1. **Qualified Type Names Support** - Implement `MessageType.NestedType` parsing
+  2. **Well-Known Types Integration** - Add `google.protobuf.*` support
+  3. **Advanced Import Resolution** - Complex dependency chain handling
+  4. **Enhanced Service Parsing** - Full gRPC streaming support
 
-#### **1. MEDIUM CASES** 🟡 **← CURRENT FOCUS**
-- Implement Medium complexity tests using created proto files
-- Test nested messages, repeated fields, maps, oneof groups
-- Validate field options and service options
+#### **3. COMPLEX CASES COMPLETION** ✅ **← AFTER PARSER FIXES**
+- **CURRENT**: 2/6 Complex tests working
+- **TARGET**: 6/6 tests passing after parser enhancement
+- **Failed Tests to Fix**:
+  - `testDeepNestingParsing` - Requires qualified names
+  - `testAPIGatewayParsing` - Requires Well-Known Types
+  - `testStreamingServicesParsing` - Requires enhanced service parsing
+  - `testComplexProtoParsingPerformance` - Depends on above fixes
 
-#### **2. COMPLEX CASES** 🔴
-- Deep nesting tests (5+ levels)
-- Large schema performance tests  
-- Streaming RPC validation
-- Edge cases and error handling
+### **PARSER ENHANCEMENT STRATEGY** 🔧
 
-#### **3. REAL-WORLD FILES** 🌍
-- Google Well-Known Types testing
-- gRPC service validation
-- Enterprise proto schemas
+#### **Phase 1: Core Parser Extensions**
+```swift
+// Extend FieldType.swift with qualified names
+case qualified(String, [String]) // package.Message.NestedMessage
 
-### **IMMEDIATE ACTIONS**:
+// Extend Parser.swift with qualified name parsing
+private func parseQualifiedType() -> FieldType
 
-1. **Implement MediumProtoTests**:
-   ```bash
-   # Test existing proto files in Tests/TestResources/ProductTests/medium/
-   swift test --filter "MediumProto"
-   ```
+// Add Well-Known Types support
+private func parseWellKnownType() -> FieldType
+```
 
-2. **Test Files Available**:
-   - `nested_messages.proto` - 4-level deep nesting
-   - `repeated_fields.proto` - Arrays and lists
-   - `map_types.proto` - Key-value pairs  
-   - `oneof_groups.proto` - Union types
-   - `field_options.proto` - Custom options
+#### **Phase 2: Import System Enhancement**
+```swift
+// Extend ImportResolver.swift
+func resolveWellKnownTypes() -> [String: ProtoAST]
+func resolveQualifiedTypes() -> [String: MessageNode]
+```
 
-3. **Success Criteria**:
-   - All medium complexity features parsing correctly
-   - AST generation accurate for complex structures
-   - Performance acceptable (<50ms for medium files)
+#### **Phase 3: Service Enhancement**
+```swift
+// Extend ServiceNode.swift with advanced streaming
+var streamingOptions: StreamingOptions?
+var customOptions: [OptionNode]
+```
 
-### **AFTER PRODUCT TESTING**:
-1. CLI tool development
-2. API documentation  
-3. Performance benchmarking
+### **IMPLEMENTATION PLAN** 📋
+
+#### **Week 1: Bug Fixes & Foundation**
+- ✅ Fix all 23 failing tests
+- ✅ Maintain 96.10% coverage
+- 🔧 Implement qualified name parsing in lexer/parser
+- 🔧 Add basic Well-Known Types recognition
+
+#### **Week 2: Advanced Features**
+- 🔧 Complete Well-Known Types support (`Timestamp`, `Duration`, `Any`, etc.)
+- 🔧 Enhanced import resolution with dependency chains
+- 🔧 Advanced service streaming options
+- ✅ All 6 Complex tests passing
+
+#### **Week 3: Validation & Polish**
+- 🧪 Comprehensive regression testing
+- 📊 Coverage maintenance verification
+- 📋 Update documentation with new capabilities
+- 🚀 Performance optimization for new features
+
+### **SUCCESS CRITERIA** 🎯
+- ✅ **All tests passing**: 1050/1050 tests ✅
+- ✅ **Coverage maintained**: 96.10%+ lines coverage ✅
+- ✅ **No parser limitations**: Full proto3 support ✅
+- ✅ **Production quality**: Enterprise-ready parser ✅
+
+### **CURRENT ACHIEVEMENTS** ✅
+- **Complex proto files created** - Test infrastructure ready
+- **Parser limitations identified** - Clear enhancement roadmap
+- **Combined testing approach validated** - Embedded strings + real files works
+- **Foundation solid** - 96.10% coverage maintained
 
 ## Development Commands
 ```bash
-# Run all tests
-make test
+# Check current failures
+swift test 2>&1 | grep -A 2 -B 2 "failed"
 
-# Focus commands
-swift test --filter "SimpleProtoProductTestsFixed"  # 9 passing
-swift test --filter "MediumProto"                   # Next priority  
+# Focus commands for fixes
+swift test --filter "ComplexProto"                  # Complex cases (2/6 working)
 swift test --filter "ProductTests"                  # All product tests
+swift test --enable-code-coverage                   # Coverage verification
 
-# Coverage check
+# Specific failing test investigation
+swift test --filter "testDeepNestingParsing"        # Qualified names issue
+swift test --filter "testAPIGatewayParsing"         # Well-Known Types issue
+
+# Coverage maintenance
 make coverage
 ```
 
+## Next Planned Priorities (After Parser Enhancement)
+1. **Advanced Error Reporting** - Source location mapping
+2. **CLI Tool Development** - Command-line proto validation
+3. **API Documentation** - DocC with examples
+4. **Performance Benchmarking** - Production optimization guides
+5. **Framework Integration** - SPM, CocoaPods support
+
 ---
-**Status**: **MEDIUM CASES NEXT** 🟡  
-**Next Session**: Implement MediumProtoTests using existing proto files
+**Status**: **PARSER ENHANCEMENT & BUG FIXES** 🔧  
+**Next Session**: Fix 23 failing tests + implement qualified names & Well-Known Types support
+
+**CRITICAL PATH**: Fixes → Parser Enhancement → Complete Complex Cases → Production Ready
+
+**TOTAL TESTS**: **1050 total** (23 failing, enhancement needed for full parser capability)
