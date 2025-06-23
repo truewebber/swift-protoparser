@@ -1,18 +1,18 @@
-# Swift ProtoParser - Архитектурный Документ
+# Swift ProtoParser - Architecture Document
 
-## 1. Архитектурный Обзор
+## 1. Architecture Overview
 
-### Цель
-Нативная Swift библиотека для парсинга Protocol Buffers (.proto) файлов в ProtoDescriptors без внешних зависимостей от protoc.
+### Goal
+Native Swift library for parsing Protocol Buffers (.proto) files into ProtoDescriptors without external dependencies on protoc.
 
-### Принципы Архитектуры
-- **Модульность**: Четкое разделение ответственности между компонентами
-- **Читаемость**: Приоритет понимания кода над микро-оптимизациями  
-- **Переиспользование**: Максимальное использование swift-protobuf компонентов
-- **Стабильность**: Минимизация breaking changes в публичном API
-- **Тестируемость**: Архитектура, ориентированная на тестирование
+### Architecture Principles
+- **Modularity**: Clear separation of responsibilities between components
+- **Readability**: Priority of code understanding over micro-optimizations  
+- **Reusability**: Maximum use of swift-protobuf components
+- **Stability**: Minimization of breaking changes in public API
+- **Testability**: Test-oriented architecture
 
-## 2. Общая Архитектура
+## 2. Overall Architecture
 
 ```
 ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
@@ -27,36 +27,36 @@
                    └─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
 ```
 
-### Поток Данных
-1. **Input**: .proto файл + папки с зависимостями
-2. **DependencyResolver**: Разрешение импортов → [ResolvedProtoFile]
-3. **Lexer**: Токенизация каждого файла → [Token]
-4. **Parser**: AST построение → [ProtoAST]  
-5. **Builder**: Descriptor создание с учетом зависимостей → ProtoDescriptor
-6. **Output**: Готовые swift-protobuf дескрипторы
+### Data Flow
+1. **Input**: .proto file + dependency folders
+2. **DependencyResolver**: Import resolution → [ResolvedProtoFile]
+3. **Lexer**: Tokenization of each file → [Token]
+4. **Parser**: AST construction → [ProtoAST]  
+5. **Builder**: Descriptor creation with dependencies → ProtoDescriptor
+6. **Output**: Ready swift-protobuf descriptors
 
-## 3. Модульная Структура
+## 3. Modular Structure
 
-### 3.1 Основные Модули
+### 3.1 Main Modules
 
 ```
 SwiftProtoParser/
-├── Core/                     # Основные типы и утилиты
+├── Core/                     # Basic types and utilities
 │   ├── ProtoParseError.swift
 │   ├── ProtoVersion.swift
 │   └── Extensions/
-├── DependencyResolver/       # Разрешение импортов
+├── DependencyResolver/       # Import resolution
 │   ├── DependencyResolver.swift
 │   ├── ImportResolver.swift
 │   ├── FileSystemScanner.swift
 │   ├── ResolvedProtoFile.swift
 │   └── ResolverError.swift
-├── Lexer/                    # Токенизация
+├── Lexer/                    # Tokenization
 │   ├── Token.swift
 │   ├── Lexer.swift
 │   ├── KeywordRecognizer.swift
 │   └── LexerError.swift
-├── Parser/                   # AST построение  
+├── Parser/                   # AST construction  
 │   ├── AST/
 │   │   ├── ProtoAST.swift
 │   │   ├── MessageNode.swift
@@ -67,66 +67,66 @@ SwiftProtoParser/
 │   ├── Parser.swift
 │   ├── ParserState.swift
 │   └── ParserError.swift
-├── DescriptorBuilder/        # Конвертация в Descriptors
+├── DescriptorBuilder/        # Conversion to Descriptors
 │   ├── DescriptorBuilder.swift
 │   ├── MessageDescriptorBuilder.swift
 │   ├── FieldDescriptorBuilder.swift
 │   └── BuilderError.swift
-└── Public/                   # Публичный API
+└── Public/                   # Public API
     ├── SwiftProtoParser.swift
     └── Extensions/
 ```
 
-### 3.2 Детализация Модулей
+### 3.2 Module Details
 
-#### Core Модуль
-**Ответственность**: Общие типы, утилиты, ошибки
-- `ProtoParseError` - главный error enum для публичного API
-- `ProtoVersion` - поддержка только Proto3
-- Расширения для стандартных типов
+#### Core Module
+**Responsibility**: Common types, utilities, errors
+- `ProtoParseError` - main error enum for public API
+- `ProtoVersion` - Proto3 only support
+- Extensions for standard types
 
-#### DependencyResolver Модуль
-**Ответственность**: Разрешение импортов и зависимостей
-- `DependencyResolver` - основной класс для разрешения зависимостей
-- `ImportResolver` - обработка `import` директив в .proto файлах
-- `FileSystemScanner` - поиск .proto файлов в файловой системе
-- `ResolvedProtoFile` - модель разрешенного файла с метаданными
-- Обработка циклических зависимостей и кеширование
+#### DependencyResolver Module
+**Responsibility**: Import and dependency resolution
+- `DependencyResolver` - main class for dependency resolution
+- `ImportResolver` - handling `import` directives in .proto files
+- `FileSystemScanner` - searching .proto files in filesystem
+- `ResolvedProtoFile` - resolved file model with metadata
+- Circular dependency handling and caching
 
-#### Lexer Модуль  
-**Ответственность**: Токенизация .proto файлов
-- `Token` - все типы токенов (keywords, identifiers, literals)
-- `Lexer` - основной класс токенизации
-- `KeywordRecognizer` - распознавание proto3 ключевых слов (включая `extend`)
-- Обработка комментариев, whitespace, строковых литералов
+#### Lexer Module  
+**Responsibility**: .proto file tokenization
+- `Token` - all token types (keywords, identifiers, literals)
+- `Lexer` - main tokenization class
+- `KeywordRecognizer` - proto3 keyword recognition (including `extend`)
+- Comment, whitespace, string literal handling
 
-#### Parser Модуль
-**Ответственность**: Построение AST из токенов
-- **AST подмодуль** - все узлы синтаксического дерева
-  - `ExtendNode` - AST узел для extend statements (proto3 custom options)
-  - `OptionNode` - представление options в AST
-- `Parser` - рекурсивный парсер с предиктивным анализом
-- `ParserState` - состояние парсера для error recovery
-- Валидация синтаксиса Proto3
-- **Extend Support**: Полная поддержка `extend google.protobuf.*` синтаксиса
+#### Parser Module
+**Responsibility**: AST construction from tokens
+- **AST submodule** - all syntax tree nodes
+  - `ExtendNode` - AST node for extend statements (proto3 custom options)
+  - `OptionNode` - AST representation of options
+- `Parser` - recursive parser with predictive analysis
+- `ParserState` - parser state for error recovery
+- Proto3 syntax validation
+- **Extend Support**: Full support for `extend google.protobuf.*` syntax
 
-#### DescriptorBuilder Модуль
-**Ответственность**: Конвертация AST в swift-protobuf дескрипторы
-- `DescriptorBuilder` - главный построитель
-- Специализированные билдеры для каждого типа дескриптора
-- Интеграция с `Google.Protobuf.*` типами
-- Семантическая валидация
-- **Extend Processing**: Обработка extend statements в дескрипторы
+#### DescriptorBuilder Module
+**Responsibility**: AST to swift-protobuf descriptor conversion
+- `DescriptorBuilder` - main builder
+- Specialized builders for each descriptor type
+- Integration with `Google.Protobuf.*` types
+- Semantic validation
+- **Extend Processing**: Processing extend statements into descriptors
 
-#### Public Модуль
-**Ответственность**: Публичный API
-- `SwiftProtoParser` - главный класс с функцией `parseProtoFile`
-- Удобные расширения и утилиты
+#### Public Module
+**Responsibility**: Public API
+- `SwiftProtoParser` - main class with `parseProtoFile` function
+- Convenient extensions and utilities
 
 ## 3.3 Extend Support Architecture
 
-### 3.3.1 Обзор Extend Support
-SwiftProtoParser поддерживает полный синтаксис `extend` для proto3 custom options:
+### 3.3.1 Extend Support Overview
+SwiftProtoParser supports full `extend` syntax for proto3 custom options:
 
 ```proto
 syntax = "proto3";
@@ -142,29 +142,29 @@ extend google.protobuf.MessageOptions {
 }
 ```
 
-### 3.3.2 Компоненты Extend Support
+### 3.3.2 Extend Support Components
 
 #### ExtendNode AST
 ```swift
 public struct ExtendNode {
     public let extendedType: String        // "google.protobuf.FileOptions"
-    public let fields: [FieldNode]         // Поля расширения
-    public let isValidProto3ExtendTarget: Bool  // Proto3 валидация
+    public let fields: [FieldNode]         // Extension fields
+    public let isValidProto3ExtendTarget: Bool  // Proto3 validation
 }
 ```
 
 #### Parser Integration
-- **Keyword Recognition**: `extend` распознается как ключевое слово
-- **Syntax Parsing**: Полный парсинг `extend Type { fields }` синтаксиса
-- **Proto3 Validation**: Только `google.protobuf.*` типы разрешены в proto3
-- **Error Handling**: Детальные ошибки для недопустимых extend targets
+- **Keyword Recognition**: `extend` recognized as keyword
+- **Syntax Parsing**: Full parsing of `extend Type { fields }` syntax
+- **Proto3 Validation**: Only `google.protobuf.*` types allowed in proto3
+- **Error Handling**: Detailed errors for invalid extend targets
 
 #### DescriptorBuilder Integration
-- **Extend Processing**: Конвертация ExtendNode в соответствующие protobuf extensions
-- **Custom Options**: Поддержка всех типов google.protobuf options (File, Message, Field, Service, Method, Enum, EnumValue)
-- **Validation**: Семантическая валидация extend targets и номеров полей
+- **Extend Processing**: ExtendNode conversion to appropriate protobuf extensions
+- **Custom Options**: Support for all google.protobuf option types (File, Message, Field, Service, Method, Enum, EnumValue)
+- **Validation**: Semantic validation of extend targets and field numbers
 
-### 3.3.3 Поддерживаемые Extend Targets
+### 3.3.3 Supported Extend Targets
 - `google.protobuf.FileOptions`
 - `google.protobuf.MessageOptions`  
 - `google.protobuf.FieldOptions`
@@ -173,26 +173,26 @@ public struct ExtendNode {
 - `google.protobuf.EnumOptions`
 - `google.protobuf.EnumValueOptions`
 
-## 4. API Дизайн
+## 4. API Design
 
-### 4.1 Публичный API
+### 4.1 Public API
 
 ```swift
 public struct SwiftProtoParser {
-    /// Основная функция парсинга .proto файла
+    /// Main .proto file parsing function
     public static func parseProtoFile(_ filePath: String) -> Result<ProtoDescriptor, ProtoParseError>
     
-    /// Парсинг из строки (для тестирования/in-memory)
+    /// Parse from string (for testing/in-memory)
     public static func parseProtoString(_ content: String) -> Result<ProtoDescriptor, ProtoParseError>
     
-    /// Парсинг с поддержкой зависимостей из папок
+    /// Parse with dependency support from folders
     public static func parseProtoFile(
         _ mainFilePath: String,
         importPaths: [String] = [],
         options: ParseOptions = .default
     ) -> Result<ProtoDescriptor, ProtoParseError>
     
-    /// Парсинг папки с .proto файлами (все файлы как зависимости)
+    /// Parse directory with .proto files (all files as dependencies)
     public static func parseProtoDirectory(
         _ directoryPath: String,
         mainFile: String? = nil,
@@ -209,7 +209,7 @@ public struct ParseOptions {
 }
 ```
 
-### 4.2 Обработка Ошибок
+### 4.2 Error Handling
 
 ```swift
 public enum ProtoParseError: Error, LocalizedError {
@@ -222,12 +222,12 @@ public enum ProtoParseError: Error, LocalizedError {
     case ioError(underlying: Error)
     
     public var errorDescription: String? {
-        // Детальные сообщения с локализацией ошибок
+        // Detailed messages with error localization
     }
 }
 ```
 
-### 4.3 Межмодульные Интерфейсы
+### 4.3 Inter-Module Interfaces
 
 ```swift
 // DependencyResolver → Lexer
@@ -249,51 +249,51 @@ internal func buildDescriptor(
 ) -> Result<ProtoDescriptor, BuilderError>
 ```
 
-## 5. Технологический Стек
+## 5. Technology Stack
 
-### 5.1 Основные Технологии
-- **Swift 5.9+** - минимальная версия
-- **swift-protobuf 1.29.0+** - для ProtoDescriptor типов
-- **Swift Package Manager** - управление зависимостями
+### 5.1 Core Technologies
+- **Swift 5.9+** - minimum version
+- **swift-protobuf 1.29.0+** - for ProtoDescriptor types
+- **Swift Package Manager** - dependency management
 
-### 5.2 Поддерживаемые Платформы
+### 5.2 Supported Platforms
 - **macOS 12.0+**
 - **iOS 15.0+** 
-- **Linux** (все поддерживаемые Swift дистрибутивы)
+- **Linux** (all Swift-supported distributions)
 
-### 5.3 Инструменты Разработки
-- **swift-format** - форматирование кода
-- **XCTest** - фреймворк тестирования
-- **swift test** - запуск тестов
-- **Makefile** - автоматизация сборки
+### 5.3 Development Tools
+- **swift-format** - code formatting
+- **XCTest** - testing framework
+- **swift test** - test execution
+- **Makefile** - build automation
 
-## 6. Производительность и Оптимизация
+## 6. Performance and Optimization
 
-### 6.1 Целевые Метрики
-- **Производительность**: В пределах 20% от protoc
-- **Memory Usage**: Профилирование с помощью Instruments
-- **Throughput**: Benchmark тесты на больших .proto файлах
+### 6.1 Target Metrics
+- **Performance**: Within 20% of protoc
+- **Memory Usage**: Profiling with Instruments
+- **Throughput**: Benchmark tests on large .proto files
 
-### 6.2 Стратегии Оптимизации
-1. **Ленивая инициализация** AST узлов
-2. **String interning** для повторяющихся идентификаторов  
-3. **Оптимизированные коллекции** для токенов
-4. **Copy-on-Write** семантика для больших структур
+### 6.2 Optimization Strategies
+1. **Lazy initialization** of AST nodes
+2. **String interning** for repeated identifiers  
+3. **Optimized collections** for tokens
+4. **Copy-on-Write** semantics for large structures
 
-### 6.3 Профилирование
-- Benchmark тесты в `Tests/BenchmarkTests/`
-- Memory profiling с XCTest
+### 6.3 Profiling
+- Benchmark tests in `Tests/BenchmarkTests/`
+- Memory profiling with XCTest
 - Performance regression detection
 
-## 7. Тестовая Стратегия
+## 7. Testing Strategy
 
-### 7.1 Покрытие
-- **Минимум 95%** покрытие кода
-- **Unit тесты** для каждого модуля
-- **Integration тесты** для полного pipeline
-- **Performance тесты** против protoc
+### 7.1 Coverage
+- **Minimum 95%** code coverage
+- **Unit tests** for each module
+- **Integration tests** for full pipeline
+- **Performance tests** against protoc
 
-### 7.2 Структура Тестов
+### 7.2 Test Structure
 ```
 Tests/
 ├── SwiftProtoParserTests/
@@ -311,104 +311,104 @@ Tests/
         └── MissingDeps/
 ```
 
-### 7.3 Тестовые Данные
-- **Простые .proto файлы** для unit тестов
-- **Сложные real-world файлы** для интеграционных тестов
-- **Edge cases** для граничных условий
-- **Error cases** для тестирования обработки ошибок
+### 7.3 Test Data
+- **Simple .proto files** for unit tests
+- **Complex real-world files** for integration tests
+- **Edge cases** for boundary conditions
+- **Error cases** for error handling testing
 
-## 8. Принципы Разработки
+## 8. Development Principles
 
-### 8.1 Кодовая База
-- **Явные типы** предпочтительнее неявных
-- **Малые функции** с единственной ответственностью
-- **Immutable структуры** где возможно
-- **Protocol-oriented design** для расширяемости
+### 8.1 Codebase
+- **Explicit types** preferred over implicit
+- **Small functions** with single responsibility
+- **Immutable structures** where possible
+- **Protocol-oriented design** for extensibility
 
 ### 8.2 Error Handling
-- **Fail-fast** подход для критических ошибок
-- **Детальные сообщения** с позицией в файле
-- **Error recovery** для продолжения парсинга после ошибок
-- **Structured logging** для диагностики
+- **Fail-fast** approach for critical errors
+- **Detailed messages** with file position
+- **Error recovery** for continued parsing after errors
+- **Structured logging** for diagnostics
 
-### 8.3 Документация
-- **DocC комментарии** для всех публичных API
-- **Usage examples** в документации
-- **Architecture Decision Records** для важных решений
-- **Contributing guide** для участников
+### 8.3 Documentation
+- **DocC comments** for all public APIs
+- **Usage examples** in documentation
+- **Architecture Decision Records** for important decisions
+- **Contributing guide** for contributors
 
-## 9. Работа с Зависимостями
+## 9. Dependency Management
 
-### 9.1 Типы Импортов
+### 9.1 Import Types
 ```swift
-// Стандартные Google импорты
+// Standard Google imports
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/duration.proto";
 
-// Пользовательские импорты  
+// Custom imports  
 import "user/profile.proto";
 import "common/types.proto";
 ```
 
-### 9.2 Стратегии Поиска
-1. **Относительные пути**: от текущего .proto файла
-2. **Import paths**: из указанных директорий  
-3. **Стандартные локации**: well-known types от Google
-4. **Кеширование**: переиспользование уже разрешенных файлов
+### 9.2 Search Strategies
+1. **Relative paths**: from current .proto file
+2. **Import paths**: from specified directories  
+3. **Standard locations**: well-known types from Google
+4. **Caching**: reuse of already resolved files
 
-### 9.3 Разрешение Конфликтов
-- **Duplicate imports**: игнорирование повторных импортов
-- **Version conflicts**: ошибка с детальным описанием
-- **Circular dependencies**: обнаружение и ошибка
-- **Missing imports**: опциональная ошибка или предупреждение
+### 9.3 Conflict Resolution
+- **Duplicate imports**: ignoring repeated imports
+- **Version conflicts**: error with detailed description
+- **Circular dependencies**: detection and error
+- **Missing imports**: optional error or warning
 
-### 9.4 Примеры Использования API
+### 9.4 API Usage Examples
 
 ```swift
-// Простой случай - один файл
+// Simple case - single file
 let result = SwiftProtoParser.parseProtoFile("user.proto")
 
-// С зависимостями в папках
+// With dependencies in folders
 let result = SwiftProtoParser.parseProtoFile(
     "main.proto",
     importPaths: ["./protos", "./vendor/protos"]
 )
 
-// Парсинг всей папки
+// Parse entire directory
 let results = SwiftProtoParser.parseProtoDirectory(
     "./protos",
     mainFile: "api.proto"
 )
 ```
 
-## 10. Интеграция с swift-protobuf
+## 10. swift-protobuf Integration
 
-### 10.1 Используемые Типы
+### 10.1 Used Types
 ```swift
 import SwiftProtobuf
 
-// Основные дескрипторы
+// Main descriptors
 - Google.Protobuf.FileDescriptorProto
 - Google.Protobuf.DescriptorProto  
 - Google.Protobuf.FieldDescriptorProto
 - Google.Protobuf.ServiceDescriptorProto
 ```
 
-### 10.2 Стратегия Интеграции
-- **Максимальное переиспользование** существующих типов
-- **Конвертация AST → Protobuf типы** в DescriptorBuilder
-- **Валидация** соответствия официальной спецификации
-- **Backward compatibility** с существующими проектами
+### 10.2 Integration Strategy
+- **Maximum reuse** of existing types
+- **AST → Protobuf types conversion** in DescriptorBuilder
+- **Validation** of compliance with official specification
+- **Backward compatibility** with existing projects
 
-## 11. Развертывание и Релизы
+## 11. Deployment and Releases
 
 ### 11.1 Versioning
 - **Semantic Versioning 2.0** (major.minor.patch)
-- **API stability** гарантии для major версий
-- **Deprecation warnings** за одну major версию
+- **API stability** guarantees for major versions
+- **Deprecation warnings** one major version ahead
 
 ### 11.2 Distribution
-- **GitHub Releases** с changelog
-- **Swift Package Index** регистрация
-- **Swift Package Manager** основной способ установки
-- **MIT License** для максимальной совместимости
+- **GitHub Releases** with changelog
+- **Swift Package Index** registration
+- **Swift Package Manager** primary installation method
+- **MIT License** for maximum compatibility

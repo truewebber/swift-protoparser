@@ -1,9 +1,9 @@
-# Lexer Module - Реализация и Функциональность
+# Lexer Module - Implementation and Functionality
 
-## 📋 РЕАЛИЗОВАННЫЕ КОМПОНЕНТЫ
+## 📋 IMPLEMENTED COMPONENTS
 
 ### Token.swift
-**Назначение**: Все типы токенов для proto3 синтаксиса
+**Purpose**: All token types for proto3 syntax
 
 ```swift
 public enum Token {
@@ -19,7 +19,7 @@ public enum Token {
     case newline
     case eof
     
-    // ✅ Position tracking для error reporting
+    // ✅ Position tracking for error reporting
     var position: SourcePosition { /* ... */ }
 }
 
@@ -35,13 +35,13 @@ public enum ProtoKeyword: String, CaseIterable {
 ```
 
 ### Lexer.swift
-**Назначение**: Главный класс токенизации
+**Purpose**: Main tokenization class
 
 ```swift
 public final class Lexer {
     func tokenize(_ input: String) -> Result<[Token], LexerError>
     
-    // ✅ Реализованные функции
+    // ✅ Implemented functions
     private func scanStringLiteral() -> Token
     private func scanNumber() -> Token  
     private func scanIdentifier() -> Token
@@ -56,7 +56,7 @@ public final class Lexer {
 ```
 
 ### KeywordRecognizer.swift
-**Назначение**: Распознавание proto3 ключевых слов vs идентификаторов
+**Purpose**: Proto3 keyword recognition vs identifiers
 
 ```swift
 struct KeywordRecognizer {
@@ -76,7 +76,7 @@ struct KeywordRecognizer {
 ```
 
 ### LexerError.swift
-**Назначение**: Lexer-специфичные ошибки
+**Purpose**: Lexer-specific errors
 
 ```swift
 public enum LexerError: Error {
@@ -91,11 +91,11 @@ public enum LexerError: Error {
 }
 ```
 
-## 🎯 КЛЮЧЕВЫЕ ВОЗМОЖНОСТИ
+## 🎯 KEY FEATURES
 
 ### ✅ Complete Proto3 Tokenization
-- **All proto3 keywords** включая `extend`
-- **String literals** с escape sequences
+- **All proto3 keywords** including `extend`
+- **String literals** with escape sequences
 - **Numbers** (int64, double, scientific notation)
 - **Comments** (single-line //, multi-line /* */)
 - **Identifiers** vs keywords recognition
@@ -106,82 +106,82 @@ extend google.protobuf.FileOptions {
   optional string my_option = 50001;
 }
 ```
-- **`extend` keyword** распознается корректно
-- **Qualified type names** в extend statements
-- **Proto3 validation** для extend targets
+- **`extend` keyword** recognized correctly
+- **Qualified type names** in extend statements
+- **Proto3 validation** for extend targets
 
 ### ✅ Advanced Features
-- **Position tracking** для точных error messages
-- **UTF-8 validation** для строковых литералов
+- **Position tracking** for precise error messages
+- **UTF-8 validation** for string literals
 - **Escape sequence handling** (\n, \t, \", \\, etc.)
-- **Scientific notation** для float литералов
+- **Scientific notation** for float literals
 - **Comprehensive comment parsing**
 
 ### ✅ Error Handling
 - **Precise error location** (line, column)
-- **Detailed error messages** с контекстом
-- **Recovery mechanisms** для продолжения токенизации
+- **Detailed error messages** with context
+- **Recovery mechanisms** for continued tokenization
 - **Invalid character detection**
 
-## 🧪 ТЕСТОВОЕ ПОКРЫТИЕ
+## 🧪 TEST COVERAGE
 
-### ✅ Протестированные Сценарии
-- **Basic tokenization** - все типы токенов
-- **String literals** - все escape sequences
+### ✅ Tested Scenarios
+- **Basic tokenization** - all token types
+- **String literals** - all escape sequences
 - **Numbers** - int64, double, scientific notation
 - **Comments** - single/multi-line, nested
-- **Keywords vs identifiers** - все proto3 keywords
+- **Keywords vs identifiers** - all proto3 keywords
 - **Error cases** - invalid chars, unterminated strings
-- **Extend syntax** - все варианты extend statements
-- **UTF-8 handling** - unicode строки
-- **Position tracking** - точность номеров строк/колонок
+- **Extend syntax** - all extend statement variants
+- **UTF-8 handling** - unicode strings
+- **Position tracking** - line/column number accuracy
 
-### 📊 Метрики Качества
-- **96%+ code coverage** для Lexer module
+### 📊 Quality Metrics
+- **96%+ code coverage** for Lexer module
 - **100% keyword recognition** accuracy
 - **Comprehensive error path testing**
 - **Performance benchmarks** passed
 
-## 🔧 ПРОИЗВОДИТЕЛЬНОСТЬ
+## 🔧 PERFORMANCE
 
-### ✅ Оптимизации
+### ✅ Optimizations
 - **Single-pass tokenization** - O(n) complexity
 - **Memory-efficient** token storage
-- **Lazy evaluation** для больших файлов
+- **Lazy evaluation** for large files
 - **Optimized string operations**
 
 ### 📈 Benchmark Results
-- **Linear performance** O(n) с размером файла
-- **Sub-millisecond** для малых файлов
+- **Linear performance** O(n) with file size
+- **Sub-millisecond** for small files
 - **Efficient memory usage** - minimal allocations
 - **Comparable to industry standards**
 
-## ✅ СТАТУС ЗАВЕРШЕНИЯ
+## ✅ COMPLETION STATUS
 
-### Полностью Реализовано
-- [x] **Token.swift** со всеми типами токенов
-- [x] **LexerError.swift** с comprehensive error handling  
-- [x] **KeywordRecognizer.swift** с extend support
-- [x] **Lexer.swift** с полной функциональностью
-- [x] **Position tracking** для error reporting
-- [x] **UTF-8 validation** и escape sequences
+### Fully Implemented
+- [x] **Token.swift** with all token types
+- [x] **LexerError.swift** with comprehensive error handling  
+- [x] **KeywordRecognizer.swift** with extend support
+- [x] **Lexer.swift** with full functionality
+- [x] **Position tracking** for error reporting
+- [x] **UTF-8 validation** and escape sequences
 - [x] **Extend keyword** support
 - [x] **Comment parsing** (single/multi-line)
 
-### Качество Кода
+### Code Quality
 - [x] **96%+ test coverage**
 - [x] **100% test success rate**
-- [x] **Production-ready** качество
+- [x] **Production-ready** quality
 - [x] **Performance optimized**
 
-## 🔗 ЗАВИСИМОСТИ
+## 🔗 DEPENDENCIES
 
-### Входящие Зависимости
-- **Core module** (для error integration)
+### Incoming Dependencies
+- **Core module** (for error integration)
 
-### Исходящие Зависимости
+### Outgoing Dependencies
 - **Parser module** (provides tokens)
 
-## 🎉 ЗАКЛЮЧЕНИЕ
+## 🎉 CONCLUSION
 
-Lexer Module обеспечивает robust and efficient токенизацию для всего proto3 синтаксиса. Включает полную поддержку extend statements и обеспечивает excellent error reporting с precise location information.
+Lexer Module provides robust and efficient tokenization for the entire proto3 syntax. Includes full support for extend statements and ensures excellent error reporting with precise location information.

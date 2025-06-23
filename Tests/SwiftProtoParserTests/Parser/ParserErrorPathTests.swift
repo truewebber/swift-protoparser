@@ -1199,7 +1199,7 @@ final class ParserErrorPathTests: XCTestCase {
     }
   }
 
-  // MARK: - ETAP 1: Scalar Type Keywords Coverage (Lines 560-611)
+  // MARK: - STAGE 1: Scalar Type Keywords Coverage (Lines 560-611)
 
   /// Test scalar type keywords parsing - covers complete switch statement in parseFieldType.
   func testScalarTypeKeywords() {
@@ -1287,7 +1287,7 @@ final class ParserErrorPathTests: XCTestCase {
     }
   }
 
-  // MARK: - ETAP 1.2: Field Number Validation Coverage (Lines 531-536, 1002-1006)
+  // MARK: - STAGE 1.2: Field Number Validation Coverage (Lines 531-536, 1002-1006)
 
   /// Test field number out of range validation - covers lines 531-533.
   func testFieldNumberOutOfRangeValidation() {
@@ -1402,7 +1402,7 @@ final class ParserErrorPathTests: XCTestCase {
     }
   }
 
-  // MARK: - ETAP 1.3: Option Value Error Coverage (Lines 325-326)
+  // MARK: - STAGE 1.3: Option Value Error Coverage (Lines 325-326)
 
   /// Test missing option value at end of input - covers lines 325-326.
   func testMissingOptionValueAtEOF() {
@@ -1472,7 +1472,7 @@ final class ParserErrorPathTests: XCTestCase {
     }
   }
 
-  // MARK: - ETAP 1.4: Field Type Error Coverage (Lines 550-551)
+  // MARK: - STAGE 1.4: Field Type Error Coverage (Lines 550-551)
 
   /// Test missing field type at end of input - covers lines 550-551.
   func testMissingFieldTypeAtEOF() {
@@ -1547,9 +1547,9 @@ final class ParserErrorPathTests: XCTestCase {
     }
   }
 
-  // MARK: - ЭТАП 2: Средней сложности
+  // MARK: - STAGE 2: Medium Complexity
 
-  // MARK: - ETAP 2.1: Enum Zero Value Validation (Line 818)
+  // MARK: - STAGE 2.1: Enum Zero Value Validation (Line 818)
 
   /// Test enum missing zero value validation - covers line 818.
   func testEnumMissingZeroValueValidation() {
@@ -1628,7 +1628,7 @@ final class ParserErrorPathTests: XCTestCase {
     }
   }
 
-  // MARK: - ETAP 2.2: Oneof Scalar Fields Coverage (Lines 923-926)
+  // MARK: - STAGE 2.2: Oneof Scalar Fields Coverage (Lines 923-926)
 
   /// Test oneof with scalar field types - covers lines 923-926.
   func testOneofScalarFieldTypes() {
@@ -2685,7 +2685,7 @@ final class ParserErrorPathTests: XCTestCase {
     }
   }
 
-  // MARK: - EOF Guards Coverage Tests (Pункт 2)
+  // MARK: - EOF Guards Coverage Tests (Point 2)
 
   /// Tests parseOptionValue EOF guard (covers lines 326-327).
   func testParseOptionValueEOFGuard() {
@@ -2840,7 +2840,7 @@ final class ParserErrorPathTests: XCTestCase {
     }
   }
 
-  // MARK: - Missing Guards Coverage Tests (Пункт 3)
+  // MARK: - Missing Guards Coverage Tests (Point 3)
 
   /// Tests custom option name missing guard (covers lines 654-660).
   func testCustomOptionNameMissingGuard() {
@@ -3044,7 +3044,7 @@ final class ParserErrorPathTests: XCTestCase {
     }
   }
 
-  // MARK: - Break Statements Coverage Tests (Пункт 4)
+  // MARK: - Break Statements Coverage Tests (Point 4)
 
   /// Tests safety check break in skipIgnorableTokens (covers line 1206/1207).
   func testSkipIgnorableTokensSafetyCheckBreak() {

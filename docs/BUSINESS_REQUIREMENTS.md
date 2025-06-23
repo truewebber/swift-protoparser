@@ -1,123 +1,123 @@
-# Swift Protobuf Parser - Бизнес Требования
+# Swift Protobuf Parser - Business Requirements
 
-## 1. Обзор проекта
+## 1. Project Overview
 
-### Цель
-Разработка нативной Swift библиотеки для парсинга Protocol Buffers файлов (.proto) в ProtoDescriptors без необходимости вызова внешних утилит (protoc).
+### Goal
+Development of a native Swift library for parsing Protocol Buffers files (.proto) into ProtoDescriptors without the need to call external utilities (protoc).
 
-### Проблематика
-В настоящее время для Swift нет нативного решения для получения ProtoDescriptors из .proto файлов. Существующие решения требуют syscall до [protoc](https://github.com/protocolbuffers/protobuf), что создает зависимость от внешних инструментов и усложняет интеграцию.
+### Problem Statement
+Currently, there is no native solution for Swift to obtain ProtoDescriptors from .proto files. Existing solutions require syscalls to [protoc](https://github.com/protocolbuffers/protobuf), which creates a dependency on external tools and complicates integration.
 
-### Решение
-Создание полностью нативной Swift библиотеки, аналогичной [go-protoparser](https://github.com/yoheimuta/go-protoparser), которая позволит парсить .proto файлы напрямую в Swift коде.
+### Solution
+Create a fully native Swift library, similar to [go-protoparser](https://github.com/yoheimuta/go-protoparser), which will allow parsing .proto files directly in Swift code.
 
-## 2. Целевая аудитория
+## 2. Target Audience
 
-**Основные пользователи:**
-- Swift разработчики (iOS, macOS, Linux)
-- Backend разработчики, использующие Swift
-- Команды, работающие с Protocol Buffers в Swift экосистеме
+**Primary Users:**
+- Swift developers (iOS, macOS, Linux)
+- Backend developers using Swift
+- Teams working with Protocol Buffers in Swift ecosystem
 
-**Уровень экспертизы:**
-- Понимание концепций Protocol Buffers
-- Опыт работы с Swift Package Manager
-- Базовые знания синтаксиса .proto файлов
+**Expertise Level:**
+- Understanding of Protocol Buffers concepts
+- Experience with Swift Package Manager
+- Basic knowledge of .proto file syntax
 
-## 3. Функциональные требования
+## 3. Functional Requirements
 
-### 3.1 Основная функциональность
-- **Парсинг .proto файлов** в структуры ProtoDescriptors
-- **Интеграция с [swift-protobuf](https://github.com/apple/swift-protobuf)** - использование существующих ресурсов
-- **Поддержка только Proto3** + официально deprecated возможностей
-- **Отсутствие поддержки Proto2** (явное ограничение)
+### 3.1 Core Functionality
+- **Parse .proto files** into ProtoDescriptor structures
+- **Integration with [swift-protobuf](https://github.com/apple/swift-protobuf)** - use existing resources
+- **Support only Proto3** + officially deprecated features
+- **No Proto2 support** (explicit limitation)
 
-### 3.2 API Дизайн
-- **Простота использования**: основная функция `Parse()` для базового использования
-- **Минимальный код**: максимально простой API для стандартных случаев
-- **Расширяемость**: возможность детальной настройки для сложных сценариев
+### 3.2 API Design
+- **Ease of use**: main `Parse()` function for basic usage
+- **Minimal code**: maximally simple API for standard cases
+- **Extensibility**: possibility for detailed configuration for complex scenarios
 
-### 3.3 Совместимость
-- **Полная совместимость** с существующими .proto файлами
-- **Строгое соответствие поведению protoc** и официальной документации Protocol Buffers
-- **Без breaking changes** в существующих proto файлах
+### 3.3 Compatibility
+- **Full compatibility** with existing .proto files
+- **Strict adherence to protoc behavior** and official Protocol Buffers documentation
+- **No breaking changes** to existing proto files
 
-## 4. Технические требования
+## 4. Technical Requirements
 
-### 4.1 Платформы и версии
-- **Swift версии**: 5.9+
-- **Поддерживаемые платформы**: iOS, macOS, Linux, все платформы, поддерживаемые Swift
+### 4.1 Platforms and Versions
+- **Swift versions**: 5.9+
+- **Supported platforms**: iOS, macOS, Linux, all platforms supported by Swift
 
-### 4.2 Производительность
-- **Benchmark требования**: производительность сопоставимая с protoc
-- **Допустимое отклонение**: не более 20% от производительности protoc
-- **Memory footprint**: замеры обязательны, ограничения для первого релиза отсутствуют
+### 4.2 Performance
+- **Benchmark requirements**: performance comparable to protoc
+- **Acceptable deviation**: no more than 20% from protoc performance
+- **Memory footprint**: measurements required, no limits for first release
 
-### 4.3 Качество кода
-- **Покрытие тестами**: не менее 95%
-- **Error handling**: на уровне protoc с детальным описанием ошибок парсинга
-- **Стабильность API**: versioned API с минимизацией breaking changes
+### 4.3 Code Quality
+- **Test coverage**: at least 95%
+- **Error handling**: protoc-level with detailed parsing error descriptions
+- **API stability**: versioned API with minimized breaking changes
 
-## 5. Нефункциональные требования
+## 5. Non-Functional Requirements
 
-### 5.1 Лицензирование
-- **Лицензия**: MIT License
-- **OpenSource**: полностью открытый исходный код
-- **Доступность**: для любых Swift проектов без ограничений
+### 5.1 Licensing
+- **License**: MIT License
+- **OpenSource**: fully open source code
+- **Availability**: for any Swift projects without restrictions
 
-### 5.2 Документация
-- **README**: подробное описание установки и использования
-- **Examples**: практические примеры использования
-- **API Documentation**: автогенерируемая документация для всех публичных API
+### 5.2 Documentation
+- **README**: detailed description of installation and usage
+- **Examples**: practical usage examples
+- **API Documentation**: auto-generated documentation for all public APIs
 
-### 5.3 Распространение
-- **GitHub**: основной репозиторий и releases
-- **Swift Package Index (SPI)**: регистрация в каталоге пакетов
-- **Swift Package Manager**: основной способ интеграции
+### 5.3 Distribution
+- **GitHub**: main repository and releases
+- **Swift Package Index (SPI)**: registration in package catalog
+- **Swift Package Manager**: primary integration method
 
-## 6. Критерии успеха релиза
+## 6. Release Success Criteria
 
-### 6.1 Обязательные критерии
-- ✅ Реализация всей заявленной функциональности
-- ✅ Покрытие тестами ≥ 95%
-- ✅ Производительность в пределах 20% от protoc
-- ✅ Полная совместимость с существующими .proto файлами
-- ✅ Стабильный API без критических багов
+### 6.1 Mandatory Criteria
+- ✅ Implementation of all declared functionality
+- ✅ Test coverage ≥ 95%
+- ✅ Performance within 20% of protoc
+- ✅ Full compatibility with existing .proto files
+- ✅ Stable API without critical bugs
 
-### 6.2 Качественные критерии
-- ✅ Простота интеграции (добавление одной зависимости)
-- ✅ Понятная документация с примерами
-- ✅ Обработка ошибок на уровне protoc
-- ✅ Успешная работа на всех заявленных платформах
+### 6.2 Qualitative Criteria
+- ✅ Easy integration (adding one dependency)
+- ✅ Clear documentation with examples
+- ✅ Error handling at protoc level
+- ✅ Successful operation on all declared platforms
 
-### 6.3 Метрики качества
-- **Performance benchmarks**: автоматизированные тесты производительности
-- **Memory usage profiling**: замеры потребления памяти
-- **Compatibility testing**: тестирование на широком наборе .proto файлов
-- **API stability**: отсутствие breaking changes между минорными версиями
+### 6.3 Quality Metrics
+- **Performance benchmarks**: automated performance tests
+- **Memory usage profiling**: memory consumption measurements
+- **Compatibility testing**: testing on wide set of .proto files
+- **API stability**: no breaking changes between minor versions
 
-## 7. Ограничения и риски
+## 7. Limitations and Risks
 
-### 7.1 Технические ограничения
-- **Только Proto3**: сознательный отказ от поддержки Proto2
-- **Зависимость от swift-protobuf**: использование существующих компонентов
-- **Swift 5.9+**: отсутствие поддержки более старых версий
+### 7.1 Technical Limitations
+- **Proto3 only**: conscious decision to not support Proto2
+- **Dependency on swift-protobuf**: use of existing components
+- **Swift 5.9+**: no support for older versions
 
-### 7.2 Риски
-- **Сложность парсинга**: Protocol Buffers имеют сложную спецификацию
-- **Совместимость**: необходимость точного соответствия поведению protoc
-- **Производительность**: достижение benchmark требований может быть сложным
+### 7.2 Risks
+- **Parsing complexity**: Protocol Buffers have complex specification
+- **Compatibility**: need for exact adherence to protoc behavior
+- **Performance**: achieving benchmark requirements may be challenging
 
-## 8. Дорожная карта
+## 8. Roadmap
 
-### Фаза 1: MVP (Первый релиз)
-- Базовый парсер .proto файлов
-- Основные ProtoDescriptors
-- Минимальный API (функция Parse)
-- Покрытие тестами 95%
-- Документация и примеры
+### Phase 1: MVP (First Release)
+- Basic .proto file parser
+- Main ProtoDescriptors
+- Minimal API (Parse function)
+- 95% test coverage
+- Documentation and examples
 
-### Фаза 2: Оптимизация (будущие релизы)
-- Оптимизация производительности
-- Расширенный API
-- Дополнительные утилиты
-- CI/CD автоматизация
+### Phase 2: Optimization (Future Releases)
+- Performance optimization
+- Extended API
+- Additional utilities
+- CI/CD automation

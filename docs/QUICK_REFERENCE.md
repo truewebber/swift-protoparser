@@ -54,16 +54,16 @@
 
 ## 🔧 MAIN PUBLIC API
 ```swift
-// Простой случай - один файл
+// Simple case - single file
 SwiftProtoParser.parseProtoFile(_ filePath: String) -> Result<ProtoDescriptor, ProtoParseError>
 
-// С зависимостями в папках
+// With dependencies in folders
 SwiftProtoParser.parseProtoFile(
     _ filePath: String,
     importPaths: [String]
 ) -> Result<ProtoDescriptor, ProtoParseError>
 
-// Парсинг всей папки
+// Parse entire directory
 SwiftProtoParser.parseProtoDirectory(
     _ directoryPath: String,
     mainFile: String

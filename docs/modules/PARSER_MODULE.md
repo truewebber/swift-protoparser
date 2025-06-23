@@ -1,12 +1,12 @@
-# Parser Module - Реализация и Возможности
+# Parser Module - Implementation and Features
 
-## 📋 РЕАЛИЗОВАННЫЕ КОМПОНЕНТЫ
+## 📋 IMPLEMENTED COMPONENTS
 
 ### AST/ Directory
-**Назначение**: Все типы AST узлов
+**Purpose**: All AST node types
 
 ```swift
-// ProtoAST.swift - Корневой AST узел
+// ProtoAST.swift - Root AST node
 public struct ProtoAST {
     let syntax: ProtoVersion
     let package: String?
@@ -55,13 +55,13 @@ public struct ExtendNode {
 ```
 
 ### Parser.swift
-**Назначение**: Рекурсивный нисходящий парсер
+**Purpose**: Recursive descent parser
 
 ```swift
 public final class Parser {
     func parse(_ tokens: [Token]) -> Result<ProtoAST, ParserError>
     
-    // ✅ Реализованные методы парсинга
+    // ✅ Implemented parsing methods
     private func parseMessage() -> MessageNode?
     private func parseField() -> FieldNode?
     private func parseService() -> ServiceNode?
@@ -79,7 +79,7 @@ public final class Parser {
 ```
 
 ### ParserState.swift
-**Назначение**: Управление состоянием парсера и восстановление после ошибок
+**Purpose**: Parser state management and error recovery
 
 ```swift
 struct ParserState {
@@ -95,7 +95,7 @@ struct ParserState {
 ```
 
 ### ParserError.swift
-**Назначение**: Parser-специфичные ошибки
+**Purpose**: Parser-specific errors
 
 ```swift
 public enum ParserError: Error {
@@ -108,11 +108,11 @@ public enum ParserError: Error {
 }
 ```
 
-## 🎯 КЛЮЧЕВЫЕ ВОЗМОЖНОСТИ
+## 🎯 KEY FEATURES
 
 ### ✅ Proto3 Support
-- Полная поддержка proto3 синтаксиса
-- Валидация proto3 правил
+- Full proto3 syntax support
+- Proto3 rules validation
 - Well-known types (`google.protobuf.*`)
 
 ### ✅ Qualified Types
@@ -123,7 +123,7 @@ public enum ParserError: Error {
 ### ✅ Advanced Structures
 - **Maps**: `map<string, int32>`
 - **Oneof**: `oneof choice { ... }`
-- **Nested messages** (4+ уровней)
+- **Nested messages** (4+ levels)
 - **Repeated fields**
 
 ### ✅ Extend Support (Proto3 Custom Options)
@@ -137,7 +137,7 @@ extend google.protobuf.MessageOptions {
 }
 ```
 
-**Поддерживаемые extend targets:**
+**Supported extend targets:**
 - `google.protobuf.FileOptions`
 - `google.protobuf.MessageOptions`
 - `google.protobuf.FieldOptions`
@@ -155,70 +155,70 @@ service UserService {
 ```
 
 ### ✅ Error Handling
-- Детальные сообщения с позицией в файле
-- Error recovery для продолжения парсинга
+- Detailed messages with file position
+- Error recovery for continued parsing
 - Proto3 compliance validation
 
-## 🧪 ТЕСТОВОЕ ПОКРЫТИЕ
+## 🧪 TEST COVERAGE
 
-### ✅ Протестированные Сценарии
-- **Simple messages** - базовые сообщения
-- **Nested messages** - 4-уровневая вложенность
-- **Field types** - все типы полей включая qualified
-- **Services and RPCs** - полная поддержка gRPC
-- **Map types** - все комбинации ключей/значений
-- **Oneof groups** - множественные oneof группы
-- **Extend statements** - все типы google.protobuf расширений
-- **Error cases** - граничные случаи и ошибки
-- **Real-world files** - реальные .proto файлы
+### ✅ Tested Scenarios
+- **Simple messages** - basic messages
+- **Nested messages** - 4-level nesting
+- **Field types** - all field types including qualified
+- **Services and RPCs** - full gRPC support
+- **Map types** - all key/value combinations
+- **Oneof groups** - multiple oneof groups
+- **Extend statements** - all google.protobuf extension types
+- **Error cases** - edge cases and errors
+- **Real-world files** - real .proto files
 
-### 📊 Метрики Качества
-- **1086/1086 тестов** проходят (100% успех)
-- **95.01% покрытие кода**
+### 📊 Quality Metrics
+- **1086/1086 tests** passing (100% success)
+- **95.01% code coverage**
 - **Comprehensive edge case testing**
 
-## 🔧 ПРОИЗВОДИТЕЛЬНОСТЬ
+## 🔧 PERFORMANCE
 
-### ✅ Оптимизации
-- **Predictive parsing** - минимум backtracking
+### ✅ Optimizations
+- **Predictive parsing** - minimal backtracking
 - **Efficient token consumption**
 - **Memory-efficient AST nodes**
-- **Copy-on-Write семантика**
+- **Copy-on-Write semantics**
 
 ### 📈 Benchmark Results
-- **Sub-millisecond parsing** для простых файлов
-- **1-10ms** для средних файлов
-- **10-50ms** для сложных файлов
-- **Comparable to protoc** производительность
+- **Sub-millisecond parsing** for simple files
+- **1-10ms** for medium files
+- **10-50ms** for complex files
+- **Comparable to protoc** performance
 
-## ✅ СТАТУС ЗАВЕРШЕНИЯ
+## ✅ COMPLETION STATUS
 
-### Полностью Реализовано
-- [x] **AST/** директория со всеми узлами
-- [x] **ParserError.swift** с comprehensive error types
-- [x] **ParserState.swift** с error recovery
-- [x] **Parser.swift** с полной функциональностью
-- [x] **ExtendNode** и extend parsing ✅
+### Fully Implemented
+- [x] **AST/** directory with all nodes
+- [x] **ParserError.swift** with comprehensive error types
+- [x] **ParserState.swift** with error recovery
+- [x] **Parser.swift** with full functionality
+- [x] **ExtendNode** and extend parsing ✅
 - [x] **Qualified types** parsing
 - [x] **Map fields** support
 - [x] **Oneof groups** support
 - [x] **Proto3 validation**
 
-### Качество Кода
+### Code Quality
 - [x] **95%+ test coverage**
 - [x] **100% test success rate**
-- [x] **Production-ready качество**
+- [x] **Production-ready** quality
 - [x] **Comprehensive error handling**
 
-## 🔗 ЗАВИСИМОСТИ
+## 🔗 DEPENDENCIES
 
-### Входящие Зависимости
+### Incoming Dependencies
 - **Core module** (errors, types)
 - **Lexer module** (tokens)
 
-### Исходящие Зависимости  
+### Outgoing Dependencies  
 - **DescriptorBuilder module** (AST → Descriptors)
 
-## 🎉 ЗАКЛЮЧЕНИЕ
+## 🎉 CONCLUSION
 
-Parser Module полностью реализован и готов к производственному использованию. Поддерживает весь синтаксис proto3 включая extend statements для custom options, обеспечивая 100% совместимость с official Protocol Buffers specification.
+Parser Module is fully implemented and ready for production use. Supports the entire proto3 syntax including extend statements for custom options, ensuring 100% compatibility with the official Protocol Buffers specification.

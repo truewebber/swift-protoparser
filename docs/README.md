@@ -1,27 +1,27 @@
 # SwiftProtoParser Documentation
 
-Документация для SwiftProtoParser - нативной Swift библиотеки для парсинга Protocol Buffers файлов.
+Documentation for SwiftProtoParser - a native Swift library for parsing Protocol Buffers files.
 
-## 📋 Индекс документации
+## 📋 Documentation Index
 
-### 🚀 Для пользователей
-- **[Quick Reference](QUICK_REFERENCE.md)** - Быстрый обзор API и основных возможностей
-- **[Performance Guide](PERFORMANCE_GUIDE.md)** - Руководство по производительности и оптимизации
+### 🚀 For Users
+- **[Quick Reference](QUICK_REFERENCE.md)** - Quick overview of API and main features
+- **[Performance Guide](PERFORMANCE_GUIDE.md)** - Performance and optimization guide
 
-### 🏗️ Архитектура и дизайн
-- **[Architecture](ARCHITECTURE.md)** - Подробная архитектура системы
-- **[Business Requirements](BUSINESS_REQUIREMENTS.md)** - Требования и спецификации проекта
+### 🏗️ Architecture and Design
+- **[Architecture](ARCHITECTURE.md)** - Detailed system architecture
+- **[Business Requirements](BUSINESS_REQUIREMENTS.md)** - Project requirements and specifications
 
-### 🔧 Модули библиотеки
-- **[Core Module](modules/CORE_MODULE.md)** - Базовые типы, ошибки, утилиты
-- **[Lexer Module](modules/LEXER_MODULE.md)** - Токенизация .proto файлов
-- **[Parser Module](modules/PARSER_MODULE.md)** - Построение AST, extend support
-- **[Performance Module](modules/PERFORMANCE_MODULE.md)** - Кеширование и оптимизация
+### 🔧 Library Modules
+- **[Core Module](modules/CORE_MODULE.md)** - Base types, errors, utilities
+- **[Lexer Module](modules/LEXER_MODULE.md)** - .proto file tokenization
+- **[Parser Module](modules/PARSER_MODULE.md)** - AST construction, extend support
+- **[Performance Module](modules/PERFORMANCE_MODULE.md)** - Caching and optimization
 
-## 🎯 Статус проекта
+## 🎯 Project Status
 
-SwiftProtoParser достиг **production-ready качества**:
-- ✅ 1086/1086 тестов (100% успех)
-- ✅ 95.01% покрытие кода
-- ✅ Полная поддержка proto3 включая extend statements
-- ✅ Готов к релизу v1.0
+SwiftProtoParser has reached **production-ready** quality:
+- ✅ 1086/1086 tests (100% success)
+- ✅ 95.01% code coverage
+- ✅ Full proto3 support including extend statements
+- ✅ Ready for v1.0 release

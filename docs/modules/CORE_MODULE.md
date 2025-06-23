@@ -1,9 +1,9 @@
-# Core Module - Реализация и Функциональность
+# Core Module - Implementation and Functionality
 
-## 📋 РЕАЛИЗОВАННЫЕ КОМПОНЕНТЫ
+## 📋 IMPLEMENTED COMPONENTS
 
 ### ProtoParseError.swift
-**Назначение**: Главный тип ошибок для публичного API
+**Purpose**: Main error type for public API
 
 ```swift
 public enum ProtoParseError: Error, LocalizedError {
@@ -15,21 +15,21 @@ public enum ProtoParseError: Error, LocalizedError {
     case semanticError(BuilderError, context: String)
     case ioError(underlying: Error)
     
-    // ✅ Реализована полная локализация ошибок
+    // ✅ Full error localization implemented
     public var errorDescription: String? {
         switch self {
         case .fileNotFound(let path):
             return "Proto file not found: \(path)"
         case .syntaxError(let error, let file, let line, let column):
             return "Syntax error in \(file) at line \(line), column \(column): \(error)"
-        // ... детальные сообщения для всех случаев
+        // ... detailed messages for all cases
         }
     }
 }
 ```
 
 ### ProtoVersion.swift  
-**Назначение**: Обработка версий (только Proto3)
+**Purpose**: Version handling (Proto3 only)
 
 ```swift
 public enum ProtoVersion: String, CaseIterable {
@@ -44,65 +44,65 @@ public enum ProtoVersion: String, CaseIterable {
 }
 ```
 
-## 🎯 КЛЮЧЕВЫЕ ОСОБЕННОСТИ
+## 🎯 KEY FEATURES
 
 ### ✅ Error Handling Excellence
-- **Comprehensive error types** для всех модулей
-- **Detailed error messages** с позицией в файле
-- **Localized descriptions** для пользователей
-- **Structured error context** для debugging
+- **Comprehensive error types** for all modules
+- **Detailed error messages** with file position
+- **Localized descriptions** for users
+- **Structured error context** for debugging
 
 ### ✅ Version Management
-- **Proto3 only** поддержка (осознанное ограничение)
-- **Version validation** в парсере
-- **Future-proof** дизайн для возможных расширений
+- **Proto3 only** support (deliberate limitation)
+- **Version validation** in parser
+- **Future-proof** design for possible extensions
 
 ### ✅ Foundation Types
-- Базовые типы и утилиты для всех модулей
-- Общие протоколы и интерфейсы
-- Extension для стандартных типов
+- Base types and utilities for all modules
+- Common protocols and interfaces
+- Extensions for standard types
 
-## 📊 КАЧЕСТВО РЕАЛИЗАЦИИ
+## 📊 IMPLEMENTATION QUALITY
 
-### ✅ Тестовое Покрытие
-- **100% error path coverage** - все типы ошибок протестированы
-- **Edge case handling** - граничные условия
-- **Error message validation** - корректность сообщений
-- **Integration with all modules** - использование во всех модулях
+### ✅ Test Coverage
+- **100% error path coverage** - all error types tested
+- **Edge case handling** - boundary conditions
+- **Error message validation** - message correctness
+- **Integration with all modules** - used in all modules
 
 ### ✅ Production Ready
-- **Thread-safe** операции
+- **Thread-safe** operations
 - **Memory efficient** error handling
-- **Zero dependencies** - базовый модуль
-- **Stable API** - публичные интерфейсы зафиксированы
+- **Zero dependencies** - base module
+- **Stable API** - public interfaces fixed
 
-## 🔗 ИСПОЛЬЗОВАНИЕ В МОДУЛЯХ
+## 🔗 MODULE USAGE
 
-### Входящие Зависимости
-- **None** (базовый модуль)
+### Incoming Dependencies
+- **None** (base module)
 
-### Исходящие Зависимости
-- **DependencyResolver** - использует ResolverError → ProtoParseError
-- **Lexer** - использует LexerError → ProtoParseError  
-- **Parser** - использует ParserError → ProtoParseError
-- **DescriptorBuilder** - использует BuilderError → ProtoParseError
-- **Public API** - все публичные функции возвращают ProtoParseError
+### Outgoing Dependencies
+- **DependencyResolver** - uses ResolverError → ProtoParseError
+- **Lexer** - uses LexerError → ProtoParseError  
+- **Parser** - uses ParserError → ProtoParseError
+- **DescriptorBuilder** - uses BuilderError → ProtoParseError
+- **Public API** - all public functions return ProtoParseError
 
-## ✅ СТАТУС ЗАВЕРШЕНИЯ
+## ✅ COMPLETION STATUS
 
-### Полностью Реализовано
-- [x] **ProtoParseError.swift** с comprehensive error handling
-- [x] **ProtoVersion.swift** с proto3 support
-- [x] **Extensions/** с utility функциями
+### Fully Implemented
+- [x] **ProtoParseError.swift** with comprehensive error handling
+- [x] **ProtoVersion.swift** with proto3 support
+- [x] **Extensions/** with utility functions
 - [x] **Error message localization**
 - [x] **Integration with all modules**
 
-### Качество Кода  
-- [x] **100% test coverage** для error paths
-- [x] **Production-ready** качество
+### Code Quality  
+- [x] **100% test coverage** for error paths
+- [x] **Production-ready** quality
 - [x] **Comprehensive documentation**
-- [x] **Thread-safe** операции
+- [x] **Thread-safe** operations
 
-## 🎉 ЗАКЛЮЧЕНИЕ
+## 🎉 CONCLUSION
 
-Core Module обеспечивает надежную основу для всей библиотеки SwiftProtoParser. Реализован с фокусом на excellent error handling и обеспечивает consistent API для всех модулей.
+Core Module provides a reliable foundation for the entire SwiftProtoParser library. Implemented with focus on excellent error handling and ensures consistent API for all modules.

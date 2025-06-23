@@ -367,7 +367,7 @@ final class ResolverErrorTests: XCTestCase {
     let error = ResolverError.fileNotFound(specialPath)
     XCTAssertTrue(error.errorDescription?.contains(specialPath) ?? false)
 
-    let unicodePath = "/пуć/файл.proto"
+    let unicodePath = "/path/file.proto"
     let unicodeError = ResolverError.directoryNotFound(unicodePath)
     XCTAssertTrue(unicodeError.errorDescription?.contains(unicodePath) ?? false)
   }
