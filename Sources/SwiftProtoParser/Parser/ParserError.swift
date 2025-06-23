@@ -44,6 +44,12 @@ public enum ParserError: Error, Equatable {
   /// Missing zero value in enum (required in proto3).
   case missingEnumZeroValue(String, line: Int, column: Int)
 
+  /// Invalid extend target (proto3 only allows google.protobuf.* extensions).
+  case invalidExtendTarget(String, line: Int, column: Int)
+
+  /// Missing field label in extend statement.
+  case missingFieldLabel(String, line: Int, column: Int)
+
   /// Internal parser error.
   case internalError(String)
 
@@ -62,7 +68,9 @@ public enum ParserError: Error, Equatable {
       .invalidEnumDefinition(_, let line, _),
       .invalidServiceDefinition(_, let line, _),
       .invalidOptionValue(_, let line, _),
-      .missingEnumZeroValue(_, let line, _):
+      .missingEnumZeroValue(_, let line, _),
+      .invalidExtendTarget(_, let line, _),
+      .missingFieldLabel(_, let line, _):
       return line
     case .unexpectedEndOfInput, .internalError:
       return 0
@@ -84,7 +92,9 @@ public enum ParserError: Error, Equatable {
       .invalidEnumDefinition(_, _, let column),
       .invalidServiceDefinition(_, _, let column),
       .invalidOptionValue(_, _, let column),
-      .missingEnumZeroValue(_, _, let column):
+      .missingEnumZeroValue(_, _, let column),
+      .invalidExtendTarget(_, _, let column),
+      .missingFieldLabel(_, _, let column):
       return column
     case .unexpectedEndOfInput, .internalError:
       return 0
@@ -135,6 +145,12 @@ public enum ParserError: Error, Equatable {
 
     case .missingEnumZeroValue(let enumName, let line, let column):
       return "Enum '\(enumName)' at line \(line), column \(column) is missing a zero value (required in proto3)"
+
+    case .invalidExtendTarget(let message, let line, let column):
+      return "Invalid extend target at line \(line), column \(column): \(message)"
+
+    case .missingFieldLabel(let message, let line, let column):
+      return "Missing field label at line \(line), column \(column): \(message)"
 
     case .internalError(let message):
       return "Internal parser error: \(message)"

@@ -23,6 +23,9 @@ public struct ProtoAST {
   /// Service definitions.
   public let services: [ServiceNode]
 
+  /// Extend statements for custom options (proto3 only).
+  public let extends: [ExtendNode]
+
   public init(
     syntax: ProtoVersion,
     package: String? = nil,
@@ -30,7 +33,8 @@ public struct ProtoAST {
     options: [OptionNode] = [],
     messages: [MessageNode] = [],
     enums: [EnumNode] = [],
-    services: [ServiceNode] = []
+    services: [ServiceNode] = [],
+    extends: [ExtendNode] = []
   ) {
     self.syntax = syntax
     self.package = package
@@ -39,6 +43,7 @@ public struct ProtoAST {
     self.messages = messages
     self.enums = enums
     self.services = services
+    self.extends = extends
   }
 }
 
@@ -47,7 +52,7 @@ extension ProtoAST: Equatable {
   public static func == (lhs: ProtoAST, rhs: ProtoAST) -> Bool {
     return lhs.syntax == rhs.syntax && lhs.package == rhs.package && lhs.imports == rhs.imports
       && lhs.options == rhs.options && lhs.messages == rhs.messages && lhs.enums == rhs.enums
-      && lhs.services == rhs.services
+      && lhs.services == rhs.services && lhs.extends == rhs.extends
   }
 }
 
@@ -80,6 +85,10 @@ extension ProtoAST: CustomStringConvertible {
 
     for service in services {
       components.append(service.description)
+    }
+
+    for extend in extends {
+      components.append(extend.description)
     }
 
     return components.joined(separator: "\n\n")

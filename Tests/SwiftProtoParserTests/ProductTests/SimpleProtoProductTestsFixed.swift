@@ -101,64 +101,73 @@ final class SimpleProtoProductTestsFixed: XCTestCase {
     }
     
     func testBasicServiceProductScenario() throws {
-        // Test simple gRPC service
-        let protoContent = """
-        syntax = "proto3";
+        // ENHANCED: Test real basic_service.proto file with ALL 4 RPC methods (was only 2/4 before)
+        let testResourcesPath = getTestResourcesPath()
+        let filePath = "\(testResourcesPath)/ProductTests/simple/basic_service.proto"
         
-        package simple.service;
-        
-        service UserService {
-          rpc GetUser(GetUserRequest) returns (GetUserResponse);
-          rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
-        }
-        
-        message GetUserRequest {
-          string user_id = 1;
-        }
-        
-        message GetUserResponse {
-          string user_id = 1;
-          string name = 2;
-          string email = 3;
-        }
-        
-        message CreateUserRequest {
-          string name = 1;
-          string email = 2;
-        }
-        
-        message CreateUserResponse {
-          string user_id = 1;
-          bool success = 2;
-        }
-        """
-        
-        let result = SwiftProtoParser.parseProtoString(protoContent)
+        let result = SwiftProtoParser.parseProtoFile(filePath)
         
         switch result {
         case .success(let ast):
-            // Verify service
+            // Verify package name
+            XCTAssertEqual(ast.package, "simple.service")
+            
+            // Verify syntax
+            XCTAssertEqual(ast.syntax, .proto3)
+            
+            // Verify service with ALL 4 RPC methods (complete coverage)
             XCTAssertEqual(ast.services.count, 1)
             let service = ast.services[0]
             XCTAssertEqual(service.name, "UserService")
-            XCTAssertEqual(service.methods.count, 2)
+            XCTAssertEqual(service.methods.count, 4) // Now testing all 4 methods!
             
-            // Verify RPC methods
-            let getUser = service.methods.first { $0.name == "GetUser" }
-            XCTAssertNotNil(getUser)
-            XCTAssertEqual(getUser?.inputType, "GetUserRequest")
-            XCTAssertEqual(getUser?.outputType, "GetUserResponse")
+            // Test all 4 RPC methods from real file
+            let rpcMethodTests = [
+                ("GetUser", "GetUserRequest", "GetUserResponse"),
+                ("CreateUser", "CreateUserRequest", "CreateUserResponse"),
+                ("DeleteUser", "DeleteUserRequest", "DeleteUserResponse"),
+                ("ListUsers", "ListUsersRequest", "ListUsersResponse")
+            ]
             
-            // Verify messages exist
-            XCTAssertEqual(ast.messages.count, 4)
+            for (methodName, inputType, outputType) in rpcMethodTests {
+                let method = service.methods.first { $0.name == methodName }
+                XCTAssertNotNil(method, "Must have RPC method: \(methodName)")
+                XCTAssertEqual(method?.inputType, inputType, "\(methodName) input should be \(inputType)")
+                XCTAssertEqual(method?.outputType, outputType, "\(methodName) output should be \(outputType)")
+            }
+            
+            // Verify all 8 messages exist (4 request + 4 response types)
+            XCTAssertEqual(ast.messages.count, 8)
             let messageNames = Set(ast.messages.map { $0.name })
-            XCTAssertTrue(messageNames.contains("GetUserRequest"))
-            XCTAssertTrue(messageNames.contains("GetUserResponse"))
-            XCTAssertTrue(messageNames.contains("CreateUserRequest"))
-            XCTAssertTrue(messageNames.contains("CreateUserResponse"))
+            let expectedMessages = [
+                "GetUserRequest", "GetUserResponse",
+                "CreateUserRequest", "CreateUserResponse", 
+                "DeleteUserRequest", "DeleteUserResponse",
+                "ListUsersRequest", "ListUsersResponse"
+            ]
+            
+            for messageName in expectedMessages {
+                XCTAssertTrue(messageNames.contains(messageName), "Must have message: \(messageName)")
+            }
+            
+            // Verify specific message structures
+            let getUserResponse = ast.messages.first { $0.name == "GetUserResponse" }
+            XCTAssertEqual(getUserResponse?.fields.count, 3) // user_id, name, email
+            
+            let listUsersRequest = ast.messages.first { $0.name == "ListUsersRequest" }
+            XCTAssertEqual(listUsersRequest?.fields.count, 2) // page_size, page_token
+            
+            let listUsersResponse = ast.messages.first { $0.name == "ListUsersResponse" }
+            XCTAssertEqual(listUsersResponse?.fields.count, 2) // users (repeated), next_page_token
+            
+            // Verify repeated field in ListUsersResponse
+            let usersField = listUsersResponse?.fields.first { $0.name == "users" }
+            XCTAssertNotNil(usersField)
+            XCTAssertEqual(usersField?.label, .repeated)
+            XCTAssertEqual(usersField?.type.description, "GetUserResponse")
             
         case .failure(let error):
-            XCTFail("Failed to parse service: \(error)")
+            XCTFail("Failed to parse real simple/basic_service.proto: \(error)")
         }
     }
     
@@ -546,6 +555,223 @@ final class SimpleProtoProductTestsFixed: XCTestCase {
             
         case .failure(let error):
             XCTFail("Failed to parse real medium/map_types.proto: \(error)")
+        }
+    }
+    
+    // MARK: - Additional Real File Tests 📁
+    
+    func testRealBasicEnumFileParsing() throws {
+        // Test real basic_enum.proto file with comprehensive enum validation
+        let testResourcesPath = getTestResourcesPath()
+        let filePath = "\(testResourcesPath)/ProductTests/simple/basic_enum.proto"
+        
+        let result = SwiftProtoParser.parseProtoFile(filePath)
+        
+        switch result {
+        case .success(let ast):
+            // Verify package name
+            XCTAssertEqual(ast.package, "simple.enum")
+            
+            // Verify syntax
+            XCTAssertEqual(ast.syntax, .proto3)
+            
+            // Verify Status enum with 4 values
+            XCTAssertEqual(ast.enums.count, 1)
+            let status = ast.enums[0]
+            XCTAssertEqual(status.name, "Status")
+            XCTAssertEqual(status.values.count, 4)
+            
+            // Check Status enum values (with STATUS_ prefixes)
+            let statusValues = [
+                ("STATUS_UNKNOWN", 0),
+                ("STATUS_ACTIVE", 1),
+                ("STATUS_INACTIVE", 2),
+                ("STATUS_PENDING", 3)
+            ]
+            
+            for (valueName, valueNumber) in statusValues {
+                let value = status.values.first { $0.name == valueName }
+                XCTAssertNotNil(value, "Must have enum value: \(valueName)")
+                XCTAssertEqual(value?.number, Int32(valueNumber))
+            }
+            
+            // Verify default value (proto3 requirement)
+            let defaultValue = status.values.first { $0.number == 0 }
+            XCTAssertNotNil(defaultValue)
+            XCTAssertEqual(defaultValue?.name, "STATUS_UNKNOWN")
+            
+            // Verify StatusMessage that uses the enum
+            XCTAssertEqual(ast.messages.count, 1)
+            let statusMessage = ast.messages[0]
+            XCTAssertEqual(statusMessage.name, "StatusMessage")
+            XCTAssertEqual(statusMessage.fields.count, 2)
+            
+            // Check enum field
+            let statusField = statusMessage.fields.first { $0.name == "status" }
+            XCTAssertNotNil(statusField)
+            XCTAssertEqual(statusField?.number, 1)
+            XCTAssertEqual(statusField?.type.description, "Status")
+            
+            // Check description field
+            let descriptionField = statusMessage.fields.first { $0.name == "description" }
+            XCTAssertNotNil(descriptionField)
+            XCTAssertEqual(descriptionField?.number, 2)
+            XCTAssertEqual(descriptionField?.type.description, "string")
+            
+        case .failure(let error):
+            XCTFail("Failed to parse real simple/basic_enum.proto: \(error)")
+        }
+    }
+    
+    func testRealBasicMessageFileParsing() throws {
+        // Test real basic_message.proto file with all fundamental field types
+        let testResourcesPath = getTestResourcesPath()
+        let filePath = "\(testResourcesPath)/ProductTests/simple/basic_message.proto"
+        
+        let result = SwiftProtoParser.parseProtoFile(filePath)
+        
+        switch result {
+        case .success(let ast):
+            // Verify package name
+            XCTAssertEqual(ast.package, "simple.basic")
+            
+            // Verify syntax
+            XCTAssertEqual(ast.syntax, .proto3)
+            
+            // Verify BasicMessage with all 9 fundamental field types
+            XCTAssertEqual(ast.messages.count, 1)
+            let basicMessage = ast.messages[0]
+            XCTAssertEqual(basicMessage.name, "BasicMessage")
+            XCTAssertEqual(basicMessage.fields.count, 9)
+            
+            // Test all fundamental field types comprehensively
+            let fieldTests = [
+                ("name", 1, "string"),
+                ("age", 2, "int32"),
+                ("active", 3, "bool"),
+                ("score", 4, "double"),
+                ("rating", 5, "float"),
+                ("timestamp", 6, "int64"),
+                ("count", 7, "uint32"),
+                ("id", 8, "uint64"),
+                ("data", 9, "bytes")
+            ]
+            
+                         for (fieldName, fieldNumber, fieldType) in fieldTests {
+                 let field = basicMessage.fields.first { $0.name == fieldName }
+                 XCTAssertNotNil(field, "Must have field: \(fieldName)")
+                 XCTAssertEqual(field?.number, Int32(fieldNumber))
+                 XCTAssertEqual(field?.type.description, fieldType)
+                 // Note: In proto3, fields don't have explicit labels (default is singular/optional)
+             }
+            
+        case .failure(let error):
+            XCTFail("Failed to parse real simple/basic_message.proto: \(error)")
+        }
+    }
+    
+    func testRealBasicCommentsFileParsing() throws {
+        // Test real basic_comments.proto file with various comment styles
+        let testResourcesPath = getTestResourcesPath()
+        let filePath = "\(testResourcesPath)/ProductTests/simple/basic_comments.proto"
+        
+        let result = SwiftProtoParser.parseProtoFile(filePath)
+        
+        switch result {
+        case .success(let ast):
+            // Verify package name
+            XCTAssertEqual(ast.package, "simple.comments")
+            
+            // Verify syntax
+            XCTAssertEqual(ast.syntax, .proto3)
+            
+            // Verify UserProfile message (should parse despite comments)
+            let userProfile = ast.messages.first { $0.name == "UserProfile" }
+            XCTAssertNotNil(userProfile)
+            XCTAssertEqual(userProfile?.fields.count, 4)
+            
+            // Test UserProfile fields
+            let userProfileFieldTests = [
+                ("user_id", 1, "string"),
+                ("full_name", 2, "string"),
+                ("email", 3, "string"),
+                ("age", 4, "int32")
+            ]
+            
+            for (fieldName, fieldNumber, fieldType) in userProfileFieldTests {
+                let field = userProfile?.fields.first { $0.name == fieldName }
+                XCTAssertNotNil(field, "Must have UserProfile field: \(fieldName)")
+                XCTAssertEqual(field?.number, Int32(fieldNumber))
+                XCTAssertEqual(field?.type.description, fieldType)
+            }
+            
+            // Verify ProfileService
+            XCTAssertEqual(ast.services.count, 1)
+            let service = ast.services[0]
+            XCTAssertEqual(service.name, "ProfileService")
+            XCTAssertEqual(service.methods.count, 1)
+            
+            let getProfileMethod = service.methods.first { $0.name == "GetProfile" }
+            XCTAssertNotNil(getProfileMethod)
+            XCTAssertEqual(getProfileMethod?.inputType, "ProfileRequest")
+            XCTAssertEqual(getProfileMethod?.outputType, "ProfileResponse")
+            
+            // Verify request/response messages
+            XCTAssertEqual(ast.messages.count, 3) // UserProfile, ProfileRequest, ProfileResponse
+            
+            let profileRequest = ast.messages.first { $0.name == "ProfileRequest" }
+            XCTAssertNotNil(profileRequest)
+            XCTAssertEqual(profileRequest?.fields.count, 1)
+            
+            let profileResponse = ast.messages.first { $0.name == "ProfileResponse" }
+            XCTAssertNotNil(profileResponse)
+            XCTAssertEqual(profileResponse?.fields.count, 2)
+            
+        case .failure(let error):
+            XCTFail("Failed to parse real simple/basic_comments.proto: \(error)")
+        }
+    }
+    
+    func testRealBasicImportFileParsing() throws {
+        // Test real basic_import.proto file with import dependency
+        let testResourcesPath = getTestResourcesPath()
+        let filePath = "\(testResourcesPath)/ProductTests/simple/basic_import.proto"
+        let importPaths = ["\(testResourcesPath)/ProductTests/simple"]
+        
+        let result = SwiftProtoParser.parseProtoFileWithImports(filePath, importPaths: importPaths)
+        
+        switch result {
+        case .success(let ast):
+            // Verify package name
+            XCTAssertEqual(ast.package, "simple.import")
+            
+            // Verify syntax
+            XCTAssertEqual(ast.syntax, .proto3)
+            
+            // Verify import
+            XCTAssertEqual(ast.imports.count, 1)
+            XCTAssertEqual(ast.imports[0], "basic_message.proto")
+            
+            // Verify ExtendedMessage
+            XCTAssertEqual(ast.messages.count, 1)
+            let extendedMessage = ast.messages[0]
+            XCTAssertEqual(extendedMessage.name, "ExtendedMessage")
+            XCTAssertEqual(extendedMessage.fields.count, 2)
+            
+            // Check basic field (imported type)
+            let basicField = extendedMessage.fields.first { $0.name == "basic" }
+            XCTAssertNotNil(basicField)
+            XCTAssertEqual(basicField?.number, 1)
+            XCTAssertEqual(basicField?.type.description, "simple.basic.BasicMessage")
+            
+            // Check extra_field
+            let extraField = extendedMessage.fields.first { $0.name == "extra_field" }
+            XCTAssertNotNil(extraField)
+            XCTAssertEqual(extraField?.number, 2)
+            XCTAssertEqual(extraField?.type.description, "string")
+            
+        case .failure(let error):
+            XCTFail("Failed to parse real simple/basic_import.proto: \(error)")
         }
     }
     

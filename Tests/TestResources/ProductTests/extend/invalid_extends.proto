@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+message UserMessage {
+  string name = 1;
+  int32 age = 2;
+}
+
+message CompanyMessage {
+  string company_name = 1;
+}
+
+// INVALID: Cannot extend regular messages in proto3
+// These should all produce parser errors
+extend UserMessage {
+  optional string email = 100;  // ERROR: proto3 doesn't allow extending regular messages
+}
+
+extend CompanyMessage {
+  optional string website = 200;  // ERROR: proto3 doesn't allow extending regular messages
+}
+
+// INVALID: Cannot extend custom types
+extend SomeCustomType {
+  optional int32 custom_field = 300;  // ERROR: not a google.protobuf.* type
+}
+
+// INVALID: Extend without import
+extend google.protobuf.FileOptions {
+  optional string missing_import = 400;  // ERROR: missing import "google/protobuf/descriptor.proto"
+}

@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+import "google/protobuf/descriptor.proto";
+
+// Valid proto3 extends - custom options only
+extend google.protobuf.FileOptions {
+  optional string my_file_option = 50001;
+  optional int32 file_version = 50002;
+}
+
+extend google.protobuf.MessageOptions {
+  optional string message_tag = 50003;
+  optional bool is_critical = 50004;
+}
+
+extend google.protobuf.FieldOptions {
+  optional string validation_rule = 50005;
+  optional double max_value = 50006;
+}
+
+extend google.protobuf.EnumValueOptions {
+  optional string display_name = 50007;
+}
+
+extend google.protobuf.ServiceOptions {
+  optional string service_version = 50008;
+}
+
+extend google.protobuf.MethodOptions {
+  optional bool requires_auth = 50009;
+}
+
+// Use the custom options
+option (my_file_option) = "test_file";
+option (file_version) = 42;
+
+message TestMessage {
+  option (message_tag) = "important";
+  option (is_critical) = true;
+  
+  string name = 1 [(validation_rule) = "required", (max_value) = 100.0];
+  int32 age = 2;
+}
+
+enum Status {
+  STATUS_UNSPECIFIED = 0;
+  STATUS_ACTIVE = 1 [(display_name) = "Active Status"];
+  STATUS_INACTIVE = 2 [(display_name) = "Inactive Status"];
+}
+
+service TestService {
+  option (service_version) = "v1.0";
+  
+  rpc GetUser(TestMessage) returns (TestMessage) {
+    option (requires_auth) = true;
+  }
+}

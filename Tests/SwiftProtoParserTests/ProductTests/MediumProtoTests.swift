@@ -14,57 +14,18 @@ final class MediumProtoTests: XCTestCase {
     // MARK: - Medium Proto3 Product Testing 🟡
     
     func testNestedMessagesParsing() throws {
-        // Test 4-level deep nested messages
-        let protoContent = """
-        syntax = "proto3";
-
-        package medium.nested;
-
-        message Company {
-          string name = 1;
-          
-          message Department {
-            string name = 1;
-            
-            message Employee {
-              string name = 1;
-              string email = 2;
-              Position position = 3;
-              
-              message Address {
-                string street = 1;
-                string city = 2;
-                string country = 3;
-                int32 postal_code = 4;
-              }
-              
-              Address home_address = 4;
-              Address work_address = 5;
-            }
-            
-            repeated Employee employees = 2;
-            Employee manager = 3;
-          }
-          
-          repeated Department departments = 2;
-        }
-
-        enum Position {
-          POSITION_UNKNOWN = 0;
-          JUNIOR = 1;
-          SENIOR = 2;
-          LEAD = 3;
-          MANAGER = 4;
-          DIRECTOR = 5;
-        }
-        """
+        // ENHANCED: Test real nested_messages.proto file with deep 4-level nesting
+        let testResourcesPath = getTestResourcesPath()
+        let filePath = "\(testResourcesPath)/ProductTests/medium/nested_messages.proto"
         
-        let result = SwiftProtoParser.parseProtoString(protoContent)
+        let result = SwiftProtoParser.parseProtoFile(filePath)
         
         switch result {
         case .success(let ast):
-            // Verify package
+            // Verify package name
             XCTAssertEqual(ast.package, "medium.nested")
+            
+            // Verify syntax
             XCTAssertEqual(ast.syntax, .proto3)
             
             // Verify main message
@@ -73,31 +34,114 @@ final class MediumProtoTests: XCTestCase {
             XCTAssertEqual(company.name, "Company")
             XCTAssertEqual(company.fields.count, 2)
             
-            // Verify nested structure (4 levels deep)
+            // Test Company fields
+            let companyNameField = company.fields.first { $0.name == "name" }
+            XCTAssertNotNil(companyNameField)
+            XCTAssertEqual(companyNameField?.number, 1)
+            XCTAssertEqual(companyNameField?.type.description, "string")
+            
+            let departmentsField = company.fields.first { $0.name == "departments" }
+            XCTAssertNotNil(departmentsField)
+            XCTAssertEqual(departmentsField?.number, 2)
+            XCTAssertEqual(departmentsField?.label, .repeated)
+            XCTAssertEqual(departmentsField?.type.description, "Department")
+            
+            // Verify nested structure (4 levels deep: Company -> Department -> Employee -> Address)
             XCTAssertEqual(company.nestedMessages.count, 1)
             let department = company.nestedMessages[0]
             XCTAssertEqual(department.name, "Department")
+            XCTAssertEqual(department.fields.count, 3)
             
+            // Test Department fields
+            let deptNameField = department.fields.first { $0.name == "name" }
+            XCTAssertNotNil(deptNameField)
+            XCTAssertEqual(deptNameField?.number, 1)
+            
+            let employeesField = department.fields.first { $0.name == "employees" }
+            XCTAssertNotNil(employeesField)
+            XCTAssertEqual(employeesField?.number, 2)
+            XCTAssertEqual(employeesField?.label, .repeated)
+            XCTAssertEqual(employeesField?.type.description, "Employee")
+            
+            let managerField = department.fields.first { $0.name == "manager" }
+            XCTAssertNotNil(managerField)
+            XCTAssertEqual(managerField?.number, 3)
+            XCTAssertEqual(managerField?.type.description, "Employee")
+            
+            // Third level: Employee
             XCTAssertEqual(department.nestedMessages.count, 1)
             let employee = department.nestedMessages[0]
             XCTAssertEqual(employee.name, "Employee")
+            XCTAssertEqual(employee.fields.count, 5)
             
+            // Test Employee fields
+            let empNameField = employee.fields.first { $0.name == "name" }
+            XCTAssertNotNil(empNameField)
+            XCTAssertEqual(empNameField?.number, 1)
+            XCTAssertEqual(empNameField?.type.description, "string")
+            
+            let emailField = employee.fields.first { $0.name == "email" }
+            XCTAssertNotNil(emailField)
+            XCTAssertEqual(emailField?.number, 2)
+            XCTAssertEqual(emailField?.type.description, "string")
+            
+            let positionField = employee.fields.first { $0.name == "position" }
+            XCTAssertNotNil(positionField)
+            XCTAssertEqual(positionField?.number, 3)
+            XCTAssertEqual(positionField?.type.description, "Position")
+            
+            let homeAddressField = employee.fields.first { $0.name == "home_address" }
+            XCTAssertNotNil(homeAddressField)
+            XCTAssertEqual(homeAddressField?.number, 4)
+            XCTAssertEqual(homeAddressField?.type.description, "Address")
+            
+            let workAddressField = employee.fields.first { $0.name == "work_address" }
+            XCTAssertNotNil(workAddressField)
+            XCTAssertEqual(workAddressField?.number, 5)
+            XCTAssertEqual(workAddressField?.type.description, "Address")
+            
+            // Fourth level: Address (deepest nesting)
             XCTAssertEqual(employee.nestedMessages.count, 1)
             let address = employee.nestedMessages[0]
             XCTAssertEqual(address.name, "Address")
             XCTAssertEqual(address.fields.count, 4)
             
-            // Verify fields using nested types
-            let departmentsField = company.fields.first { $0.name == "departments" }
-            XCTAssertNotNil(departmentsField)
-            XCTAssertEqual(departmentsField?.label, .repeated)
-            XCTAssertEqual(departmentsField?.type.description, "Department")
+            // Test Address fields
+            let addressFieldTests = [
+                ("street", 1, "string"),
+                ("city", 2, "string"),
+                ("country", 3, "string"),
+                ("postal_code", 4, "int32")
+            ]
             
-            // Verify enum exists
+            for (fieldName, fieldNumber, fieldType) in addressFieldTests {
+                let field = address.fields.first { $0.name == fieldName }
+                XCTAssertNotNil(field, "Must have Address field: \(fieldName)")
+                XCTAssertEqual(field?.number, Int32(fieldNumber))
+                XCTAssertEqual(field?.type.description, fieldType)
+            }
+            
+            // Verify Position enum with 6 values (comprehensive coverage)
             XCTAssertEqual(ast.enums.count, 1)
             let position = ast.enums[0]
             XCTAssertEqual(position.name, "Position")
             XCTAssertEqual(position.values.count, 6)
+            
+            // Check Position enum values
+            let positionValues = [
+                ("POSITION_UNKNOWN", 0),
+                ("JUNIOR", 1),
+                ("SENIOR", 2),
+                ("LEAD", 3),
+                ("MANAGER", 4),
+                ("DIRECTOR", 5)
+            ]
+            
+            for (valueName, valueNumber) in positionValues {
+                let value = position.values.first { $0.name == valueName }
+                XCTAssertNotNil(value, "Must have position value: \(valueName)")
+                XCTAssertEqual(value?.number, Int32(valueNumber))
+            }
             
             // Verify default value (proto3 requirement)
             let defaultValue = position.values.first { $0.number == 0 }
@@ -105,104 +149,142 @@ final class MediumProtoTests: XCTestCase {
             XCTAssertEqual(defaultValue?.name, "POSITION_UNKNOWN")
             
         case .failure(let error):
-            XCTFail("Failed to parse nested messages: \(error)")
+            XCTFail("Failed to parse real medium/nested_messages.proto: \(error)")
         }
     }
     
     func testRepeatedFieldsParsing() throws {
-        // Test various repeated field types
-        let protoContent = """
-        syntax = "proto3";
-
-        package medium.repeated;
-
-        message RepeatedMessage {
-          repeated string tags = 1;
-          repeated int32 numbers = 2;
-          repeated bool flags = 3;
-          repeated double scores = 4;
-          repeated bytes data_chunks = 5;
-          
-          repeated NestedItem items = 6;
-          repeated Category categories = 7;
-        }
-
-        message NestedItem {
-          string id = 1;
-          string name = 2;
-          int32 quantity = 3;
-        }
-
-        enum Category {
-          CATEGORY_UNKNOWN = 0;
-          ELECTRONICS = 1;
-          CLOTHING = 2;
-          BOOKS = 3;
-          FOOD = 4;
-        }
-
-        message ArrayOfArrays {
-          repeated StringList string_lists = 1;
-          repeated NumberList number_lists = 2;
-        }
-
-        message StringList {
-          repeated string values = 1;
-        }
-
-        message NumberList {
-          repeated int32 values = 1;
-        }
-        """
+        // ENHANCED: Test real repeated_fields.proto file with complex repeated field types
+        let testResourcesPath = getTestResourcesPath()
+        let filePath = "\(testResourcesPath)/ProductTests/medium/repeated_fields.proto"
         
-        let result = SwiftProtoParser.parseProtoString(protoContent)
+        let result = SwiftProtoParser.parseProtoFile(filePath)
         
         switch result {
         case .success(let ast):
-            // Verify package
+            // Verify package name
             XCTAssertEqual(ast.package, "medium.repeated")
             
-            // Verify main message with repeated fields
+            // Verify syntax
+            XCTAssertEqual(ast.syntax, .proto3)
+            
+            // Verify all 5 messages exist (comprehensive coverage)
+            XCTAssertEqual(ast.messages.count, 5)
+            let messageNames = Set(ast.messages.map { $0.name })
+            let expectedMessages = ["RepeatedMessage", "NestedItem", "ArrayOfArrays", "StringList", "NumberList"]
+            
+            for messageName in expectedMessages {
+                XCTAssertTrue(messageNames.contains(messageName), "Must have message: \(messageName)")
+            }
+            
+            // Test RepeatedMessage with 7 repeated fields
             let repeatedMessage = ast.messages.first { $0.name == "RepeatedMessage" }
             XCTAssertNotNil(repeatedMessage)
             XCTAssertEqual(repeatedMessage?.fields.count, 7)
             
-            // Check all repeated fields
+            // Check all fields are repeated
             let repeatedFields = repeatedMessage?.fields.filter { $0.label == .repeated }
             XCTAssertEqual(repeatedFields?.count, 7)
             
-            // Verify specific repeated field types
-            let tagsField = repeatedMessage?.fields.first { $0.name == "tags" }
-            XCTAssertNotNil(tagsField)
-            XCTAssertEqual(tagsField?.label, .repeated)
-            XCTAssertEqual(tagsField?.type.description, "string")
+            // Test all repeated field types comprehensively
+            let repeatedFieldTests = [
+                ("tags", 1, "string"),
+                ("numbers", 2, "int32"),
+                ("flags", 3, "bool"),
+                ("scores", 4, "double"),
+                ("data_chunks", 5, "bytes"),
+                ("items", 6, "NestedItem"),
+                ("categories", 7, "Category")
+            ]
             
-            let numbersField = repeatedMessage?.fields.first { $0.name == "numbers" }
-            XCTAssertNotNil(numbersField)
-            XCTAssertEqual(numbersField?.label, .repeated)
-            XCTAssertEqual(numbersField?.type.description, "int32")
+            for (fieldName, fieldNumber, fieldType) in repeatedFieldTests {
+                let field = repeatedMessage?.fields.first { $0.name == fieldName }
+                XCTAssertNotNil(field, "Must have repeated field: \(fieldName)")
+                XCTAssertEqual(field?.number, Int32(fieldNumber))
+                XCTAssertEqual(field?.label, .repeated)
+                XCTAssertEqual(field?.type.description, fieldType)
+            }
             
-            let itemsField = repeatedMessage?.fields.first { $0.name == "items" }
-            XCTAssertNotNil(itemsField)
-            XCTAssertEqual(itemsField?.label, .repeated)
-            XCTAssertEqual(itemsField?.type.description, "NestedItem")
-            
-            // Verify nested message and enum
+            // Test NestedItem message with 3 fields
             let nestedItem = ast.messages.first { $0.name == "NestedItem" }
             XCTAssertNotNil(nestedItem)
             XCTAssertEqual(nestedItem?.fields.count, 3)
             
+            let nestedItemFieldTests = [
+                ("id", 1, "string"),
+                ("name", 2, "string"),
+                ("quantity", 3, "int32")
+            ]
+            
+            for (fieldName, fieldNumber, fieldType) in nestedItemFieldTests {
+                let field = nestedItem?.fields.first { $0.name == fieldName }
+                XCTAssertNotNil(field, "Must have NestedItem field: \(fieldName)")
+                XCTAssertEqual(field?.number, Int32(fieldNumber))
+                XCTAssertEqual(field?.type.description, fieldType)
+            }
+            
+            // Test Category enum with 5 values
             XCTAssertEqual(ast.enums.count, 1)
             let category = ast.enums[0]
             XCTAssertEqual(category.name, "Category")
+            XCTAssertEqual(category.values.count, 5)
             
-            // Verify arrays of arrays
+            // Check Category enum values
+            let categoryValues = [
+                ("CATEGORY_UNKNOWN", 0),
+                ("ELECTRONICS", 1),
+                ("CLOTHING", 2),
+                ("BOOKS", 3),
+                ("FOOD", 4)
+            ]
+            
+            for (valueName, valueNumber) in categoryValues {
+                let value = category.values.first { $0.name == valueName }
+                XCTAssertNotNil(value, "Must have category value: \(valueName)")
+                XCTAssertEqual(value?.number, Int32(valueNumber))
+            }
+            
+            // Test ArrayOfArrays (complex nested repeated patterns)
             let arrayOfArrays = ast.messages.first { $0.name == "ArrayOfArrays" }
             XCTAssertNotNil(arrayOfArrays)
             XCTAssertEqual(arrayOfArrays?.fields.count, 2)
             
+            let stringListsField = arrayOfArrays?.fields.first { $0.name == "string_lists" }
+            XCTAssertNotNil(stringListsField)
+            XCTAssertEqual(stringListsField?.number, 1)
+            XCTAssertEqual(stringListsField?.label, .repeated)
+            XCTAssertEqual(stringListsField?.type.description, "StringList")
+            
+            let numberListsField = arrayOfArrays?.fields.first { $0.name == "number_lists" }
+            XCTAssertNotNil(numberListsField)
+            XCTAssertEqual(numberListsField?.number, 2)
+            XCTAssertEqual(numberListsField?.label, .repeated)
+            XCTAssertEqual(numberListsField?.type.description, "NumberList")
+            
+            // Test StringList message
+            let stringList = ast.messages.first { $0.name == "StringList" }
+            XCTAssertNotNil(stringList)
+            XCTAssertEqual(stringList?.fields.count, 1)
+            
+            let stringValuesField = stringList?.fields.first { $0.name == "values" }
+            XCTAssertNotNil(stringValuesField)
+            XCTAssertEqual(stringValuesField?.number, 1)
+            XCTAssertEqual(stringValuesField?.label, .repeated)
+            XCTAssertEqual(stringValuesField?.type.description, "string")
+            
+            // Test NumberList message
+            let numberList = ast.messages.first { $0.name == "NumberList" }
+            XCTAssertNotNil(numberList)
+            XCTAssertEqual(numberList?.fields.count, 1)
+            
+            let numberValuesField = numberList?.fields.first { $0.name == "values" }
+            XCTAssertNotNil(numberValuesField)
+            XCTAssertEqual(numberValuesField?.number, 1)
+            XCTAssertEqual(numberValuesField?.label, .repeated)
+            XCTAssertEqual(numberValuesField?.type.description, "int32")
+            
         case .failure(let error):
-            XCTFail("Failed to parse repeated fields: \(error)")
+            XCTFail("Failed to parse real medium/repeated_fields.proto: \(error)")
         }
     }
     
@@ -298,225 +380,452 @@ final class MediumProtoTests: XCTestCase {
         }
     }
     
-    func testOneofGroupsParsing() throws {
-        // Test oneof groups (union types)
-        let protoContent = """
-        syntax = "proto3";
-
-        package medium.oneof;
-
-        message OneofMessage {
-          oneof test_oneof {
-            string name = 1;
-            int32 number = 2;
-            bool flag = 3;
-            bytes data = 4;
-            NestedMessage nested = 5;
-          }
-          
-          string common_field = 6;
-        }
-
-        message NestedMessage {
-          string content = 1;
-          int32 value = 2;
-        }
-
-        message MultipleOneofs {
-          oneof first_choice {
-            string option_a = 1;
-            int32 option_b = 2;
-          }
-          
-          oneof second_choice {
-            bool flag_x = 3;
-            double value_y = 4;
-            Status status_z = 5;
-          }
-          
-          string always_present = 6;
-        }
-
-        enum Status {
-          STATUS_UNKNOWN = 0;
-          READY = 1;
-          PROCESSING = 2;
-          COMPLETED = 3;
-          FAILED = 4;
-        }
-
-        message ComplexOneof {
-          oneof complex_choice {
-            UserProfile user = 1;
-            AdminProfile admin = 2;
-            GuestProfile guest = 3;
-          }
-        }
-
-        message UserProfile {
-          string user_id = 1;
-          string username = 2;
-          repeated string permissions = 3;
-        }
-
-        message AdminProfile {
-          string admin_id = 1;
-          string department = 2;
-          int32 access_level = 3;
-        }
-
-        message GuestProfile {
-          string session_id = 1;
-          int64 expires_at = 2;
-        }
-        """
+    // MARK: - Extend Statement Testing 🔥
+    
+    func testCustomOptionsParsing() throws {
+        // Test real custom_options.proto file with extend statements
+        let testResourcesPath = getTestResourcesPath()
+        let filePath = "\(testResourcesPath)/ProductTests/extend/custom_options.proto"
         
-        let result = SwiftProtoParser.parseProtoString(protoContent)
+        let result = SwiftProtoParser.parseProtoFile(filePath)
         
         switch result {
         case .success(let ast):
-            // Verify package
+            // Verify syntax
+            XCTAssertEqual(ast.syntax, .proto3)
+            
+            // Verify imports
+            XCTAssertEqual(ast.imports.count, 1)
+            XCTAssertEqual(ast.imports[0], "google/protobuf/descriptor.proto")
+            
+            // CRITICAL: Verify extend statements are parsed
+            XCTAssertEqual(ast.extends.count, 6, "Must parse all 6 extend statements")
+            
+            // Test FileOptions extend
+            let fileOptionsExtend = ast.extends.first { $0.extendedType == "google.protobuf.FileOptions" }
+            XCTAssertNotNil(fileOptionsExtend, "Must have FileOptions extend")
+            XCTAssertEqual(fileOptionsExtend?.fields.count, 2)
+            XCTAssertTrue(fileOptionsExtend?.isValidProto3ExtendTarget ?? false)
+            
+            // Check FileOptions extend fields
+            let myFileOptionField = fileOptionsExtend?.fields.first { $0.name == "my_file_option" }
+            XCTAssertNotNil(myFileOptionField)
+            XCTAssertEqual(myFileOptionField?.number, 50001)
+            XCTAssertEqual(myFileOptionField?.type.description, "string")
+            XCTAssertEqual(myFileOptionField?.label, .optional)
+            
+            let fileVersionField = fileOptionsExtend?.fields.first { $0.name == "file_version" }
+            XCTAssertNotNil(fileVersionField)
+            XCTAssertEqual(fileVersionField?.number, 50002)
+            XCTAssertEqual(fileVersionField?.type.description, "int32")
+            
+            // Test MessageOptions extend
+            let messageOptionsExtend = ast.extends.first { $0.extendedType == "google.protobuf.MessageOptions" }
+            XCTAssertNotNil(messageOptionsExtend, "Must have MessageOptions extend")
+            XCTAssertEqual(messageOptionsExtend?.fields.count, 2)
+            XCTAssertTrue(messageOptionsExtend?.isValidProto3ExtendTarget ?? false)
+            
+            // Check MessageOptions extend fields
+            let messageTagField = messageOptionsExtend?.fields.first { $0.name == "message_tag" }
+            XCTAssertNotNil(messageTagField)
+            XCTAssertEqual(messageTagField?.number, 50003)
+            
+            let isCriticalField = messageOptionsExtend?.fields.first { $0.name == "is_critical" }
+            XCTAssertNotNil(isCriticalField)
+            XCTAssertEqual(isCriticalField?.number, 50004)
+            XCTAssertEqual(isCriticalField?.type.description, "bool")
+            
+            // Test FieldOptions extend
+            let fieldOptionsExtend = ast.extends.first { $0.extendedType == "google.protobuf.FieldOptions" }
+            XCTAssertNotNil(fieldOptionsExtend, "Must have FieldOptions extend")
+            XCTAssertEqual(fieldOptionsExtend?.fields.count, 2)
+            
+            // Test EnumValueOptions extend
+            let enumValueOptionsExtend = ast.extends.first { $0.extendedType == "google.protobuf.EnumValueOptions" }
+            XCTAssertNotNil(enumValueOptionsExtend, "Must have EnumValueOptions extend")
+            XCTAssertEqual(enumValueOptionsExtend?.fields.count, 1)
+            
+            let displayNameField = enumValueOptionsExtend?.fields.first { $0.name == "display_name" }
+            XCTAssertNotNil(displayNameField)
+            XCTAssertEqual(displayNameField?.number, 50007)
+            
+            // Test ServiceOptions extend
+            let serviceOptionsExtend = ast.extends.first { $0.extendedType == "google.protobuf.ServiceOptions" }
+            XCTAssertNotNil(serviceOptionsExtend, "Must have ServiceOptions extend")
+            XCTAssertEqual(serviceOptionsExtend?.fields.count, 1)
+            
+            // Test MethodOptions extend
+            let methodOptionsExtend = ast.extends.first { $0.extendedType == "google.protobuf.MethodOptions" }
+            XCTAssertNotNil(methodOptionsExtend, "Must have MethodOptions extend")
+            XCTAssertEqual(methodOptionsExtend?.fields.count, 1)
+            
+            let requiresAuthField = methodOptionsExtend?.fields.first { $0.name == "requires_auth" }
+            XCTAssertNotNil(requiresAuthField)
+            XCTAssertEqual(requiresAuthField?.number, 50009)
+            XCTAssertEqual(requiresAuthField?.type.description, "bool")
+            
+            // Verify all extend targets are valid proto3 types
+            for extend in ast.extends {
+                XCTAssertTrue(extend.isValidProto3ExtendTarget, "Extend target \(extend.extendedType) must be valid for proto3")
+                XCTAssertTrue(extend.extendedType.hasPrefix("google.protobuf."), "Must extend google.protobuf.* types")
+            }
+            
+            // Verify file-level options usage
+            XCTAssertEqual(ast.options.count, 2)
+            let myFileOptionUsage = ast.options.first { $0.name == "my_file_option" }
+            XCTAssertNotNil(myFileOptionUsage)
+            XCTAssertTrue(myFileOptionUsage?.isCustom ?? false)
+            
+            // Verify messages and enums are also parsed correctly
+            XCTAssertEqual(ast.messages.count, 1)
+            let testMessage = ast.messages[0]
+            XCTAssertEqual(testMessage.name, "TestMessage")
+            XCTAssertEqual(testMessage.options.count, 2)
+            
+            XCTAssertEqual(ast.enums.count, 1)
+            let status = ast.enums[0]
+            XCTAssertEqual(status.name, "Status")
+            
+            XCTAssertEqual(ast.services.count, 1)
+            let testService = ast.services[0]
+            XCTAssertEqual(testService.name, "TestService")
+            
+        case .failure(let error):
+            XCTFail("Failed to parse real extend/custom_options.proto: \(error)")
+        }
+    }
+    
+    func testInvalidExtendsParsing() throws {
+        // Test error handling for invalid extend statements
+        let testResourcesPath = getTestResourcesPath()
+        let filePath = "\(testResourcesPath)/ProductTests/extend/invalid_extends.proto"
+        
+        let result = SwiftProtoParser.parseProtoFile(filePath)
+        
+        switch result {
+        case .success(let ast):
+            // The file should parse but contain errors for invalid extends
+            XCTAssertEqual(ast.syntax, .proto3)
+            
+            // Should have messages defined in the file
+            XCTAssertEqual(ast.messages.count, 2)
+            
+            // Should have extend statements parsed (even if invalid)
+            // The parser should collect these and report errors
+            XCTAssertGreaterThan(ast.extends.count, 0, "Should parse extend statements even if invalid")
+            
+            // Verify invalid extend targets are detected
+            for extend in ast.extends {
+                if !extend.extendedType.hasPrefix("google.protobuf.") {
+                    XCTAssertFalse(extend.isValidProto3ExtendTarget, "Non-google.protobuf.* extends should be invalid")
+                }
+            }
+            
+        case .failure(let parseError):
+            // Expected to fail with parser errors for invalid extends
+            // The public API converts parser errors to ProtoParseError.syntaxError
+            switch parseError {
+            case .syntaxError(let message, _, _, _):
+                XCTAssertTrue(message.contains("extend") || message.contains("google.protobuf"), 
+                             "Error message should mention extend or proto3 validation: \(message)")
+            default:
+                XCTFail("Expected syntax error for invalid extends, got: \(parseError)")
+            }
+        }
+    }
+    
+    func testOneofGroupsParsing() throws {
+        // ENHANCED: Test real oneof_groups.proto file with comprehensive oneof coverage
+        let testResourcesPath = getTestResourcesPath()
+        let filePath = "\(testResourcesPath)/ProductTests/medium/oneof_groups.proto"
+        
+        let result = SwiftProtoParser.parseProtoFile(filePath)
+        
+        switch result {
+        case .success(let ast):
+            // Verify package name
             XCTAssertEqual(ast.package, "medium.oneof")
             
-            // Verify message with oneof
+            // Verify syntax
+            XCTAssertEqual(ast.syntax, .proto3)
+            
+            // Verify all 7 messages exist (comprehensive coverage)
+            XCTAssertEqual(ast.messages.count, 7)
+            let messageNames = Set(ast.messages.map { $0.name })
+            let expectedMessages = [
+                "OneofMessage", "NestedMessage", "MultipleOneofs", 
+                "ComplexOneof", "UserProfile", "AdminProfile", "GuestProfile"
+            ]
+            
+            for messageName in expectedMessages {
+                XCTAssertTrue(messageNames.contains(messageName), "Must have message: \(messageName)")
+            }
+            
+            // Test OneofMessage with 5 oneof fields
             let oneofMessage = ast.messages.first { $0.name == "OneofMessage" }
             XCTAssertNotNil(oneofMessage)
-            
-            // Check oneof groups using correct API
             XCTAssertEqual(oneofMessage?.oneofGroups.count, 1)
+            
             let testOneof = oneofMessage?.oneofGroups.first
             XCTAssertEqual(testOneof?.name, "test_oneof")
             XCTAssertEqual(testOneof?.fields.count, 5)
             
-            // Verify oneof field types
-            let nameField = testOneof?.fields.first { $0.name == "name" }
-            XCTAssertNotNil(nameField)
-            XCTAssertEqual(nameField?.type.description, "string")
+            // Verify all oneof field types in OneofMessage
+            let oneofFieldTests = [
+                ("name", 1, "string"),
+                ("number", 2, "int32"),
+                ("flag", 3, "bool"),
+                ("data", 4, "bytes"),
+                ("nested", 5, "NestedMessage")
+            ]
             
-            let nestedField = testOneof?.fields.first { $0.name == "nested" }
-            XCTAssertNotNil(nestedField)
-            XCTAssertEqual(nestedField?.type.description, "NestedMessage")
+            for (fieldName, fieldNumber, fieldType) in oneofFieldTests {
+                let field = testOneof?.fields.first { $0.name == fieldName }
+                XCTAssertNotNil(field, "Must have oneof field: \(fieldName)")
+                XCTAssertEqual(field?.number, Int32(fieldNumber))
+                XCTAssertEqual(field?.type.description, fieldType)
+            }
             
-            // Check non-oneof field
+            // Check non-oneof field in OneofMessage
             let commonField = oneofMessage?.fields.first { $0.name == "common_field" }
             XCTAssertNotNil(commonField)
             XCTAssertEqual(commonField?.number, 6)
             
-            // Verify message with multiple oneofs
+            // Test MultipleOneofs with 2 oneof groups
             let multipleOneofs = ast.messages.first { $0.name == "MultipleOneofs" }
             XCTAssertNotNil(multipleOneofs)
             XCTAssertEqual(multipleOneofs?.oneofGroups.count, 2)
             
-            // Verify complex oneof
+            // Verify first_choice oneof
+            let firstChoice = multipleOneofs?.oneofGroups.first { $0.name == "first_choice" }
+            XCTAssertNotNil(firstChoice)
+            XCTAssertEqual(firstChoice?.fields.count, 2)
+            
+            // Verify second_choice oneof
+            let secondChoice = multipleOneofs?.oneofGroups.first { $0.name == "second_choice" }
+            XCTAssertNotNil(secondChoice)
+            XCTAssertEqual(secondChoice?.fields.count, 3)
+            
+            // Check status_z field uses enum
+            let statusField = secondChoice?.fields.first { $0.name == "status_z" }
+            XCTAssertNotNil(statusField)
+            XCTAssertEqual(statusField?.type.description, "Status")
+            
+            // Test ComplexOneof with 3 profile types
             let complexOneof = ast.messages.first { $0.name == "ComplexOneof" }
             XCTAssertNotNil(complexOneof)
             XCTAssertEqual(complexOneof?.oneofGroups.count, 1)
             
-            // Verify all profile messages exist
+            let complexChoice = complexOneof?.oneofGroups.first
+            XCTAssertEqual(complexChoice?.name, "complex_choice")
+            XCTAssertEqual(complexChoice?.fields.count, 3)
+            
+            // Verify profile message fields
+            let profileFieldTests = [
+                ("user", 1, "UserProfile"),
+                ("admin", 2, "AdminProfile"),
+                ("guest", 3, "GuestProfile")
+            ]
+            
+            for (fieldName, fieldNumber, fieldType) in profileFieldTests {
+                let field = complexChoice?.fields.first { $0.name == fieldName }
+                XCTAssertNotNil(field, "Must have profile field: \(fieldName)")
+                XCTAssertEqual(field?.number, Int32(fieldNumber))
+                XCTAssertEqual(field?.type.description, fieldType)
+            }
+            
+            // Verify Status enum with 5 values
+            XCTAssertEqual(ast.enums.count, 1)
+            let status = ast.enums[0]
+            XCTAssertEqual(status.name, "Status")
+            XCTAssertEqual(status.values.count, 5)
+            
+            // Check Status enum values
+            let statusValues = [
+                ("STATUS_UNKNOWN", 0),
+                ("READY", 1),
+                ("PROCESSING", 2),
+                ("COMPLETED", 3),
+                ("FAILED", 4)
+            ]
+            
+            for (valueName, valueNumber) in statusValues {
+                let value = status.values.first { $0.name == valueName }
+                XCTAssertNotNil(value, "Must have status value: \(valueName)")
+                XCTAssertEqual(value?.number, Int32(valueNumber))
+            }
+            
+            // Verify UserProfile with repeated field
             let userProfile = ast.messages.first { $0.name == "UserProfile" }
             XCTAssertNotNil(userProfile)
+            XCTAssertEqual(userProfile?.fields.count, 3)
+            
+            let permissionsField = userProfile?.fields.first { $0.name == "permissions" }
+            XCTAssertNotNil(permissionsField)
+            XCTAssertEqual(permissionsField?.label, .repeated)
+            XCTAssertEqual(permissionsField?.type.description, "string")
+            
+            // Verify AdminProfile fields
             let adminProfile = ast.messages.first { $0.name == "AdminProfile" }
             XCTAssertNotNil(adminProfile)
+            XCTAssertEqual(adminProfile?.fields.count, 3)
+            
+            // Verify GuestProfile fields with int64
             let guestProfile = ast.messages.first { $0.name == "GuestProfile" }
             XCTAssertNotNil(guestProfile)
+            XCTAssertEqual(guestProfile?.fields.count, 2)
+            
+            let expiresAtField = guestProfile?.fields.first { $0.name == "expires_at" }
+            XCTAssertNotNil(expiresAtField)
+            XCTAssertEqual(expiresAtField?.type.description, "int64")
             
         case .failure(let error):
-            XCTFail("Failed to parse oneof groups: \(error)")
+            XCTFail("Failed to parse real medium/oneof_groups.proto: \(error)")
         }
     }
     
-    func testFieldOptionsParsing() throws {
-        // Test proto with imports and complex service structure
-        let protoContent = """
-        syntax = "proto3";
-
-        package medium.options;
-
-        import "google/protobuf/descriptor.proto";
-
-        message FieldOptionsMessage {
-          string email = 1;
-          string username = 2;
-          string password = 3;
-          int32 age = 4;
-          string bio = 5;
-        }
-
-        service OptionsService {
-          rpc GetUser(GetUserRequest) returns (GetUserResponse);
-          rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
-        }
-
-        message GetUserRequest {
-          string user_id = 1;
-        }
-
-        message GetUserResponse {
-          FieldOptionsMessage user = 1;
-          bool found = 2;
-        }
-
-        message CreateUserRequest {
-          FieldOptionsMessage user = 1;
-        }
-
-        message CreateUserResponse {
-          string user_id = 1;
-          bool success = 2;
-        }
-        """
+    func testRealFieldOptionsFileParsing() throws {
+        // ENHANCED: Test real field_options.proto file with comprehensive field types and patterns
+        let testResourcesPath = getTestResourcesPath()
+        let filePath = "\(testResourcesPath)/ProductTests/medium/field_options.proto"
         
-        let result = SwiftProtoParser.parseProtoString(protoContent)
+        let result = SwiftProtoParser.parseProtoFile(filePath)
         
         switch result {
         case .success(let ast):
-            // Verify package
+            // Verify package name
             XCTAssertEqual(ast.package, "medium.options")
             
+            // Verify syntax
+            XCTAssertEqual(ast.syntax, .proto3)
+            
             // Verify import
+            XCTAssertEqual(ast.imports.count, 1)
             XCTAssertTrue(ast.imports.contains("google/protobuf/descriptor.proto"))
             
-            // Verify message with options
+            // Verify FieldOptionsMessage with comprehensive field types (8 regular fields + 1 oneof)
             let fieldOptionsMessage = ast.messages.first { $0.name == "FieldOptionsMessage" }
             XCTAssertNotNil(fieldOptionsMessage)
-            XCTAssertEqual(fieldOptionsMessage?.fields.count, 5)
+            XCTAssertEqual(fieldOptionsMessage?.fields.count, 8) // Regular fields (oneof fields are separate)
             
-            // Verify field names and types
-            let emailField = fieldOptionsMessage?.fields.first { $0.name == "email" }
-            XCTAssertNotNil(emailField)
-            XCTAssertEqual(emailField?.type.description, "string")
+            // Test regular FieldOptionsMessage fields (not including oneof)
+            let regularFieldTests = [
+                ("email", 1, "string"),
+                ("username", 2, "string"), 
+                ("password", 3, "string"),
+                ("age", 4, "int32"),
+                ("bio", 5, "string"),
+                ("tags", 6, "string"),  // repeated
+                ("metadata", 7, "map<string, string>"), // map field
+                ("status", 10, "Status") // enum
+            ]
             
-            let usernameField = fieldOptionsMessage?.fields.first { $0.name == "username" }
-            XCTAssertNotNil(usernameField)
-            XCTAssertEqual(usernameField?.type.description, "string")
+            for (fieldName, fieldNumber, fieldType) in regularFieldTests {
+                let field = fieldOptionsMessage?.fields.first { $0.name == fieldName }
+                XCTAssertNotNil(field, "Must have FieldOptionsMessage field: \(fieldName)")
+                XCTAssertEqual(field?.number, Int32(fieldNumber))
+                XCTAssertEqual(field?.type.description, fieldType)
+            }
             
-            // Verify service with options
+            // Verify repeated field
+            let tagsField = fieldOptionsMessage?.fields.first { $0.name == "tags" }
+            XCTAssertEqual(tagsField?.label, .repeated)
+            
+            // Verify map field
+            let metadataField = fieldOptionsMessage?.fields.first { $0.name == "metadata" }
+            XCTAssertNotNil(metadataField)
+            XCTAssertEqual(metadataField?.number, 7)
+            XCTAssertTrue(metadataField?.isMap ?? false)
+            
+            // Verify oneof group with 2 fields
+            XCTAssertEqual(fieldOptionsMessage?.oneofGroups.count, 1)
+            let contactMethod = fieldOptionsMessage?.oneofGroups.first
+            XCTAssertEqual(contactMethod?.name, "contact_method")
+            XCTAssertEqual(contactMethod?.fields.count, 2)
+            
+            // Test oneof fields separately
+            let oneofFieldTests = [
+                ("phone", 8, "string"),
+                ("social_handle", 9, "string")
+            ]
+            
+            for (fieldName, fieldNumber, fieldType) in oneofFieldTests {
+                let field = contactMethod?.fields.first { $0.name == fieldName }
+                XCTAssertNotNil(field, "Must have oneof field: \(fieldName)")
+                XCTAssertEqual(field?.number, Int32(fieldNumber))
+                XCTAssertEqual(field?.type.description, fieldType)
+            }
+            
+            // Verify Status enum with 5 values
+            XCTAssertEqual(ast.enums.count, 1)
+            let status = ast.enums[0]
+            XCTAssertEqual(status.name, "Status")
+            XCTAssertEqual(status.values.count, 5)
+            
+            let statusValues = [
+                ("STATUS_UNKNOWN", 0),
+                ("ACTIVE", 1),
+                ("INACTIVE", 2),
+                ("SUSPENDED", 3),
+                ("DELETED", 4)
+            ]
+            
+            for (valueName, valueNumber) in statusValues {
+                let value = status.values.first { $0.name == valueName }
+                XCTAssertNotNil(value, "Must have status value: \(valueName)")
+                XCTAssertEqual(value?.number, Int32(valueNumber))
+            }
+            
+            // Verify OptionsService with 5 CRUD methods
             XCTAssertEqual(ast.services.count, 1)
             let optionsService = ast.services[0]
             XCTAssertEqual(optionsService.name, "OptionsService")
-            XCTAssertEqual(optionsService.methods.count, 2)
+            XCTAssertEqual(optionsService.methods.count, 5)
             
-            // Check method names
-            let getUserMethod = optionsService.methods.first { $0.name == "GetUser" }
-            XCTAssertNotNil(getUserMethod)
-            XCTAssertEqual(getUserMethod?.inputType, "GetUserRequest")
-            XCTAssertEqual(getUserMethod?.outputType, "GetUserResponse")
+            // Test all CRUD service methods
+            let serviceMethodTests = [
+                ("GetUser", "GetUserRequest", "GetUserResponse"),
+                ("CreateUser", "CreateUserRequest", "CreateUserResponse"),
+                ("UpdateUser", "UpdateUserRequest", "UpdateUserResponse"),
+                ("DeleteUser", "DeleteUserRequest", "DeleteUserResponse"),
+                ("ListUsers", "ListUsersRequest", "ListUsersResponse")
+            ]
             
-            let createUserMethod = optionsService.methods.first { $0.name == "CreateUser" }
-            XCTAssertNotNil(createUserMethod)
-            XCTAssertEqual(createUserMethod?.inputType, "CreateUserRequest")
-            XCTAssertEqual(createUserMethod?.outputType, "CreateUserResponse")
+            for (methodName, inputType, outputType) in serviceMethodTests {
+                let method = optionsService.methods.first { $0.name == methodName }
+                XCTAssertNotNil(method, "Must have service method: \(methodName)")
+                XCTAssertEqual(method?.inputType, inputType)
+                XCTAssertEqual(method?.outputType, outputType)
+            }
             
-            // Verify all request/response messages exist
-            XCTAssertGreaterThanOrEqual(ast.messages.count, 5)
+            // Verify all 11 messages exist (comprehensive)
+            XCTAssertEqual(ast.messages.count, 11)
             let messageNames = Set(ast.messages.map { $0.name })
-            XCTAssertTrue(messageNames.contains("GetUserRequest"))
-            XCTAssertTrue(messageNames.contains("GetUserResponse"))
-            XCTAssertTrue(messageNames.contains("CreateUserRequest"))
-            XCTAssertTrue(messageNames.contains("CreateUserResponse"))
+            let expectedMessages = [
+                "FieldOptionsMessage",
+                "GetUserRequest", "GetUserResponse",
+                "CreateUserRequest", "CreateUserResponse", 
+                "UpdateUserRequest", "UpdateUserResponse",
+                "DeleteUserRequest", "DeleteUserResponse",
+                "ListUsersRequest", "ListUsersResponse"
+            ]
+            
+            for messageName in expectedMessages {
+                XCTAssertTrue(messageNames.contains(messageName), "Must have message: \(messageName)")
+            }
+            
+            // Verify ListUsersResponse with repeated field
+            let listUsersResponse = ast.messages.first { $0.name == "ListUsersResponse" }
+            XCTAssertNotNil(listUsersResponse)
+            XCTAssertEqual(listUsersResponse?.fields.count, 3)
+            
+            let usersField = listUsersResponse?.fields.first { $0.name == "users" }
+            XCTAssertNotNil(usersField)
+            XCTAssertEqual(usersField?.label, .repeated)
+            XCTAssertEqual(usersField?.type.description, "FieldOptionsMessage")
             
         case .failure(let error):
-            XCTFail("Failed to parse field options: \(error)")
+            XCTFail("Failed to parse real medium/field_options.proto: \(error)")
         }
     }
     
@@ -554,14 +863,10 @@ final class MediumProtoTests: XCTestCase {
     // MARK: - Helper Methods
     
     private func getTestResourcesPath() -> String {
-        let testBundle = Bundle(for: type(of: self))
-        let testResourcesPath = testBundle.resourcePath?.appending("/TestResources") ?? 
-                               URL(fileURLWithPath: #file)
-                                   .deletingLastPathComponent()
-                                   .deletingLastPathComponent()
-                                   .deletingLastPathComponent()
-                                   .appendingPathComponent("TestResources")
-                                   .path
-        return testResourcesPath
+        // Use #file to determine the test directory location (like SimpleProtoProductTestsFixed)
+        let thisFileURL = URL(fileURLWithPath: #file)
+        let projectDirectory = thisFileURL.deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+        let resourcesPath = projectDirectory.appendingPathComponent("Tests/TestResources").path
+        return resourcesPath
     }
 }

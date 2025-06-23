@@ -68,6 +68,7 @@ public final class Parser {
     var messages: [MessageNode] = []
     var enums: [EnumNode] = []
     var services: [ServiceNode] = []
+    var extends: [ExtendNode] = []
 
     // Skip initial whitespace and comments
     skipIgnorableTokens()
@@ -113,6 +114,10 @@ public final class Parser {
           let service = try parseServiceDeclaration()
           services.append(service)
 
+        case .extend:
+          let extend = try parseExtendDeclaration()
+          extends.append(extend)
+
         default:
           state.addError(.unexpectedToken(token, expected: "top-level declaration"))
           state.advance()
@@ -140,7 +145,8 @@ public final class Parser {
       options: options,
       messages: messages,
       enums: enums,
-      services: services
+      services: services,
+      extends: extends
     )
   }
 
@@ -1243,8 +1249,12 @@ public final class Parser {
     if state.checkSymbol("{") {
       state.advance()  // consume "{"
 
-      while !state.isAtEnd && !state.checkSymbol("}") {
+      while !state.isAtEnd {
         skipIgnorableTokens()
+        
+        if state.checkSymbol("}") {
+          break
+        }
 
         if state.checkKeyword(.option) {
           let option = try parseOptionDeclaration()
@@ -1276,6 +1286,116 @@ public final class Parser {
       inputStreaming: inputStreaming,
       outputStreaming: outputStreaming,
       options: options
+    )
+  }
+
+  /// Parses an extend declaration for custom options (proto3 only).
+  /// extend google.protobuf.FileOptions { optional string my_option = 50001; }
+  private func parseExtendDeclaration() throws -> ExtendNode {
+    let position = state.currentPosition
+    _ = state.expectKeyword(.extend)
+    skipIgnorableTokens()
+
+    // Parse extended type name (must be qualified, like google.protobuf.FileOptions)
+    var extendedTypeComponents: [String] = []
+    
+    // Parse the qualified type name (e.g., google.protobuf.FileOptions)
+    repeat {
+      guard let component = state.identifierName else {
+        state.addError(
+          .unexpectedToken(
+            state.currentToken ?? Token(type: .eof, position: Token.Position(line: 0, column: 0)),
+            expected: "extended type name"
+          )
+        )
+        return ExtendNode(extendedType: "", position: position)
+      }
+      
+      extendedTypeComponents.append(component)
+      state.advance()
+      skipIgnorableTokens()
+      
+      if state.checkSymbol(".") {
+        state.advance()  // consume "."
+        skipIgnorableTokens()
+      } else {
+        break
+      }
+    } while !state.isAtEnd
+    
+    let extendedType = extendedTypeComponents.joined(separator: ".")
+    
+    // Validate that this is a valid proto3 extend target
+    if !extendedType.hasPrefix("google.protobuf.") {
+      state.addError(
+        .invalidExtendTarget(
+          "extend statements in proto3 are only allowed for google.protobuf.* types for custom options, got: \(extendedType)",
+          line: position.line,
+          column: position.column
+        )
+      )
+    }
+    
+    skipIgnorableTokens()
+    _ = state.expectSymbol("{")
+    
+    var fields: [FieldNode] = []
+    var options: [OptionNode] = []
+    
+    // Parse extend body - only custom option fields are allowed
+    while !state.isAtEnd {
+      skipIgnorableTokens()
+      
+      if state.checkSymbol("}") {
+        break
+      }
+      
+      guard let token = state.currentToken else { break }
+      
+      switch token.type {
+      case .keyword(let keyword):
+        switch keyword {
+        case .option:
+          let option = try parseOptionDeclaration()
+          options.append(option)
+          
+        case .optional:
+          // Custom option fields in extend statements
+          let field = try parseFieldDeclaration()
+          fields.append(field)
+          
+        default:
+          state.addError(.unexpectedToken(token, expected: "optional field or option"))
+          state.advance()
+          state.synchronize()
+        }
+        
+      case .identifier:
+        // Regular field type (should have optional modifier for custom options)
+        state.addError(
+          .missingFieldLabel(
+            "Custom option fields in extend statements should have 'optional' label",
+            line: token.position.line,
+            column: token.position.column  
+          )
+        )
+        // Try to parse anyway for error recovery
+        let field = try parseFieldDeclaration()
+        fields.append(field)
+        
+      default:
+        state.addError(.unexpectedToken(token, expected: "extend element"))
+        state.synchronize()
+      }
+    }
+    
+    _ = state.expectSymbol("}")
+    
+    return ExtendNode(
+      extendedType: extendedType,
+      fields: fields,
+      options: options,
+      position: position
     )
   }
 

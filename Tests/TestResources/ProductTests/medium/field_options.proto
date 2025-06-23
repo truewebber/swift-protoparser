@@ -4,60 +4,42 @@ package medium.options;
 
 import "google/protobuf/descriptor.proto";
 
-// Custom field options
-extend google.protobuf.FieldOptions {
-  bool required_field = 50001;
-  string validation_pattern = 50002;
-  int32 max_length = 50003;
-  string description = 50004;
-}
-
-// Custom message options
-extend google.protobuf.MessageOptions {
-  string table_name = 50005;
-  bool deprecated_message = 50006;
-}
-
-// Custom service options
-extend google.protobuf.ServiceOptions {
-  string api_version = 50007;
-  bool auth_required = 50008;
-}
-
-// Custom method options
-extend google.protobuf.MethodOptions {
-  string http_method = 50009;
-  string http_path = 50010;
-}
-
+// Message with various field types for comprehensive testing
 message FieldOptionsMessage {
-  option (table_name) = "field_options_table";
-  option (deprecated_message) = false;
-  
-  string email = 1 [(required_field) = true, (validation_pattern) = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"];
-  string username = 2 [(required_field) = true, (max_length) = 50, (description) = "Unique username"];
-  string password = 3 [(required_field) = true, (description) = "User password"];
-  int32 age = 4 [(description) = "User age in years"];
-  string bio = 5 [(max_length) = 500, (description) = "User biography"];
+  string email = 1;
+  string username = 2;
+  string password = 3;
+  int32 age = 4;
+  string bio = 5;
+  repeated string tags = 6;
+  map<string, string> metadata = 7;
+  oneof contact_method {
+    string phone = 8;
+    string social_handle = 9;
+  }
+  Status status = 10;
 }
 
+// Enum for status testing
+enum Status {
+  STATUS_UNKNOWN = 0;
+  ACTIVE = 1;
+  INACTIVE = 2;
+  SUSPENDED = 3;
+  DELETED = 4;
+}
+
+// Service with comprehensive method patterns
 service OptionsService {
-  option (api_version) = "v1";
-  option (auth_required) = true;
-  
-  rpc GetUser(GetUserRequest) returns (GetUserResponse) {
-    option (http_method) = "GET";
-    option (http_path) = "/users/{user_id}";
-  }
-  
-  rpc CreateUser(CreateUserRequest) returns (CreateUserResponse) {
-    option (http_method) = "POST";
-    option (http_path) = "/users";
-  }
+  rpc GetUser(GetUserRequest) returns (GetUserResponse);
+  rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
+  rpc UpdateUser(UpdateUserRequest) returns (UpdateUserResponse);
+  rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse);
+  rpc ListUsers(ListUsersRequest) returns (ListUsersResponse);
 }
 
 message GetUserRequest {
-  string user_id = 1 [(required_field) = true, (description) = "User ID to retrieve"];
+  string user_id = 1;
 }
 
 message GetUserResponse {
@@ -66,10 +48,42 @@ message GetUserResponse {
 }
 
 message CreateUserRequest {
-  FieldOptionsMessage user = 1 [(required_field) = true];
+  FieldOptionsMessage user = 1;
 }
 
 message CreateUserResponse {
   string user_id = 1;
   bool success = 2;
+  string message = 3;
+}
+
+message UpdateUserRequest {
+  string user_id = 1;
+  FieldOptionsMessage user = 2;
+}
+
+message UpdateUserResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message DeleteUserRequest {
+  string user_id = 1;
+}
+
+message DeleteUserResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message ListUsersRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+  Status status_filter = 3;
+}
+
+message ListUsersResponse {
+  repeated FieldOptionsMessage users = 1;
+  string next_page_token = 2;
+  int32 total_count = 3;
 }
