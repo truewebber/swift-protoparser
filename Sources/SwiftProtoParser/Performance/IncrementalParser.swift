@@ -289,20 +289,26 @@ public final class IncrementalParser {
   private func scanProtoFiles(in directoryPath: String, recursive: Bool) throws -> Set<String> {
     var protoFiles: Set<String> = []
     
-    let url = URL(fileURLWithPath: directoryPath)
-    let options: FileManager.DirectoryEnumerationOptions = recursive ? [] : [.skipsSubdirectoryDescendants]
-    
-    guard let enumerator = fileManager.enumerator(
-      at: url,
-      includingPropertiesForKeys: [.isRegularFileKey],
-      options: options
-    ) else {
-      throw ProtoParseError.ioError(underlying: NSError(domain: "IncrementalParser", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to enumerate directory"]))
-    }
-    
-    for case let fileURL as URL in enumerator {
-      if fileURL.pathExtension == "proto" {
-        protoFiles.insert(fileURL.path)
+    if recursive {
+      // Use recursive enumeration
+      let url = URL(fileURLWithPath: directoryPath)
+      guard let enumerator = fileManager.enumerator(at: url, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles]) else {
+        throw ProtoParseError.ioError(underlying: NSError(domain: "IncrementalParser", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to enumerate directory"]))
+      }
+      
+      for case let fileURL as URL in enumerator {
+        if fileURL.pathExtension == "proto" {
+          protoFiles.insert(fileURL.path)
+        }
+      }
+    } else {
+      // Use simple directory contents for non-recursive
+      let contents = try fileManager.contentsOfDirectory(atPath: directoryPath)
+      for fileName in contents {
+        if fileName.hasSuffix(".proto") {
+          let fullPath = (directoryPath as NSString).appendingPathComponent(fileName)
+          protoFiles.insert(fullPath)
+        }
       }
     }
     
@@ -347,12 +353,11 @@ public final class IncrementalParser {
       group.enter()
       
       queue.async {
-        defer { group.leave() }
-        
         let result = self.parseFileWithCaching(filePath, importPaths: importPaths)
         
         resultsQueue.async(flags: .barrier) {
           batchResults[filePath] = result
+          group.leave()  // Move group.leave() here to ensure it happens after the result is stored
         }
       }
     }
@@ -464,7 +469,10 @@ public final class IncrementalParser {
         dependents: Set() // Will be populated when building dependency graph
       )
       
-      fileMetadata[filePath] = metadata
+      // Synchronize access to fileMetadata dictionary
+      queue.async(flags: .barrier) {
+        self.fileMetadata[filePath] = metadata
+      }
       
     } catch {
       // Failed to update metadata, continue without it
