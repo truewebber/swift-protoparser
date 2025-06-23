@@ -1,0 +1,75 @@
+syntax = "proto3";
+
+package medium.options;
+
+import "google/protobuf/descriptor.proto";
+
+// Custom field options
+extend google.protobuf.FieldOptions {
+  bool required_field = 50001;
+  string validation_pattern = 50002;
+  int32 max_length = 50003;
+  string description = 50004;
+}
+
+// Custom message options
+extend google.protobuf.MessageOptions {
+  string table_name = 50005;
+  bool deprecated_message = 50006;
+}
+
+// Custom service options
+extend google.protobuf.ServiceOptions {
+  string api_version = 50007;
+  bool auth_required = 50008;
+}
+
+// Custom method options
+extend google.protobuf.MethodOptions {
+  string http_method = 50009;
+  string http_path = 50010;
+}
+
+message FieldOptionsMessage {
+  option (table_name) = "field_options_table";
+  option (deprecated_message) = false;
+  
+  string email = 1 [(required_field) = true, (validation_pattern) = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"];
+  string username = 2 [(required_field) = true, (max_length) = 50, (description) = "Unique username"];
+  string password = 3 [(required_field) = true, (description) = "User password"];
+  int32 age = 4 [(description) = "User age in years"];
+  string bio = 5 [(max_length) = 500, (description) = "User biography"];
+}
+
+service OptionsService {
+  option (api_version) = "v1";
+  option (auth_required) = true;
+  
+  rpc GetUser(GetUserRequest) returns (GetUserResponse) {
+    option (http_method) = "GET";
+    option (http_path) = "/users/{user_id}";
+  }
+  
+  rpc CreateUser(CreateUserRequest) returns (CreateUserResponse) {
+    option (http_method) = "POST";
+    option (http_path) = "/users";
+  }
+}
+
+message GetUserRequest {
+  string user_id = 1 [(required_field) = true, (description) = "User ID to retrieve"];
+}
+
+message GetUserResponse {
+  FieldOptionsMessage user = 1;
+  bool found = 2;
+}
+
+message CreateUserRequest {
+  FieldOptionsMessage user = 1 [(required_field) = true];
+}
+
+message CreateUserResponse {
+  string user_id = 1;
+  bool success = 2;
+}

@@ -1,0 +1,343 @@
+syntax = "proto3";
+
+package realworld.gateway;
+
+import "google/protobuf/any.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/struct.proto";
+
+// API Gateway service for microservices
+service APIGateway {
+  // Route management
+  rpc CreateRoute(CreateRouteRequest) returns (CreateRouteResponse);
+  rpc GetRoute(GetRouteRequest) returns (GetRouteResponse);
+  rpc UpdateRoute(UpdateRouteRequest) returns (UpdateRouteResponse);
+  rpc DeleteRoute(DeleteRouteRequest) returns (DeleteRouteResponse);
+  rpc ListRoutes(ListRoutesRequest) returns (ListRoutesResponse);
+  
+  // Request proxying
+  rpc ProxyRequest(ProxyRequest) returns (ProxyResponse);
+  rpc StreamProxy(stream ProxyRequest) returns (stream ProxyResponse);
+  
+  // Authentication and authorization
+  rpc Authenticate(AuthRequest) returns (AuthResponse);
+  rpc Authorize(AuthorizeRequest) returns (AuthorizeResponse);
+  
+  // Rate limiting and throttling
+  rpc CheckRateLimit(RateLimitRequest) returns (RateLimitResponse);
+  
+  // Health and monitoring
+  rpc GetHealth(HealthCheckRequest) returns (HealthCheckResponse);
+  rpc GetMetrics(MetricsRequest) returns (MetricsResponse);
+}
+
+// Route configuration
+message Route {
+  string route_id = 1;
+  string path = 2;
+  HttpMethod method = 3;
+  RouteTarget target = 4;
+  repeated RouteMiddleware middleware = 5;
+  RateLimitConfig rate_limit = 6;
+  AuthConfig auth_config = 7;
+  map<string, string> headers = 8;
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp updated_at = 10;
+  bool enabled = 11;
+}
+
+message RouteTarget {
+  TargetType type = 1;
+  string url = 2;
+  LoadBalancingStrategy load_balancing = 3;
+  repeated string backend_urls = 4;
+  google.protobuf.Duration timeout = 5;
+  int32 retry_count = 6;
+  HealthCheckConfig health_check = 7;
+}
+
+message RouteMiddleware {
+  MiddlewareType type = 1;
+  string name = 2;
+  google.protobuf.Struct config = 3;
+  int32 priority = 4;
+  bool enabled = 5;
+}
+
+message RateLimitConfig {
+  int32 requests_per_minute = 1;
+  int32 requests_per_hour = 2;
+  int32 requests_per_day = 3;
+  RateLimitStrategy strategy = 4;
+  repeated string exempt_ips = 5;
+}
+
+message AuthConfig {
+  AuthType type = 1;
+  repeated string required_scopes = 2;
+  repeated string allowed_roles = 3;
+  bool require_api_key = 4;
+  google.protobuf.Duration token_ttl = 5;
+}
+
+message HealthCheckConfig {
+  string path = 1;
+  google.protobuf.Duration interval = 2;
+  google.protobuf.Duration timeout = 3;
+  int32 healthy_threshold = 4;
+  int32 unhealthy_threshold = 5;
+}
+
+// Request/Response proxying
+message ProxyRequest {
+  string request_id = 1;
+  string route_id = 2;
+  HttpMethod method = 3;
+  string path = 4;
+  map<string, string> headers = 5;
+  map<string, string> query_params = 6;
+  bytes body = 7;
+  string client_ip = 8;
+  string user_agent = 9;
+  google.protobuf.Timestamp timestamp = 10;
+}
+
+message ProxyResponse {
+  string request_id = 1;
+  int32 status_code = 2;
+  map<string, string> headers = 3;
+  bytes body = 4;
+  google.protobuf.Duration processing_time = 5;
+  string backend_url = 6;
+  repeated string errors = 7;
+}
+
+// Authentication
+message AuthRequest {
+  oneof credential {
+    string api_key = 1;
+    string bearer_token = 2;
+    BasicAuth basic_auth = 3;
+    string oauth_token = 4;
+  }
+  string client_ip = 5;
+  string user_agent = 6;
+}
+
+message BasicAuth {
+  string username = 1;
+  string password = 2;
+}
+
+message AuthResponse {
+  bool authenticated = 1;
+  string user_id = 2;
+  repeated string roles = 3;
+  repeated string scopes = 4;
+  google.protobuf.Timestamp expires_at = 5;
+  map<string, string> claims = 6;
+}
+
+message AuthorizeRequest {
+  string user_id = 1;
+  string resource = 2;
+  string action = 3;
+  repeated string user_roles = 4;
+  repeated string user_scopes = 5;
+}
+
+message AuthorizeResponse {
+  bool authorized = 1;
+  string reason = 2;
+  repeated string missing_permissions = 3;
+}
+
+// Rate limiting
+message RateLimitRequest {
+  string identifier = 1;
+  string route_id = 2;
+  RateLimitType type = 3;
+}
+
+message RateLimitResponse {
+  bool allowed = 1;
+  int32 remaining_requests = 2;
+  google.protobuf.Duration reset_time = 3;
+  string reason = 4;
+}
+
+// CRUD operations
+message CreateRouteRequest {
+  Route route = 1;
+}
+
+message CreateRouteResponse {
+  Route route = 1;
+  bool success = 2;
+  string message = 3;
+}
+
+message GetRouteRequest {
+  string route_id = 1;
+}
+
+message GetRouteResponse {
+  Route route = 1;
+  bool found = 2;
+}
+
+message UpdateRouteRequest {
+  Route route = 1;
+}
+
+message UpdateRouteResponse {
+  Route route = 1;
+  bool success = 2;
+  string message = 3;
+}
+
+message DeleteRouteRequest {
+  string route_id = 1;
+}
+
+message DeleteRouteResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message ListRoutesRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+  RouteFilter filter = 3;
+}
+
+message ListRoutesResponse {
+  repeated Route routes = 1;
+  string next_page_token = 2;
+  int32 total_count = 3;
+}
+
+message RouteFilter {
+  string path_prefix = 1;
+  HttpMethod method = 2;
+  bool enabled_only = 3;
+}
+
+// Health and metrics
+message HealthCheckRequest {
+  bool detailed = 1;
+}
+
+message HealthCheckResponse {
+  HealthStatus status = 1;
+  map<string, ComponentHealth> components = 2;
+  google.protobuf.Timestamp timestamp = 3;
+}
+
+message ComponentHealth {
+  HealthStatus status = 1;
+  string message = 2;
+  google.protobuf.Duration response_time = 3;
+}
+
+message MetricsRequest {
+  google.protobuf.Timestamp start_time = 1;
+  google.protobuf.Timestamp end_time = 2;
+  repeated string metric_names = 3;
+}
+
+message MetricsResponse {
+  map<string, MetricData> metrics = 1;
+  google.protobuf.Timestamp collected_at = 2;
+}
+
+message MetricData {
+  MetricType type = 1;
+  repeated DataPoint data_points = 2;
+  map<string, string> labels = 3;
+}
+
+message DataPoint {
+  google.protobuf.Timestamp timestamp = 1;
+  double value = 2;
+}
+
+// Enums
+enum HttpMethod {
+  HTTP_METHOD_UNKNOWN = 0;
+  GET = 1;
+  POST = 2;
+  PUT = 3;
+  DELETE = 4;
+  PATCH = 5;
+  HEAD = 6;
+  OPTIONS = 7;
+}
+
+enum TargetType {
+  TARGET_TYPE_UNKNOWN = 0;
+  HTTP = 1;
+  HTTPS = 2;
+  GRPC = 3;
+  GRAPHQL = 4;
+}
+
+enum LoadBalancingStrategy {
+  LOAD_BALANCING_UNKNOWN = 0;
+  ROUND_ROBIN = 1;
+  LEAST_CONNECTIONS = 2;
+  WEIGHTED_ROUND_ROBIN = 3;
+  IP_HASH = 4;
+}
+
+enum MiddlewareType {
+  MIDDLEWARE_TYPE_UNKNOWN = 0;
+  CORS = 1;
+  LOGGING = 2;
+  RATE_LIMITING = 3;
+  AUTHENTICATION = 4;
+  AUTHORIZATION = 5;
+  TRANSFORMATION = 6;
+  CACHING = 7;
+}
+
+enum RateLimitStrategy {
+  RATE_LIMIT_STRATEGY_UNKNOWN = 0;
+  FIXED_WINDOW = 1;
+  SLIDING_WINDOW = 2;
+  TOKEN_BUCKET = 3;
+  LEAKY_BUCKET = 4;
+}
+
+enum AuthType {
+  AUTH_TYPE_UNKNOWN = 0;
+  API_KEY = 1;
+  BEARER_TOKEN = 2;
+  BASIC_AUTH = 3;
+  OAUTH2 = 4;
+  JWT = 5;
+}
+
+enum RateLimitType {
+  RATE_LIMIT_TYPE_UNKNOWN = 0;
+  PER_IP = 1;
+  PER_USER = 2;
+  PER_API_KEY = 3;
+  GLOBAL = 4;
+}
+
+enum HealthStatus {
+  HEALTH_STATUS_UNKNOWN = 0;
+  HEALTHY = 1;
+  DEGRADED = 2;
+  UNHEALTHY = 3;
+}
+
+enum MetricType {
+  METRIC_TYPE_UNKNOWN = 0;
+  COUNTER = 1;
+  GAUGE = 2;
+  HISTOGRAM = 3;
+  TIMER = 4;
+}

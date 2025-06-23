@@ -1,0 +1,83 @@
+syntax = "proto3";
+
+package complex.deep;
+
+// Deep nesting example (6 levels deep)
+message Level1 {
+  string name = 1;
+  
+  message Level2 {
+    string name = 1;
+    repeated Level3 level3_items = 2;
+    
+    message Level3 {
+      string name = 1;
+      map<string, Level4> level4_map = 2;
+      
+      message Level4 {
+        string name = 1;
+        oneof level4_choice {
+          Level5 level5_nested = 2;
+          string simple_value = 3;
+        }
+        
+        message Level5 {
+          string name = 1;
+          repeated Level6 level6_items = 2;
+          
+          message Level6 {
+            string name = 1;
+            bytes data = 2;
+            DeepEnum status = 3;
+            
+            message DeepestConfig {
+              map<string, string> settings = 1;
+              repeated string tags = 2;
+              bool enabled = 3;
+            }
+            
+            DeepestConfig config = 4;
+          }
+        }
+      }
+    }
+  }
+}
+
+enum DeepEnum {
+  DEEP_UNKNOWN = 0;
+  DEEP_LEVEL_1 = 1;
+  DEEP_LEVEL_2 = 2;
+  DEEP_LEVEL_3 = 3;
+  DEEP_LEVEL_4 = 4;
+  DEEP_LEVEL_5 = 5;
+  DEEP_LEVEL_6 = 6;
+}
+
+// Complex service with deeply nested request/response
+service DeepService {
+  rpc ProcessDeepStructure(DeepRequest) returns (DeepResponse);
+  rpc StreamDeepData(stream DeepStreamRequest) returns (stream DeepStreamResponse);
+}
+
+message DeepRequest {
+  Level1 root = 1;
+  repeated Level1.Level2.Level3 extracted_level3 = 2;
+  map<string, Level1.Level2.Level3.Level4.Level5> level5_map = 3;
+}
+
+message DeepResponse {
+  bool success = 1;
+  repeated Level1.Level2.Level3.Level4.Level5.Level6 all_level6 = 2;
+  map<string, DeepEnum> status_map = 3;
+}
+
+message DeepStreamRequest {
+  Level1.Level2.Level3.Level4.Level5.Level6 level6_data = 1;
+  string stream_id = 2;
+}
+
+message DeepStreamResponse {
+  repeated Level1.Level2.Level3.Level4.Level5.Level6.DeepestConfig configs = 1;
+  string response_id = 2;
+}

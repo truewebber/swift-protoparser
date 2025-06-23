@@ -1,0 +1,68 @@
+syntax = "proto3";
+
+package medium.oneof;
+
+message OneofMessage {
+  oneof test_oneof {
+    string name = 1;
+    int32 number = 2;
+    bool flag = 3;
+    bytes data = 4;
+    NestedMessage nested = 5;
+  }
+  
+  string common_field = 6;
+}
+
+message NestedMessage {
+  string content = 1;
+  int32 value = 2;
+}
+
+message MultipleOneofs {
+  oneof first_choice {
+    string option_a = 1;
+    int32 option_b = 2;
+  }
+  
+  oneof second_choice {
+    bool flag_x = 3;
+    double value_y = 4;
+    Status status_z = 5;
+  }
+  
+  string always_present = 6;
+}
+
+enum Status {
+  STATUS_UNKNOWN = 0;
+  READY = 1;
+  PROCESSING = 2;
+  COMPLETED = 3;
+  FAILED = 4;
+}
+
+message ComplexOneof {
+  oneof complex_choice {
+    UserProfile user = 1;
+    AdminProfile admin = 2;
+    GuestProfile guest = 3;
+  }
+}
+
+message UserProfile {
+  string user_id = 1;
+  string username = 2;
+  repeated string permissions = 3;
+}
+
+message AdminProfile {
+  string admin_id = 1;
+  string department = 2;
+  int32 access_level = 3;
+}
+
+message GuestProfile {
+  string session_id = 1;
+  int64 expires_at = 2;
+}

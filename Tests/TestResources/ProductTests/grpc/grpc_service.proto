@@ -1,0 +1,197 @@
+syntax = "proto3";
+
+package grpc.service;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/field_mask.proto";
+
+// Real-world gRPC service example
+service UserManagementService {
+  // Standard CRUD operations
+  rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
+  rpc GetUser(GetUserRequest) returns (GetUserResponse); 
+  rpc UpdateUser(UpdateUserRequest) returns (UpdateUserResponse);
+  rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse);
+  rpc ListUsers(ListUsersRequest) returns (ListUsersResponse);
+  
+  // Streaming operations
+  rpc StreamUsers(StreamUsersRequest) returns (stream User);
+  rpc BatchCreateUsers(stream CreateUserRequest) returns (BatchCreateUsersResponse);
+  rpc ChatWithUsers(stream ChatMessage) returns (stream ChatMessage);
+  
+  // Health check
+  rpc Health(google.protobuf.Empty) returns (HealthResponse);
+}
+
+// User entity
+message User {
+  string user_id = 1;
+  string username = 2;
+  string email = 3;
+  string full_name = 4;
+  UserStatus status = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+  UserProfile profile = 8;
+  repeated string roles = 9;
+  map<string, string> metadata = 10;
+}
+
+message UserProfile {
+  string bio = 1;
+  string avatar_url = 2;
+  string location = 3;
+  string website = 4;
+  google.protobuf.Timestamp birth_date = 5;
+  repeated SocialLink social_links = 6;
+}
+
+message SocialLink {
+  SocialPlatform platform = 1;
+  string url = 2;
+  bool verified = 3;
+}
+
+enum UserStatus {
+  USER_STATUS_UNKNOWN = 0;
+  ACTIVE = 1;
+  INACTIVE = 2;
+  SUSPENDED = 3;
+  PENDING_VERIFICATION = 4;
+}
+
+enum SocialPlatform {
+  SOCIAL_PLATFORM_UNKNOWN = 0;
+  TWITTER = 1;
+  FACEBOOK = 2;
+  LINKEDIN = 3;
+  GITHUB = 4;
+  INSTAGRAM = 5;
+}
+
+// CRUD Request/Response messages
+message CreateUserRequest {
+  string username = 1;
+  string email = 2;
+  string full_name = 3;
+  string password = 4;
+  UserProfile profile = 5;
+  repeated string roles = 6;
+}
+
+message CreateUserResponse {
+  User user = 1;
+  bool success = 2;
+  string message = 3;
+}
+
+message GetUserRequest {
+  oneof identifier {
+    string user_id = 1;
+    string username = 2;
+    string email = 3;
+  }
+  google.protobuf.FieldMask field_mask = 4;
+}
+
+message GetUserResponse {
+  User user = 1;
+  bool found = 2;
+}
+
+message UpdateUserRequest {
+  string user_id = 1;
+  User user = 2;
+  google.protobuf.FieldMask update_mask = 3;
+}
+
+message UpdateUserResponse {
+  User user = 1;
+  bool success = 2;
+  string message = 3;
+}
+
+message DeleteUserRequest {
+  string user_id = 1;
+  bool hard_delete = 2;
+}
+
+message DeleteUserResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message ListUsersRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+  UserFilter filter = 3;
+  repeated string order_by = 4;
+  google.protobuf.FieldMask field_mask = 5;
+}
+
+message ListUsersResponse {
+  repeated User users = 1;
+  string next_page_token = 2;
+  int32 total_count = 3;
+}
+
+message UserFilter {
+  UserStatus status = 1;
+  repeated string roles = 2;
+  string search_query = 3;
+  google.protobuf.Timestamp created_after = 4;
+  google.protobuf.Timestamp created_before = 5;
+}
+
+// Streaming messages
+message StreamUsersRequest {
+  UserFilter filter = 1;
+  bool include_updates = 2;
+}
+
+message BatchCreateUsersResponse {
+  repeated CreateUserResponse results = 1;
+  int32 total_created = 2;
+  int32 total_failed = 3;
+}
+
+message ChatMessage {
+  string message_id = 1;
+  string user_id = 2;
+  string content = 3;
+  MessageType type = 4;
+  google.protobuf.Timestamp timestamp = 5;
+  repeated string mentions = 6;
+  repeated Attachment attachments = 7;
+}
+
+message Attachment {
+  string attachment_id = 1;
+  string filename = 2;
+  string content_type = 3;
+  int64 size_bytes = 4;
+  string url = 5;
+}
+
+enum MessageType {
+  MESSAGE_TYPE_UNKNOWN = 0;
+  TEXT = 1;
+  IMAGE = 2;
+  FILE = 3;
+  SYSTEM = 4;
+}
+
+message HealthResponse {
+  HealthStatus status = 1;
+  string message = 2;
+  google.protobuf.Timestamp timestamp = 3;
+  map<string, string> details = 4;
+}
+
+enum HealthStatus {
+  HEALTH_STATUS_UNKNOWN = 0;
+  HEALTHY = 1;
+  DEGRADED = 2;
+  UNHEALTHY = 3;
+}

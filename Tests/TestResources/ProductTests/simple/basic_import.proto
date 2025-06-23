@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package simple.import;
+
+import "basic_message.proto";
+
+// Message that uses imported types
+message ExtendedMessage {
+  simple.basic.BasicMessage basic = 1;
+  string extra_field = 2;
+}

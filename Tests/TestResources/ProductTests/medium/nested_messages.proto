@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package medium.nested;
+
+message Company {
+  string name = 1;
+  
+  message Department {
+    string name = 1;
+    
+    message Employee {
+      string name = 1;
+      string email = 2;
+      Position position = 3;
+      
+      message Address {
+        string street = 1;
+        string city = 2;
+        string country = 3;
+        int32 postal_code = 4;
+      }
+      
+      Address home_address = 4;
+      Address work_address = 5;
+    }
+    
+    repeated Employee employees = 2;
+    Employee manager = 3;
+  }
+  
+  repeated Department departments = 2;
+}
+
+enum Position {
+  POSITION_UNKNOWN = 0;
+  JUNIOR = 1;
+  SENIOR = 2;
+  LEAD = 3;
+  MANAGER = 4;
+  DIRECTOR = 5;
+}

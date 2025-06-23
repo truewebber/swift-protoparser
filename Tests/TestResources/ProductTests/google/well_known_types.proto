@@ -1,0 +1,131 @@
+syntax = "proto3";
+
+package google.wellknown;
+
+import "google/protobuf/any.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
+
+// Message using all Google Well-Known Types
+message WellKnownTypesMessage {
+  // Timestamp for date/time values
+  google.protobuf.Timestamp created_at = 1;
+  google.protobuf.Timestamp updated_at = 2;
+  
+  // Duration for time intervals
+  google.protobuf.Duration timeout = 3;
+  google.protobuf.Duration processing_time = 4;
+  
+  // Any for dynamic content
+  google.protobuf.Any payload = 5;
+  repeated google.protobuf.Any attachments = 6;
+  
+  // Struct for arbitrary JSON-like data
+  google.protobuf.Struct metadata = 7;
+  google.protobuf.Struct configuration = 8;
+  
+  // Value for dynamic values
+  google.protobuf.Value dynamic_field = 9;
+  repeated google.protobuf.Value dynamic_list = 10;
+  
+  // ListValue for arrays
+  google.protobuf.ListValue items = 11;
+  google.protobuf.ListValue tags = 12;
+  
+  // Wrappers for nullable primitives
+  google.protobuf.StringValue optional_name = 13;
+  google.protobuf.Int32Value optional_count = 14;
+  google.protobuf.Int64Value optional_id = 15;
+  google.protobuf.UInt32Value optional_version = 16;
+  google.protobuf.UInt64Value optional_size = 17;
+  google.protobuf.BoolValue optional_enabled = 18;
+  google.protobuf.FloatValue optional_score = 19;
+  google.protobuf.DoubleValue optional_rating = 20;
+  google.protobuf.BytesValue optional_data = 21;
+  
+  // FieldMask for partial updates
+  google.protobuf.FieldMask update_mask = 22;
+  google.protobuf.FieldMask read_mask = 23;
+  
+  // Empty for void operations
+  google.protobuf.Empty void_result = 24;
+}
+
+// Service using Well-Known Types
+service WellKnownTypesService {
+  // Method with Empty request/response
+  rpc Ping(google.protobuf.Empty) returns (google.protobuf.Empty);
+  
+  // Method with Any types
+  rpc ProcessAny(ProcessAnyRequest) returns (ProcessAnyResponse);
+  
+  // Method with FieldMask for partial updates
+  rpc UpdatePartial(UpdatePartialRequest) returns (UpdatePartialResponse);
+  
+  // Method with Timestamp and Duration
+  rpc ScheduleTask(ScheduleTaskRequest) returns (ScheduleTaskResponse);
+  
+  // Method with Struct and Value
+  rpc ProcessDynamicData(ProcessDynamicRequest) returns (ProcessDynamicResponse);
+}
+
+message ProcessAnyRequest {
+  google.protobuf.Any data = 1;
+  string processing_type = 2;
+}
+
+message ProcessAnyResponse {
+  google.protobuf.Any result = 1;
+  bool success = 2;
+  google.protobuf.Timestamp processed_at = 3;
+}
+
+message UpdatePartialRequest {
+  string resource_id = 1;
+  WellKnownTypesMessage resource = 2;
+  google.protobuf.FieldMask update_mask = 3;
+}
+
+message UpdatePartialResponse {
+  WellKnownTypesMessage updated_resource = 1;
+  google.protobuf.Timestamp updated_at = 2;
+}
+
+message ScheduleTaskRequest {
+  string task_id = 1;
+  google.protobuf.Timestamp scheduled_at = 2;
+  google.protobuf.Duration timeout = 3;
+  google.protobuf.Duration retry_interval = 4;
+}
+
+message ScheduleTaskResponse {
+  string task_id = 1;
+  TaskStatus status = 2;
+  google.protobuf.Timestamp created_at = 3;
+  google.protobuf.Timestamp scheduled_at = 4;
+}
+
+message ProcessDynamicRequest {
+  google.protobuf.Struct input_data = 1;
+  google.protobuf.ListValue parameters = 2;
+  map<string, google.protobuf.Value> context = 3;
+}
+
+message ProcessDynamicResponse {
+  google.protobuf.Struct output_data = 1;
+  google.protobuf.ListValue results = 2;
+  map<string, google.protobuf.Value> metadata = 3;
+}
+
+enum TaskStatus {
+  TASK_STATUS_UNKNOWN = 0;
+  TASK_SCHEDULED = 1;
+  TASK_RUNNING = 2;
+  TASK_COMPLETED = 3;
+  TASK_FAILED = 4;
+  TASK_CANCELLED = 5;
+}

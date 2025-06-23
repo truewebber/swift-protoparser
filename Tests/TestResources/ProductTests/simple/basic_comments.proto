@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package simple.comments;
+
+/**
+ * This is a multi-line comment
+ * describing the UserProfile message
+ */
+message UserProfile {
+  // User's unique identifier
+  string user_id = 1;
+  
+  // Full name of the user
+  string full_name = 2;
+  
+  /* Block comment for email */
+  string email = 3;
+  
+  // User's age in years
+  int32 age = 4;
+}
+
+// Service with documented methods
+service ProfileService {
+  // Gets a user profile by ID
+  rpc GetProfile(ProfileRequest) returns (ProfileResponse);
+}
+
+// Request message for getting profile
+message ProfileRequest {
+  string user_id = 1; // The ID of the user to retrieve
+}
+
+// Response message containing profile data
+message ProfileResponse {
+  UserProfile profile = 1; // The user's profile information
+  bool found = 2; // Whether the profile was found
+}

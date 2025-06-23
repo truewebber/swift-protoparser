@@ -1,0 +1,190 @@
+syntax = "proto3";
+
+package complex.streaming;
+
+// Advanced streaming service with all streaming types
+service StreamingService {
+  // Unary RPC (no streaming)
+  rpc UnaryCall(UnaryRequest) returns (UnaryResponse);
+  
+  // Server streaming RPC
+  rpc ServerStream(ServerStreamRequest) returns (stream ServerStreamResponse);
+  
+  // Client streaming RPC  
+  rpc ClientStream(stream ClientStreamRequest) returns (ClientStreamResponse);
+  
+  // Bidirectional streaming RPC
+  rpc BidirectionalStream(stream BidirectionalRequest) returns (stream BidirectionalResponse);
+  
+  // Multiple streaming services
+  rpc MultipleServerStreams(MultiStreamRequest) returns (stream MultiStreamResponse);
+  rpc MultipleClientStreams(stream MultiStreamRequest) returns (MultiStreamResponse);
+}
+
+message UnaryRequest {
+  string request_id = 1;
+  string data = 2;
+}
+
+message UnaryResponse {
+  string response_id = 1;
+  string result = 2;
+  bool success = 3;
+}
+
+message ServerStreamRequest {
+  string stream_id = 1;
+  int32 count = 2;
+  StreamConfig config = 3;
+}
+
+message ServerStreamResponse {
+  string item_id = 1;
+  bytes data = 2;
+  int32 sequence_number = 3;
+  StreamStatus status = 4;
+}
+
+message ClientStreamRequest {
+  string chunk_id = 1;
+  bytes chunk_data = 2;
+  bool is_final = 3;
+}
+
+message ClientStreamResponse {
+  string result_id = 1;
+  int64 total_size = 2;
+  string checksum = 3;
+  ProcessingResult result = 4;
+}
+
+message BidirectionalRequest {
+  oneof request_type {
+    InitRequest init = 1;
+    DataRequest data = 2;
+    ControlRequest control = 3;
+    FinishRequest finish = 4;
+  }
+}
+
+message BidirectionalResponse {
+  oneof response_type {
+    InitResponse init = 1;
+    DataResponse data = 2;
+    ControlResponse control = 3;
+    FinishResponse finish = 4;
+    ErrorResponse error = 5;
+  }
+}
+
+message InitRequest {
+  string session_id = 1;
+  StreamConfig config = 2;
+}
+
+message InitResponse {
+  bool accepted = 1;
+  string server_session_id = 2;
+}
+
+message DataRequest {
+  string data_id = 1;
+  bytes payload = 2;
+}
+
+message DataResponse {
+  string data_id = 1;
+  bytes processed_payload = 2;
+  ProcessingResult result = 3;
+}
+
+message ControlRequest {
+  ControlCommand command = 1;
+  map<string, string> parameters = 2;
+}
+
+message ControlResponse {
+  ControlCommand command = 1;
+  bool success = 2;
+  string message = 3;
+}
+
+message FinishRequest {
+  string reason = 1;
+}
+
+message FinishResponse {
+  string summary = 1;
+  StreamStats stats = 2;
+}
+
+message ErrorResponse {
+  string error_code = 1;
+  string error_message = 2;
+  repeated string details = 3;
+}
+
+message MultiStreamRequest {
+  repeated string stream_ids = 1;
+  StreamConfig config = 2;
+}
+
+message MultiStreamResponse {
+  string stream_id = 1;
+  repeated StreamData data = 2;
+  StreamStatus status = 3;
+}
+
+message StreamConfig {
+  int32 buffer_size = 1;
+  int32 timeout_seconds = 2;
+  bool compression_enabled = 3;
+  StreamFormat format = 4;
+}
+
+message StreamData {
+  string id = 1;
+  bytes content = 2;
+  int64 timestamp = 3;
+}
+
+message StreamStats {
+  int64 total_bytes = 1;
+  int64 total_messages = 2;
+  int64 duration_milliseconds = 3;
+  double throughput_mbps = 4;
+}
+
+enum StreamStatus {
+  STREAM_UNKNOWN = 0;
+  STREAM_STARTING = 1;
+  STREAM_ACTIVE = 2;
+  STREAM_PAUSED = 3;
+  STREAM_COMPLETED = 4;
+  STREAM_FAILED = 5;
+}
+
+enum StreamFormat {
+  FORMAT_UNKNOWN = 0;
+  FORMAT_BINARY = 1;
+  FORMAT_JSON = 2;
+  FORMAT_PROTOBUF = 3;
+  FORMAT_COMPRESSED = 4;
+}
+
+enum ControlCommand {
+  COMMAND_UNKNOWN = 0;
+  PAUSE = 1;
+  RESUME = 2;
+  CANCEL = 3;
+  FLUSH = 4;
+  RESET = 5;
+}
+
+enum ProcessingResult {
+  RESULT_UNKNOWN = 0;
+  SUCCESS = 1;
+  PARTIAL_SUCCESS = 2;
+  FAILED = 3;
+  RETRY_NEEDED = 4;
+}

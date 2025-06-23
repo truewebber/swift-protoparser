@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package medium.repeated;
+
+message RepeatedMessage {
+  repeated string tags = 1;
+  repeated int32 numbers = 2;
+  repeated bool flags = 3;
+  repeated double scores = 4;
+  repeated bytes data_chunks = 5;
+  
+  repeated NestedItem items = 6;
+  repeated Category categories = 7;
+}
+
+message NestedItem {
+  string id = 1;
+  string name = 2;
+  int32 quantity = 3;
+}
+
+enum Category {
+  CATEGORY_UNKNOWN = 0;
+  ELECTRONICS = 1;
+  CLOTHING = 2;
+  BOOKS = 3;
+  FOOD = 4;
+}
+
+message ArrayOfArrays {
+  repeated StringList string_lists = 1;
+  repeated NumberList number_lists = 2;
+}
+
+message StringList {
+  repeated string values = 1;
+}
+
+message NumberList {
+  repeated int32 values = 1;
+}

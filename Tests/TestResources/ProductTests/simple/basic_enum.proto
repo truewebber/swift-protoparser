@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package simple.enum;
+
+// Basic enum with default value
+enum Status {
+  STATUS_UNKNOWN = 0;
+  STATUS_ACTIVE = 1;
+  STATUS_INACTIVE = 2;
+  STATUS_PENDING = 3;
+}
+
+message StatusMessage {
+  Status status = 1;
+  string description = 2;
+}

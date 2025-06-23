@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package simple.basic;
+
+// Basic message with fundamental field types
+message BasicMessage {
+  string name = 1;
+  int32 age = 2;
+  bool active = 3;
+  double score = 4;
+  float rating = 5;
+  int64 timestamp = 6;
+  uint32 count = 7;
+  uint64 id = 8;
+  bytes data = 9;
+}

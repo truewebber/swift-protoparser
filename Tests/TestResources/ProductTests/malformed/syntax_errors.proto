@@ -1,0 +1,75 @@
+syntax = "proto3";
+
+package malformed.syntax;
+
+// This file intentionally contains syntax errors for error handling testing
+
+// Missing message keyword
+BadMessage {
+  string field = 1;
+}
+
+// Invalid field number (0)
+message InvalidFieldNumber {
+  string field = 0;
+}
+
+// Duplicate field numbers
+message DuplicateFieldNumbers {
+  string field1 = 1;
+  string field2 = 1; // Duplicate field number
+}
+
+// Invalid field type
+message InvalidFieldType {
+  invalid_type field = 1;
+}
+
+// Missing field number
+message MissingFieldNumber {
+  string field;
+}
+
+// Invalid enum (missing default 0 value)
+enum BadEnum {
+  VALUE1 = 1; // Missing 0 value
+  VALUE2 = 2;
+}
+
+// Invalid service syntax
+service BadService {
+  BadMethod(Request) returns Response; // Missing rpc keyword
+}
+
+// Unclosed message
+message UnclosedMessage {
+  string field = 1;
+  // Missing closing brace
+
+message AnotherMessage {
+  string field = 1;
+}
+
+// Invalid reserved syntax
+message InvalidReserved {
+  reserved "field1" 1; // Should be separate statements
+  string field2 = 2;
+}
+
+// Invalid oneof
+message InvalidOneof {
+  oneof choice {
+    string option1 = 1;
+    repeated string option2 = 2; // repeated not allowed in oneof
+  }
+}
+
+// Invalid map syntax
+message InvalidMap {
+  map<string> field = 1; // Missing value type
+}
+
+// Extremely long line that might cause buffer overflow or parsing issues in poorly implemented parsers - this line is intentionally very long to test parser robustness and memory handling capabilities when dealing with extremely verbose field names and comments that exceed normal expected lengths
+message ExtremelyLongLineTest {
+  string extremely_long_field_name_that_might_cause_issues_with_poorly_implemented_parsers_and_test_memory_allocation_and_buffer_handling_in_various_edge_cases_and_scenarios = 1;
+}

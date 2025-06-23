@@ -1,0 +1,274 @@
+syntax = "proto3";
+
+package complex.large;
+
+// Large schema with many messages, fields, and enums
+message LargeMessage {
+  // 50+ fields of various types
+  string field_001 = 1;
+  string field_002 = 2;
+  string field_003 = 3;
+  string field_004 = 4;
+  string field_005 = 5;
+  int32 field_006 = 6;
+  int32 field_007 = 7;
+  int32 field_008 = 8;
+  int32 field_009 = 9;
+  int32 field_010 = 10;
+  int64 field_011 = 11;
+  int64 field_012 = 12;
+  int64 field_013 = 13;
+  int64 field_014 = 14;
+  int64 field_015 = 15;
+  bool field_016 = 16;
+  bool field_017 = 17;
+  bool field_018 = 18;
+  bool field_019 = 19;
+  bool field_020 = 20;
+  double field_021 = 21;
+  double field_022 = 22;
+  double field_023 = 23;
+  double field_024 = 24;
+  double field_025 = 25;
+  float field_026 = 26;
+  float field_027 = 27;
+  float field_028 = 28;
+  float field_029 = 29;
+  float field_030 = 30;
+  bytes field_031 = 31;
+  bytes field_032 = 32;
+  bytes field_033 = 33;
+  bytes field_034 = 34;
+  bytes field_035 = 35;
+  repeated string field_036 = 36;
+  repeated string field_037 = 37;
+  repeated string field_038 = 38;
+  repeated string field_039 = 39;
+  repeated string field_040 = 40;
+  repeated int32 field_041 = 41;
+  repeated int32 field_042 = 42;
+  repeated int32 field_043 = 43;
+  repeated int32 field_044 = 44;
+  repeated int32 field_045 = 45;
+  map<string, string> field_046 = 46;
+  map<string, string> field_047 = 47;
+  map<string, string> field_048 = 48;
+  map<string, string> field_049 = 49;
+  map<string, string> field_050 = 50;
+  
+  // Nested message fields
+  NestedMessage001 nested_001 = 51;
+  NestedMessage002 nested_002 = 52;
+  NestedMessage003 nested_003 = 53;
+  NestedMessage004 nested_004 = 54;
+  NestedMessage005 nested_005 = 55;
+  
+  // Enum fields
+  LargeEnum001 enum_001 = 56;
+  LargeEnum002 enum_002 = 57;
+  LargeEnum003 enum_003 = 58;
+  LargeEnum004 enum_004 = 59;
+  LargeEnum005 enum_005 = 60;
+  
+  // Oneof fields
+  oneof large_oneof_001 {
+    string oneof_string_001 = 61;
+    int32 oneof_int_001 = 62;
+    bool oneof_bool_001 = 63;
+  }
+  
+  oneof large_oneof_002 {
+    string oneof_string_002 = 64;
+    int32 oneof_int_002 = 65;
+    bool oneof_bool_002 = 66;
+  }
+  
+  oneof large_oneof_003 {
+    string oneof_string_003 = 67;
+    int32 oneof_int_003 = 68;
+    bool oneof_bool_003 = 69;
+  }
+  
+  // More complex fields
+  repeated NestedMessage001 repeated_nested_001 = 70;
+  repeated NestedMessage002 repeated_nested_002 = 71;
+  repeated NestedMessage003 repeated_nested_003 = 72;
+  repeated NestedMessage004 repeated_nested_004 = 73;
+  repeated NestedMessage005 repeated_nested_005 = 74;
+  
+  map<string, NestedMessage001> map_nested_001 = 75;
+  map<string, NestedMessage002> map_nested_002 = 76;
+  map<string, NestedMessage003> map_nested_003 = 77;
+  map<string, NestedMessage004> map_nested_004 = 78;
+  map<string, NestedMessage005> map_nested_005 = 79;
+  
+  // Final fields
+  string final_field_080 = 80;
+  string final_field_081 = 81;
+  string final_field_082 = 82;
+  string final_field_083 = 83;
+  string final_field_084 = 84;
+  string final_field_085 = 85;
+  string final_field_086 = 86;
+  string final_field_087 = 87;
+  string final_field_088 = 88;
+  string final_field_089 = 89;
+  string final_field_090 = 90;
+  string final_field_091 = 91;
+  string final_field_092 = 92;
+  string final_field_093 = 93;
+  string final_field_094 = 94;
+  string final_field_095 = 95;
+  string final_field_096 = 96;
+  string final_field_097 = 97;
+  string final_field_098 = 98;
+  string final_field_099 = 99;
+  string final_field_100 = 100;
+}
+
+// Multiple nested messages
+message NestedMessage001 {
+  string name = 1;
+  int32 value = 2;
+  repeated string tags = 3;
+  map<string, int32> counters = 4;
+}
+
+message NestedMessage002 {
+  string id = 1;
+  double score = 2;
+  bool active = 3;
+  repeated NestedMessage001 children = 4;
+}
+
+message NestedMessage003 {
+  string description = 1;
+  bytes data = 2;
+  repeated LargeEnum001 statuses = 3;
+  map<string, NestedMessage001> lookup = 4;
+}
+
+message NestedMessage004 {
+  string category = 1;
+  repeated string items = 2;
+  map<string, NestedMessage002> details = 3;
+  oneof content {
+    string text = 4;
+    bytes binary = 5;
+    NestedMessage001 nested = 6;
+  }
+}
+
+message NestedMessage005 {
+  string uuid = 1;
+  int64 timestamp = 2;
+  repeated NestedMessage003 history = 3;
+  map<string, NestedMessage004> metadata = 4;
+}
+
+// Multiple large enums
+enum LargeEnum001 {
+  ENUM001_UNKNOWN = 0;
+  ENUM001_VALUE_001 = 1;
+  ENUM001_VALUE_002 = 2;
+  ENUM001_VALUE_003 = 3;
+  ENUM001_VALUE_004 = 4;
+  ENUM001_VALUE_005 = 5;
+  ENUM001_VALUE_006 = 6;
+  ENUM001_VALUE_007 = 7;
+  ENUM001_VALUE_008 = 8;
+  ENUM001_VALUE_009 = 9;
+  ENUM001_VALUE_010 = 10;
+  ENUM001_VALUE_011 = 11;
+  ENUM001_VALUE_012 = 12;
+  ENUM001_VALUE_013 = 13;
+  ENUM001_VALUE_014 = 14;
+  ENUM001_VALUE_015 = 15;
+  ENUM001_VALUE_016 = 16;
+  ENUM001_VALUE_017 = 17;
+  ENUM001_VALUE_018 = 18;
+  ENUM001_VALUE_019 = 19;
+  ENUM001_VALUE_020 = 20;
+}
+
+enum LargeEnum002 {
+  ENUM002_UNKNOWN = 0;
+  ENUM002_ALPHA = 1;
+  ENUM002_BETA = 2;
+  ENUM002_GAMMA = 3;
+  ENUM002_DELTA = 4;
+  ENUM002_EPSILON = 5;
+  ENUM002_ZETA = 6;
+  ENUM002_ETA = 7;
+  ENUM002_THETA = 8;
+  ENUM002_IOTA = 9;
+  ENUM002_KAPPA = 10;
+  ENUM002_LAMBDA = 11;
+  ENUM002_MU = 12;
+  ENUM002_NU = 13;
+  ENUM002_XI = 14;
+  ENUM002_OMICRON = 15;
+  ENUM002_PI = 16;
+  ENUM002_RHO = 17;
+  ENUM002_SIGMA = 18;
+  ENUM002_TAU = 19;
+  ENUM002_UPSILON = 20;
+}
+
+enum LargeEnum003 {
+  ENUM003_UNKNOWN = 0;
+  ENUM003_JANUARY = 1;
+  ENUM003_FEBRUARY = 2;
+  ENUM003_MARCH = 3;
+  ENUM003_APRIL = 4;
+  ENUM003_MAY = 5;
+  ENUM003_JUNE = 6;
+  ENUM003_JULY = 7;
+  ENUM003_AUGUST = 8;
+  ENUM003_SEPTEMBER = 9;
+  ENUM003_OCTOBER = 10;
+  ENUM003_NOVEMBER = 11;
+  ENUM003_DECEMBER = 12;
+}
+
+enum LargeEnum004 {
+  ENUM004_UNKNOWN = 0;
+  ENUM004_MONDAY = 1;
+  ENUM004_TUESDAY = 2;
+  ENUM004_WEDNESDAY = 3;
+  ENUM004_THURSDAY = 4;
+  ENUM004_FRIDAY = 5;
+  ENUM004_SATURDAY = 6;
+  ENUM004_SUNDAY = 7;
+}
+
+enum LargeEnum005 {
+  ENUM005_UNKNOWN = 0;
+  ENUM005_NORTH = 1;
+  ENUM005_SOUTH = 2;
+  ENUM005_EAST = 3;
+  ENUM005_WEST = 4;
+  ENUM005_NORTHEAST = 5;
+  ENUM005_NORTHWEST = 6;
+  ENUM005_SOUTHEAST = 7;
+  ENUM005_SOUTHWEST = 8;
+}
+
+// Large service with many methods
+service LargeService {
+  rpc Method001(LargeMessage) returns (NestedMessage001);
+  rpc Method002(LargeMessage) returns (NestedMessage002);
+  rpc Method003(LargeMessage) returns (NestedMessage003);
+  rpc Method004(LargeMessage) returns (NestedMessage004);
+  rpc Method005(LargeMessage) returns (NestedMessage005);
+  rpc Method006(NestedMessage001) returns (LargeMessage);
+  rpc Method007(NestedMessage002) returns (LargeMessage);
+  rpc Method008(NestedMessage003) returns (LargeMessage);
+  rpc Method009(NestedMessage004) returns (LargeMessage);
+  rpc Method010(NestedMessage005) returns (LargeMessage);
+  rpc StreamMethod001(stream LargeMessage) returns (stream NestedMessage001);
+  rpc StreamMethod002(stream LargeMessage) returns (stream NestedMessage002);
+  rpc StreamMethod003(stream LargeMessage) returns (stream NestedMessage003);
+  rpc StreamMethod004(stream LargeMessage) returns (stream NestedMessage004);
+  rpc StreamMethod005(stream LargeMessage) returns (stream NestedMessage005);
+}

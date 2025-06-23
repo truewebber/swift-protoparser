@@ -1,0 +1,206 @@
+syntax = "proto3";
+
+package complex.edge;
+
+// Edge cases and boundary conditions
+message EdgeCasesMessage {
+  // Maximum field number (536,870,911)
+  string max_field_number = 536870911;
+  
+  // Field numbers close to limits
+  string high_field_1 = 536870910;
+  string high_field_2 = 536870909;
+  string high_field_3 = 536870908;
+  
+  // Reserved field numbers
+  reserved 1000 to 1999;
+  reserved 2000, 2001, 2002;
+  
+  // Reserved field names
+  reserved "old_field", "deprecated_field";
+  
+  // Edge case field types
+  string empty_string = 1;
+  bytes empty_bytes = 2;
+  repeated string empty_repeated = 3;
+  map<string, string> empty_map = 4;
+  
+  // Unicode and special character handling
+  string unicode_field = 5; // Will contain Unicode characters
+  string special_chars = 6; // Will contain special characters
+  string json_string = 7; // Will contain JSON-like strings
+  string xml_string = 8; // Will contain XML-like strings
+  
+  // Extremely long field names
+  string very_long_field_name_that_tests_parser_limits_and_memory_usage_with_extremely_verbose_naming = 9;
+  
+  // Numbers at boundaries
+  int32 max_int32 = 10; // 2147483647
+  int32 min_int32 = 11; // -2147483648
+  int64 max_int64 = 12; // 9223372036854775807
+  int64 min_int64 = 13; // -9223372036854775808
+  uint32 max_uint32 = 14; // 4294967295
+  uint64 max_uint64 = 15; // 18446744073709551615
+  
+  // Floating point edge cases
+  float positive_infinity = 16;
+  float negative_infinity = 17;
+  float not_a_number = 18;
+  double positive_infinity_double = 19;
+  double negative_infinity_double = 20;
+  double not_a_number_double = 21;
+  
+  // Deeply nested oneof
+  oneof deeply_nested_choice {
+    EdgeLevel1 level1 = 22;
+    string simple_choice = 23;
+  }
+  
+  // Extremely long enum names
+  ExtremelyLongEnumNameThatTestsParserLimitsAndMemoryUsage status = 24;
+}
+
+message EdgeLevel1 {
+  oneof level1_choice {
+    EdgeLevel2 level2 = 1;
+    string level1_simple = 2;
+  }
+}
+
+message EdgeLevel2 {
+  oneof level2_choice {
+    EdgeLevel3 level3 = 1;
+    string level2_simple = 2;
+  }
+}
+
+message EdgeLevel3 {
+  oneof level3_choice {
+    EdgeLevel4 level4 = 1;
+    string level3_simple = 2;
+  }
+}
+
+message EdgeLevel4 {
+  oneof level4_choice {
+    EdgeLevel5 level5 = 1;
+    string level4_simple = 2;
+  }
+}
+
+message EdgeLevel5 {
+  string final_value = 1;
+  repeated string final_list = 2;
+  map<string, string> final_map = 3;
+}
+
+// Enum with edge cases
+enum ExtremelyLongEnumNameThatTestsParserLimitsAndMemoryUsage {
+  EXTREMELY_LONG_ENUM_NAME_UNKNOWN = 0;
+  EXTREMELY_LONG_ENUM_VALUE_WITH_VERY_VERBOSE_NAMING_CONVENTION_THAT_TESTS_LIMITS = 1;
+  ANOTHER_EXTREMELY_LONG_ENUM_VALUE_WITH_DIFFERENT_NAMING_PATTERN = 2;
+  MAXIMUM_LENGTH_ENUM_VALUE_NAME_THAT_COULD_POSSIBLY_EXIST_IN_REAL_WORLD = 3;
+}
+
+// Service with edge case method names
+service EdgeCaseService {
+  rpc ExtremelyLongMethodNameThatTestsParserLimitsAndMemoryUsageWithVeryVerboseNaming(EdgeCasesMessage) returns (EdgeCasesMessage);
+  rpc MethodWithUnicodeInName(EdgeCasesMessage) returns (EdgeCasesMessage);
+  rpc method_with_underscores_and_numbers_123(EdgeCasesMessage) returns (EdgeCasesMessage);
+}
+
+// Message with unusual but valid naming
+message ALLCAPS {
+  string field = 1;
+}
+
+message lowercase {
+  string field = 1;
+}
+
+message MixedCaseMessage {
+  string CamelCase = 1;
+  string snake_case = 2;
+  string SCREAMING_SNAKE_CASE = 3;
+  string mixedCase = 4;
+}
+
+// Edge case with many repeated fields
+message RepeatedEdgeCases {
+  repeated EdgeCasesMessage repeated_edge_cases = 1;
+  repeated ALLCAPS repeated_allcaps = 2;
+  repeated lowercase repeated_lowercase = 3;
+  repeated MixedCaseMessage repeated_mixed = 4;
+}
+
+// Edge case with many map fields
+message MapEdgeCases {
+  map<string, EdgeCasesMessage> string_to_edge = 1;
+  map<int32, EdgeCasesMessage> int_to_edge = 2;
+  map<int64, EdgeCasesMessage> int64_to_edge = 3;
+  map<bool, EdgeCasesMessage> bool_to_edge = 4;
+  map<string, ALLCAPS> string_to_allcaps = 5;
+  map<string, lowercase> string_to_lowercase = 6;
+  map<string, MixedCaseMessage> string_to_mixed = 7;
+}
+
+// Edge case with circular references (same package)
+message CircularA {
+  string name = 1;
+  CircularB circular_b = 2;
+}
+
+message CircularB {
+  string name = 1;
+  CircularA circular_a = 2;
+  repeated CircularA circular_a_list = 3;
+}
+
+// Edge case with self-referencing message
+message SelfReferencing {
+  string name = 1;
+  SelfReferencing child = 2;
+  repeated SelfReferencing children = 3;
+  map<string, SelfReferencing> child_map = 4;
+}
+
+// Edge case with empty messages
+message EmptyMessage {
+}
+
+message MessageWithOnlyEmptyMessage {
+  EmptyMessage empty = 1;
+  repeated EmptyMessage empty_list = 2;
+  map<string, EmptyMessage> empty_map = 3;
+}
+
+// Edge case with field numbers in unusual order
+message UnorderedFields {
+  string field_100 = 100;
+  string field_001 = 1;
+  string field_050 = 50;
+  string field_025 = 25;
+  string field_075 = 75;
+  string field_010 = 10;
+  string field_999 = 999;
+}
+
+// Edge case with all oneof fields
+message AllOneofMessage {
+  oneof first {
+    string string_choice = 1;
+    int32 int_choice = 2;
+    bool bool_choice = 3;
+  }
+  
+  oneof second {
+    double double_choice = 4;
+    bytes bytes_choice = 5;
+    EdgeCasesMessage message_choice = 6;
+  }
+  
+  oneof third {
+    ExtremelyLongEnumNameThatTestsParserLimitsAndMemoryUsage enum_choice = 7;
+    EmptyMessage empty_choice = 8;
+  }
+}
