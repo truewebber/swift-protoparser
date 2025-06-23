@@ -533,7 +533,7 @@ public final class Parser {
     )
   }
 
-  /// Parses a field type (scalar, message, enum, or map).
+  /// Parses a field type (scalar, message, enum, qualified type, or map).
   private func parseFieldType() throws -> FieldType {
     guard let token = state.currentToken else {
       state.addError(.unexpectedEndOfInput(expected: "field type"))
@@ -601,15 +601,47 @@ public final class Parser {
         state.advance()
         return .bytes
       default:
-        // Not a scalar type - treat as message/enum type
-        state.advance()
-        return .message(typeName)
+        // Not a scalar type - could be message/enum or qualified type
+        return try parseQualifiedTypeName(firstPart: typeName)
       }
 
     default:
       state.addError(.unexpectedToken(token, expected: "field type"))
       state.advance()
       return .string
+    }
+  }
+
+  /// Parses a qualified type name like 'Message' or 'google.protobuf.Timestamp'.
+  private func parseQualifiedTypeName(firstPart: String) throws -> FieldType {
+    state.advance() // consume first identifier
+    
+    var qualifiedName = firstPart
+    
+    // Check if this is a qualified name (contains dots)
+    while state.checkSymbol(".") {
+      state.advance() // consume "."
+      skipIgnorableTokens()
+      
+      guard let nextPart = state.identifierName else {
+        state.addError(
+          .unexpectedToken(
+            state.currentToken ?? Token(type: .eof, position: Token.Position(line: 0, column: 0)),
+            expected: "qualified type name part"
+          )
+        )
+        break
+      }
+      
+      qualifiedName += "." + nextPart
+      state.advance() // consume next identifier
+    }
+    
+    // If it contains dots, it's a qualified type, otherwise a simple message type
+    if qualifiedName.contains(".") {
+      return .qualifiedType(qualifiedName)
+    } else {
+      return .message(qualifiedName)
     }
   }
 

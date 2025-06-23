@@ -22,6 +22,7 @@ public indirect enum FieldType: Equatable {
   // Complex types
   case message(String)  // message type name
   case enumType(String)  // enum type name
+  case qualifiedType(String)  // qualified type name like google.protobuf.Timestamp
   case map(key: FieldType, value: FieldType)  // map<key_type, value_type>
 
   /// Returns true if this is a scalar type.
@@ -31,7 +32,7 @@ public indirect enum FieldType: Equatable {
       .sint32, .sint64, .fixed32, .fixed64, .sfixed32, .sfixed64,
       .bool, .string, .bytes:
       return true
-    case .message, .enumType, .map:
+    case .message, .enumType, .qualifiedType, .map:
       return false
     }
   }
@@ -42,7 +43,7 @@ public indirect enum FieldType: Equatable {
     case .double, .float, .int32, .int64, .uint32, .uint64,
       .sint32, .sint64, .fixed32, .fixed64, .sfixed32, .sfixed64:
       return true
-    case .bool, .string, .bytes, .message, .enumType, .map:
+    case .bool, .string, .bytes, .message, .enumType, .qualifiedType, .map:
       return false
     }
   }
@@ -67,6 +68,7 @@ public indirect enum FieldType: Equatable {
     case .bytes: return "bytes"
     case .message(let name): return name
     case .enumType(let name): return name
+    case .qualifiedType(let name): return name
     case .map(let key, let value): return "map<\(key.protoTypeName), \(value.protoTypeName)>"
     }
   }

@@ -77,6 +77,12 @@ struct FieldDescriptorBuilder {
       fieldProto.type = .enum
       fieldProto.typeName = buildFullyQualifiedTypeName(typeName, packageName: packageName)
       
+    case .qualifiedType(let qualifiedName):
+      // For qualified types like google.protobuf.Timestamp, assume it's a message type
+      fieldProto.type = .message
+      // Qualified names are already fully qualified, just add leading dot if missing
+      fieldProto.typeName = qualifiedName.hasPrefix(".") ? qualifiedName : ".\(qualifiedName)"
+      
     case .map(_, _):
       // Maps are represented as repeated message with special structure
       fieldProto.type = .message

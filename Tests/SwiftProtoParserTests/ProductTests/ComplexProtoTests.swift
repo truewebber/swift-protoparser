@@ -19,7 +19,7 @@ final class ComplexProtoTests: XCTestCase {
             XCTAssertEqual(ast.syntax, .proto3)
             
             // Verify main message (Level1)
-            XCTAssertEqual(ast.messages.count, 4) // Level1, DeepRequest, DeepResponse, DeepStreamRequest, DeepStreamResponse
+            XCTAssertEqual(ast.messages.count, 5) // Level1, DeepRequest, DeepResponse, DeepStreamRequest, DeepStreamResponse
             let level1 = ast.messages.first { $0.name == "Level1" }
             XCTAssertNotNil(level1)
             
