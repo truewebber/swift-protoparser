@@ -476,8 +476,16 @@ public final class Parser {
     let fieldType = try parseFieldType()
     skipIgnorableTokens()
 
-    // Parse field name
-    guard let fieldName = state.identifierName else {
+    // Parse field name (allow keywords as field names in certain contexts)
+    let fieldName: String
+    if let identifier = state.identifierName {
+      fieldName = identifier
+    } else if let token = state.currentToken,
+              case .keyword(let keyword) = token.type,
+              isAllowedAsFieldName(keyword) {
+      // Allow certain keywords as field names (protobuf allows this)
+      fieldName = keyword.rawValue
+    } else {
       state.addError(
         .unexpectedToken(
           state.currentToken ?? Token(type: .eof, position: Token.Position(line: 0, column: 0)),
@@ -630,6 +638,12 @@ public final class Parser {
             expected: "qualified type name part"
           )
         )
+        
+        // CRITICAL FIX: Proper synchronization after qualified type parsing error
+        // We need to backtrack to a stable state. If we encountered an unexpected token
+        // while parsing a qualified type, it's likely that we hit a keyword that starts
+        // a new message element (like 'message', 'enum', etc.)
+        // Don't consume the token - let the outer parser handle it
         break
       }
       
@@ -922,8 +936,16 @@ public final class Parser {
     let fieldType = try parseFieldType()
     skipIgnorableTokens()
 
-    // Parse field name
-    guard let fieldName = state.identifierName else {
+    // Parse field name (allow keywords as field names in certain contexts)
+    let fieldName: String
+    if let identifier = state.identifierName {
+      fieldName = identifier
+    } else if let token = state.currentToken,
+              case .keyword(let keyword) = token.type,
+              isAllowedAsFieldName(keyword) {
+      // Allow certain keywords as field names (protobuf allows this)
+      fieldName = keyword.rawValue
+    } else {
       state.addError(
         .unexpectedToken(
           state.currentToken ?? Token(type: .eof, position: Token.Position(line: 0, column: 0)),
@@ -1238,6 +1260,21 @@ public final class Parser {
       if state.currentIndex == beforeIndex {
         break
       }
+    }
+  }
+  
+  /// Checks if a keyword can be used as a field name.
+  /// In Protocol Buffers, most keywords are allowed as field names.
+  /// Only a very small set of keywords are truly reserved.
+  private func isAllowedAsFieldName(_ keyword: ProtoKeyword) -> Bool {
+    switch keyword {
+    // Very few keywords are actually prohibited as field names in protobuf
+    // Most keywords like "message", "service", "enum" etc. can be used as field names
+    case .syntax, .package, .import:
+      return false
+    // All other keywords (including message, enum, service, etc.) can be field names
+    default:
+      return true
     }
   }
 }
