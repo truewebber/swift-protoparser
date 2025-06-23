@@ -62,9 +62,9 @@ final class SimpleProtoProductTestsFixed: XCTestCase {
         
         enum Status {
           STATUS_UNKNOWN = 0;  // Required in proto3
-          ACTIVE = 1;
-          INACTIVE = 2;
-          PENDING = 3;
+          STATUS_ACTIVE = 1;
+          STATUS_INACTIVE = 2;
+          STATUS_PENDING = 3;
         }
         
         message StatusMessage {
@@ -431,5 +431,131 @@ final class SimpleProtoProductTestsFixed: XCTestCase {
             XCTAssertFalse(errorDescription.isEmpty)
             print("Successfully caught error: \(errorDescription)")
         }
+    }
+    
+    // MARK: - Real File Testing 📁
+    
+    func testRealMapTypesFileParsing() throws {
+        // FIXED: Test real map_types.proto file which was previously uncovered (70% missing functionality)
+        let testResourcesPath = getTestResourcesPath()
+        let filePath = "\(testResourcesPath)/ProductTests/medium/map_types.proto"
+        
+        let result = SwiftProtoParser.parseProtoFile(filePath)
+        
+        switch result {
+        case .success(let ast):
+            // Verify package name
+            XCTAssertEqual(ast.package, "medium.maps")
+            
+            // Verify syntax
+            XCTAssertEqual(ast.syntax, .proto3)
+            
+            // Verify MapMessage with ALL 10 map fields (was only 3/10 before)
+            XCTAssertEqual(ast.messages.count, 3) // MapMessage, UserInfo, NestedMaps
+            let mapMessage = ast.messages.first { $0.name == "MapMessage" }
+            XCTAssertNotNil(mapMessage)
+            XCTAssertEqual(mapMessage?.fields.count, 10)
+            
+            // Verify all 10 map fields from real file (comprehensive coverage)
+            let mapFieldTests = [
+                ("string_map", 1, "string", "string"),
+                ("int_map", 2, "string", "int32"),
+                ("bool_map", 3, "string", "bool"),
+                ("double_map", 4, "string", "double"),
+                ("bytes_map", 5, "string", "bytes"),
+                ("status_map", 6, "string", "Status"),
+                ("user_map", 7, "string", "UserInfo"),
+                ("id_to_name", 8, "int32", "string"),
+                ("id_to_user", 9, "int64", "UserInfo"),
+                ("flag_to_description", 10, "bool", "string")
+            ]
+            
+            for (fieldName, fieldNumber, keyType, valueType) in mapFieldTests {
+                let field = mapMessage?.fields.first { $0.name == fieldName }
+                XCTAssertNotNil(field, "Must have field: \(fieldName)")
+                XCTAssertEqual(field?.number, Int32(fieldNumber), "\(fieldName) should have number \(fieldNumber)")
+                
+                // Verify map structure
+                if case .map(let actualKeyType, let actualValueType) = field?.type {
+                    XCTAssertEqual(actualKeyType.protoTypeName, keyType, "\(fieldName) key should be \(keyType)")
+                    XCTAssertEqual(actualValueType.protoTypeName, valueType, "\(fieldName) value should be \(valueType)")
+                } else {
+                    XCTFail("\(fieldName) should be a map type")
+                }
+            }
+            
+            // Verify Status enum with 4 values
+            XCTAssertEqual(ast.enums.count, 1)
+            let statusEnum = ast.enums[0]
+            XCTAssertEqual(statusEnum.name, "Status")
+            XCTAssertEqual(statusEnum.values.count, 4)
+            
+            // Check Status enum values (all with STATUS_ prefixes as per real file)
+            let statusValues = [
+                ("STATUS_UNKNOWN", 0),
+                ("STATUS_ACTIVE", 1),
+                ("STATUS_INACTIVE", 2),
+                ("STATUS_PENDING", 3)
+            ]
+            
+            for (valueName, valueNumber) in statusValues {
+                let value = statusEnum.values.first { $0.name == valueName }
+                XCTAssertNotNil(value, "Must have enum value: \(valueName)")
+                XCTAssertEqual(value?.number, Int32(valueNumber), "\(valueName) should have number \(valueNumber)")
+            }
+            
+            // Verify UserInfo message with 3 fields
+            let userInfo = ast.messages.first { $0.name == "UserInfo" }
+            XCTAssertNotNil(userInfo, "Must have UserInfo message")
+            XCTAssertEqual(userInfo?.fields.count, 3)
+            
+            let userInfoFields = [
+                ("name", 1, "string"),
+                ("email", 2, "string"),
+                ("age", 3, "int32")
+            ]
+            
+            for (fieldName, fieldNumber, fieldType) in userInfoFields {
+                let field = userInfo?.fields.first { $0.name == fieldName }
+                XCTAssertNotNil(field, "Must have UserInfo field: \(fieldName)")
+                XCTAssertEqual(field?.number, Int32(fieldNumber))
+                XCTAssertEqual(field?.type.description, fieldType)
+            }
+            
+            // FIXED: Verify NestedMaps message (was previously completely uncovered!)
+            let nestedMaps = ast.messages.first { $0.name == "NestedMaps" }
+            XCTAssertNotNil(nestedMaps, "Must have NestedMaps message")
+            XCTAssertEqual(nestedMaps?.fields.count, 2)
+            
+            // Check nested_maps field
+            let nestedMapsField = nestedMaps?.fields.first { $0.name == "nested_maps" }
+            XCTAssertNotNil(nestedMapsField)
+            XCTAssertEqual(nestedMapsField?.number, 1)
+            if case .map(let keyType, let valueType) = nestedMapsField?.type {
+                XCTAssertEqual(keyType.protoTypeName, "string")
+                XCTAssertEqual(valueType.protoTypeName, "MapMessage")
+            } else {
+                XCTFail("nested_maps should be map<string, MapMessage>")
+            }
+            
+            // Check double_nested field (tests error handling for complex nested maps)
+            let doubleNestedField = nestedMaps?.fields.first { $0.name == "double_nested" }
+            XCTAssertNotNil(doubleNestedField)
+            XCTAssertEqual(doubleNestedField?.number, 2)
+            // Note: double_nested contains map<string, map<string, string>> which may need special handling
+            
+        case .failure(let error):
+            XCTFail("Failed to parse real medium/map_types.proto: \(error)")
+        }
+    }
+    
+    // MARK: - Helper Methods
+    
+    private func getTestResourcesPath() -> String {
+        // Use #file to determine the test directory location (like ComplexProtoTests)
+        let thisFileURL = URL(fileURLWithPath: #file)
+        let projectDirectory = thisFileURL.deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+        let resourcesPath = projectDirectory.appendingPathComponent("Tests/TestResources").path
+        return resourcesPath
     }
 }
