@@ -61,7 +61,9 @@ SwiftProtoParser/
 │   │   ├── ProtoAST.swift
 │   │   ├── MessageNode.swift
 │   │   ├── FieldNode.swift
-│   │   └── ServiceNode.swift
+│   │   ├── ServiceNode.swift
+│   │   ├── ExtendNode.swift
+│   │   └── OptionNode.swift
 │   ├── Parser.swift
 │   ├── ParserState.swift
 │   └── ParserError.swift
@@ -95,15 +97,18 @@ SwiftProtoParser/
 **Ответственность**: Токенизация .proto файлов
 - `Token` - все типы токенов (keywords, identifiers, literals)
 - `Lexer` - основной класс токенизации
-- `KeywordRecognizer` - распознавание proto3 ключевых слов
+- `KeywordRecognizer` - распознавание proto3 ключевых слов (включая `extend`)
 - Обработка комментариев, whitespace, строковых литералов
 
 #### Parser Модуль
 **Ответственность**: Построение AST из токенов
 - **AST подмодуль** - все узлы синтаксического дерева
+  - `ExtendNode` - AST узел для extend statements (proto3 custom options)
+  - `OptionNode` - представление options в AST
 - `Parser` - рекурсивный парсер с предиктивным анализом
 - `ParserState` - состояние парсера для error recovery
 - Валидация синтаксиса Proto3
+- **Extend Support**: Полная поддержка `extend google.protobuf.*` синтаксиса
 
 #### DescriptorBuilder Модуль
 **Ответственность**: Конвертация AST в swift-protobuf дескрипторы
@@ -111,11 +116,62 @@ SwiftProtoParser/
 - Специализированные билдеры для каждого типа дескриптора
 - Интеграция с `Google.Protobuf.*` типами
 - Семантическая валидация
+- **Extend Processing**: Обработка extend statements в дескрипторы
 
 #### Public Модуль
 **Ответственность**: Публичный API
 - `SwiftProtoParser` - главный класс с функцией `parseProtoFile`
 - Удобные расширения и утилиты
+
+## 3.3 Extend Support Architecture
+
+### 3.3.1 Обзор Extend Support
+SwiftProtoParser поддерживает полный синтаксис `extend` для proto3 custom options:
+
+```proto
+syntax = "proto3";
+
+import "google/protobuf/descriptor.proto";
+
+extend google.protobuf.FileOptions {
+  optional string my_file_option = 50001;
+}
+
+extend google.protobuf.MessageOptions {
+  optional bool is_critical = 50002;
+}
+```
+
+### 3.3.2 Компоненты Extend Support
+
+#### ExtendNode AST
+```swift
+public struct ExtendNode {
+    public let extendedType: String        // "google.protobuf.FileOptions"
+    public let fields: [FieldNode]         // Поля расширения
+    public let isValidProto3ExtendTarget: Bool  // Proto3 валидация
+}
+```
+
+#### Parser Integration
+- **Keyword Recognition**: `extend` распознается как ключевое слово
+- **Syntax Parsing**: Полный парсинг `extend Type { fields }` синтаксиса
+- **Proto3 Validation**: Только `google.protobuf.*` типы разрешены в proto3
+- **Error Handling**: Детальные ошибки для недопустимых extend targets
+
+#### DescriptorBuilder Integration
+- **Extend Processing**: Конвертация ExtendNode в соответствующие protobuf extensions
+- **Custom Options**: Поддержка всех типов google.protobuf options (File, Message, Field, Service, Method, Enum, EnumValue)
+- **Validation**: Семантическая валидация extend targets и номеров полей
+
+### 3.3.3 Поддерживаемые Extend Targets
+- `google.protobuf.FileOptions`
+- `google.protobuf.MessageOptions`  
+- `google.protobuf.FieldOptions`
+- `google.protobuf.ServiceOptions`
+- `google.protobuf.MethodOptions`
+- `google.protobuf.EnumOptions`
+- `google.protobuf.EnumValueOptions`
 
 ## 4. API Дизайн
 
