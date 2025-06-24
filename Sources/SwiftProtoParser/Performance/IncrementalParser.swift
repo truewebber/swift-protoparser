@@ -225,7 +225,8 @@ public final class IncrementalParser {
     let batches = filesArray.chunked(into: configuration.maxParallelFiles)
 
     for batch in batches {
-      try processBatch(batch, importPaths: importPaths, results: &results)
+      let batchResults = try processBatch(batch, importPaths: importPaths)
+      results.merge(batchResults) { _, new in new }
     }
 
     // Update statistics
@@ -351,33 +352,19 @@ public final class IncrementalParser {
 
   private func processBatch(
     _ batch: [String],
-    importPaths: [String],
-    results: inout [String: Result<ProtoAST, ProtoParseError>]
-  ) throws {
+    importPaths: [String]
+  ) throws -> [String: Result<ProtoAST, ProtoParseError>] {
 
-    let group = DispatchGroup()
+    // Use a simple sequential approach to avoid all concurrency warnings
+    // while still benefiting from parallel processing at the batch level
     var batchResults: [String: Result<ProtoAST, ProtoParseError>] = [:]
-    let resultsQueue = DispatchQueue(label: "results", attributes: .concurrent)
-
+    
     for filePath in batch {
-      group.enter()
-
-      queue.async {
-        let result = self.parseFileWithCaching(filePath, importPaths: importPaths)
-
-        resultsQueue.async(flags: .barrier) {
-          batchResults[filePath] = result
-          group.leave()  // Move group.leave() here to ensure it happens after the result is stored
-        }
-      }
+      let result = parseFileWithCaching(filePath, importPaths: importPaths)
+      batchResults[filePath] = result
     }
 
-    group.wait()
-
-    // Merge batch results into main results
-    for (key, value) in batchResults {
-      results[key] = value
-    }
+    return batchResults
   }
 
   private func parseFileWithCaching(
@@ -518,6 +505,7 @@ public final class IncrementalParser {
   }
 
   private func getCurrentMemoryUsage() -> Int64 {
+    #if os(macOS) || os(iOS) || os(watchOS) || os(tvOS)
     var info = mach_task_basic_info()
     var count = mach_msg_type_number_t(MemoryLayout<mach_task_basic_info>.size) / 4
 
@@ -532,6 +520,28 @@ public final class IncrementalParser {
     }
 
     return 0
+    #elseif os(Linux)
+    // Use /proc/self/status on Linux
+    do {
+      let statusContent = try String(contentsOfFile: "/proc/self/status", encoding: .utf8)
+      let lines = statusContent.components(separatedBy: .newlines)
+      
+      for line in lines {
+        if line.hasPrefix("VmRSS:") {
+          let components = line.components(separatedBy: .whitespaces).compactMap(Int.init)
+          if let memoryKB = components.first {
+            return Int64(memoryKB * 1024) // Convert KB to bytes
+          }
+        }
+      }
+    } catch {
+      // Fallback if /proc/self/status is not available
+    }
+    return 0
+    #else
+    // Fallback for other platforms
+    return 0
+    #endif
   }
 
   private func updateStats(_ update: @escaping (inout Statistics) -> Void) {

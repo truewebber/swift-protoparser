@@ -587,6 +587,7 @@ public final class PerformanceBenchmark {
   }
 
   private func getCurrentMemoryUsage() -> Int64 {
+    #if os(macOS) || os(iOS) || os(watchOS) || os(tvOS)
     var info = mach_task_basic_info()
     var count = mach_msg_type_number_t(MemoryLayout<mach_task_basic_info>.size) / 4
 
@@ -601,6 +602,28 @@ public final class PerformanceBenchmark {
     }
 
     return 0
+    #elseif os(Linux)
+    // Use /proc/self/status on Linux
+    do {
+      let statusContent = try String(contentsOfFile: "/proc/self/status", encoding: .utf8)
+      let lines = statusContent.components(separatedBy: .newlines)
+      
+      for line in lines {
+        if line.hasPrefix("VmRSS:") {
+          let components = line.components(separatedBy: .whitespaces).compactMap(Int.init)
+          if let memoryKB = components.first {
+            return Int64(memoryKB * 1024) // Convert KB to bytes
+          }
+        }
+      }
+    } catch {
+      // Fallback if /proc/self/status is not available
+    }
+    return 0
+    #else
+    // Fallback for other platforms
+    return 0
+    #endif
   }
 }
 

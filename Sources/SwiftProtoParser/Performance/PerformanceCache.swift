@@ -105,6 +105,7 @@ public final class PerformanceCache {
 
   private let configuration: Configuration
   private let queue = DispatchQueue(label: "com.swiftprotoparser.cache", attributes: .concurrent)
+  private var monitoringTimer: Timer?
 
   // MARK: - Performance Metrics
 
@@ -594,7 +595,7 @@ public final class PerformanceCache {
 
   private func startPerformanceMonitoring() {
     // Start a timer to periodically clear expired entries
-    Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { [weak self] _ in
+    monitoringTimer = Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { [weak self] _ in
       self?.clearExpired()
     }
   }
