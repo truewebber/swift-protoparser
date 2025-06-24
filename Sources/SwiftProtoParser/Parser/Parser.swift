@@ -486,12 +486,15 @@ public final class Parser {
     let fieldName: String
     if let identifier = state.identifierName {
       fieldName = identifier
-    } else if let token = state.currentToken,
-              case .keyword(let keyword) = token.type,
-              isAllowedAsFieldName(keyword) {
+    }
+    else if let token = state.currentToken,
+      case .keyword(let keyword) = token.type,
+      isAllowedAsFieldName(keyword)
+    {
       // Allow certain keywords as field names (protobuf allows this)
       fieldName = keyword.rawValue
-    } else {
+    }
+    else {
       state.addError(
         .unexpectedToken(
           state.currentToken ?? Token(type: .eof, position: Token.Position(line: 0, column: 0)),
@@ -628,15 +631,15 @@ public final class Parser {
 
   /// Parses a qualified type name like 'Message' or 'google.protobuf.Timestamp'.
   private func parseQualifiedTypeName(firstPart: String) throws -> FieldType {
-    state.advance() // consume first identifier
-    
+    state.advance()  // consume first identifier
+
     var qualifiedName = firstPart
-    
+
     // Check if this is a qualified name (contains dots)
     while state.checkSymbol(".") {
-      state.advance() // consume "."
+      state.advance()  // consume "."
       skipIgnorableTokens()
-      
+
       guard let nextPart = state.identifierName else {
         state.addError(
           .unexpectedToken(
@@ -644,7 +647,7 @@ public final class Parser {
             expected: "qualified type name part"
           )
         )
-        
+
         // CRITICAL FIX: Proper synchronization after qualified type parsing error
         // We need to backtrack to a stable state. If we encountered an unexpected token
         // while parsing a qualified type, it's likely that we hit a keyword that starts
@@ -652,15 +655,16 @@ public final class Parser {
         // Don't consume the token - let the outer parser handle it
         break
       }
-      
+
       qualifiedName += "." + nextPart
-      state.advance() // consume next identifier
+      state.advance()  // consume next identifier
     }
-    
+
     // If it contains dots, it's a qualified type, otherwise a simple message type
     if qualifiedName.contains(".") {
       return .qualifiedType(qualifiedName)
-    } else {
+    }
+    else {
       return .message(qualifiedName)
     }
   }
@@ -946,12 +950,15 @@ public final class Parser {
     let fieldName: String
     if let identifier = state.identifierName {
       fieldName = identifier
-    } else if let token = state.currentToken,
-              case .keyword(let keyword) = token.type,
-              isAllowedAsFieldName(keyword) {
+    }
+    else if let token = state.currentToken,
+      case .keyword(let keyword) = token.type,
+      isAllowedAsFieldName(keyword)
+    {
       // Allow certain keywords as field names (protobuf allows this)
       fieldName = keyword.rawValue
-    } else {
+    }
+    else {
       state.addError(
         .unexpectedToken(
           state.currentToken ?? Token(type: .eof, position: Token.Position(line: 0, column: 0)),
@@ -1190,7 +1197,8 @@ public final class Parser {
         )
         return RPCMethodNode(name: methodName, inputType: "", outputType: "")
       }
-    } else {
+    }
+    else {
       state.addError(
         .unexpectedToken(
           state.currentToken ?? Token(type: .eof, position: Token.Position(line: 0, column: 0)),
@@ -1231,7 +1239,8 @@ public final class Parser {
         )
         return RPCMethodNode(name: methodName, inputType: inputType, outputType: "")
       }
-    } else {
+    }
+    else {
       state.addError(
         .unexpectedToken(
           state.currentToken ?? Token(type: .eof, position: Token.Position(line: 0, column: 0)),
@@ -1251,7 +1260,7 @@ public final class Parser {
 
       while !state.isAtEnd {
         skipIgnorableTokens()
-        
+
         if state.checkSymbol("}") {
           break
         }
@@ -1290,7 +1299,7 @@ public final class Parser {
   }
 
   /// Parses an extend declaration for custom options (proto3 only).
-  /// extend google.protobuf.FileOptions { optional string my_option = 50001; }
+  /// extend google.protobuf.FileOptions { optional string my_option = 50001; }.
   private func parseExtendDeclaration() throws -> ExtendNode {
     let position = state.currentPosition
     _ = state.expectKeyword(.extend)
@@ -1298,7 +1307,7 @@ public final class Parser {
 
     // Parse extended type name (must be qualified, like google.protobuf.FileOptions)
     var extendedTypeComponents: [String] = []
-    
+
     // Parse the qualified type name (e.g., google.protobuf.FileOptions)
     repeat {
       guard let component = state.identifierName else {
@@ -1310,21 +1319,22 @@ public final class Parser {
         )
         return ExtendNode(extendedType: "", position: position)
       }
-      
+
       extendedTypeComponents.append(component)
       state.advance()
       skipIgnorableTokens()
-      
+
       if state.checkSymbol(".") {
         state.advance()  // consume "."
         skipIgnorableTokens()
-      } else {
+      }
+      else {
         break
       }
     } while !state.isAtEnd
-    
+
     let extendedType = extendedTypeComponents.joined(separator: ".")
-    
+
     // Validate that this is a valid proto3 extend target
     if !extendedType.hasPrefix("google.protobuf.") {
       state.addError(
@@ -1335,62 +1345,62 @@ public final class Parser {
         )
       )
     }
-    
+
     skipIgnorableTokens()
     _ = state.expectSymbol("{")
-    
+
     var fields: [FieldNode] = []
     var options: [OptionNode] = []
-    
+
     // Parse extend body - only custom option fields are allowed
     while !state.isAtEnd {
       skipIgnorableTokens()
-      
+
       if state.checkSymbol("}") {
         break
       }
-      
+
       guard let token = state.currentToken else { break }
-      
+
       switch token.type {
       case .keyword(let keyword):
         switch keyword {
         case .option:
           let option = try parseOptionDeclaration()
           options.append(option)
-          
+
         case .optional:
           // Custom option fields in extend statements
           let field = try parseFieldDeclaration()
           fields.append(field)
-          
+
         default:
           state.addError(.unexpectedToken(token, expected: "optional field or option"))
           state.advance()
           state.synchronize()
         }
-        
+
       case .identifier:
         // Regular field type (should have optional modifier for custom options)
         state.addError(
           .missingFieldLabel(
             "Custom option fields in extend statements should have 'optional' label",
             line: token.position.line,
-            column: token.position.column  
+            column: token.position.column
           )
         )
         // Try to parse anyway for error recovery
         let field = try parseFieldDeclaration()
         fields.append(field)
-        
+
       default:
         state.addError(.unexpectedToken(token, expected: "extend element"))
         state.synchronize()
       }
     }
-    
+
     _ = state.expectSymbol("}")
-    
+
     return ExtendNode(
       extendedType: extendedType,
       fields: fields,
@@ -1412,8 +1422,9 @@ public final class Parser {
       }
     }
   }
-  
+
   /// Checks if a keyword can be used as a field name.
+  ///
   /// In Protocol Buffers, most keywords are allowed as field names.
   /// Only a very small set of keywords are truly reserved.
   private func isAllowedAsFieldName(_ keyword: ProtoKeyword) -> Bool {

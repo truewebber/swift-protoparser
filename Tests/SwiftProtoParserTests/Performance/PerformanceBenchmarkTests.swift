@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import SwiftProtoParser
 
 final class PerformanceBenchmarkTests: XCTestCase {
@@ -6,12 +7,12 @@ final class PerformanceBenchmarkTests: XCTestCase {
   var tempDir: URL!
   var benchmark: PerformanceBenchmark!
   var performanceCache: PerformanceCache!
-  
+
   override func setUp() {
     super.setUp()
     tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
     try! FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
-    
+
     performanceCache = PerformanceCache(configuration: .default)
     benchmark = PerformanceBenchmark(
       configuration: .quick,
@@ -19,7 +20,7 @@ final class PerformanceBenchmarkTests: XCTestCase {
       incrementalParser: nil
     )
   }
-  
+
   override func tearDown() {
     if let tempDir = tempDir {
       try? FileManager.default.removeItem(at: tempDir)
@@ -69,7 +70,7 @@ final class PerformanceBenchmarkTests: XCTestCase {
       timestamp: Date()
     )
     XCTAssertTrue(goodMeasurement.isWithinLimits)
-    
+
     // Test measurement exceeding time limit
     let slowMeasurement = PerformanceBenchmark.Measurement(
       operation: "test",
@@ -80,7 +81,7 @@ final class PerformanceBenchmarkTests: XCTestCase {
       timestamp: Date()
     )
     XCTAssertFalse(slowMeasurement.isWithinLimits)
-    
+
     // Test measurement exceeding memory limit
     let memoryHeavyMeasurement = PerformanceBenchmark.Measurement(
       operation: "test",
@@ -91,7 +92,7 @@ final class PerformanceBenchmarkTests: XCTestCase {
       timestamp: Date()
     )
     XCTAssertFalse(memoryHeavyMeasurement.isWithinLimits)
-    
+
     // Test failed measurement
     let failedMeasurement = PerformanceBenchmark.Measurement(
       operation: "test",
@@ -108,26 +109,54 @@ final class PerformanceBenchmarkTests: XCTestCase {
 
   func testBenchmarkResultStatistics() {
     let measurements = [
-      PerformanceBenchmark.Measurement(operation: "test", duration: 0.1, memoryUsage: 1000, success: true, error: nil, timestamp: Date()),
-      PerformanceBenchmark.Measurement(operation: "test", duration: 0.2, memoryUsage: 2000, success: true, error: nil, timestamp: Date()),
-      PerformanceBenchmark.Measurement(operation: "test", duration: 0.3, memoryUsage: 3000, success: true, error: nil, timestamp: Date()),
-      PerformanceBenchmark.Measurement(operation: "test", duration: 1.0, memoryUsage: 4000, success: false, error: .syntaxError(message: "test", file: "test.proto", line: 1, column: 1), timestamp: Date())
+      PerformanceBenchmark.Measurement(
+        operation: "test",
+        duration: 0.1,
+        memoryUsage: 1000,
+        success: true,
+        error: nil,
+        timestamp: Date()
+      ),
+      PerformanceBenchmark.Measurement(
+        operation: "test",
+        duration: 0.2,
+        memoryUsage: 2000,
+        success: true,
+        error: nil,
+        timestamp: Date()
+      ),
+      PerformanceBenchmark.Measurement(
+        operation: "test",
+        duration: 0.3,
+        memoryUsage: 3000,
+        success: true,
+        error: nil,
+        timestamp: Date()
+      ),
+      PerformanceBenchmark.Measurement(
+        operation: "test",
+        duration: 1.0,
+        memoryUsage: 4000,
+        success: false,
+        error: .syntaxError(message: "test", file: "test.proto", line: 1, column: 1),
+        timestamp: Date()
+      ),
     ]
-    
+
     let result = PerformanceBenchmark.BenchmarkResult(
       operation: "testOperation",
       measurements: measurements,
       configuration: .quick
     )
-    
+
     // Test statistical calculations
-    XCTAssertEqual(result.averageDuration, 0.2, accuracy: 0.001) // Only successful measurements
+    XCTAssertEqual(result.averageDuration, 0.2, accuracy: 0.001)  // Only successful measurements
     XCTAssertEqual(result.medianDuration, 0.2, accuracy: 0.001)
     XCTAssertEqual(result.minDuration, 0.1, accuracy: 0.001)
     XCTAssertEqual(result.maxDuration, 0.3, accuracy: 0.001)
-    XCTAssertEqual(result.averageMemoryUsage, 2000) // (1000+2000+3000)/3
-    XCTAssertEqual(result.successRate, 0.75) // 3 out of 4 successful
-    
+    XCTAssertEqual(result.averageMemoryUsage, 2000)  // (1000+2000+3000)/3
+    XCTAssertEqual(result.successRate, 0.75)  // 3 out of 4 successful
+
     // Test standard deviation
     XCTAssertGreaterThan(result.standardDeviation, 0)
     XCTAssertLessThan(result.standardDeviation, 0.2)
@@ -139,7 +168,7 @@ final class PerformanceBenchmarkTests: XCTestCase {
       measurements: [],
       configuration: .default
     )
-    
+
     XCTAssertEqual(result.averageDuration, 0)
     XCTAssertEqual(result.medianDuration, 0)
     XCTAssertEqual(result.minDuration, 0)
@@ -153,31 +182,59 @@ final class PerformanceBenchmarkTests: XCTestCase {
   func testBenchmarkResultIsAcceptable() {
     // Test acceptable result
     let acceptableMeasurements = [
-      PerformanceBenchmark.Measurement(operation: "test", duration: 0.1, memoryUsage: 1000, success: true, error: nil, timestamp: Date()),
-      PerformanceBenchmark.Measurement(operation: "test", duration: 0.2, memoryUsage: 2000, success: true, error: nil, timestamp: Date())
+      PerformanceBenchmark.Measurement(
+        operation: "test",
+        duration: 0.1,
+        memoryUsage: 1000,
+        success: true,
+        error: nil,
+        timestamp: Date()
+      ),
+      PerformanceBenchmark.Measurement(
+        operation: "test",
+        duration: 0.2,
+        memoryUsage: 2000,
+        success: true,
+        error: nil,
+        timestamp: Date()
+      ),
     ]
-    
+
     let acceptableResult = PerformanceBenchmark.BenchmarkResult(
       operation: "acceptable",
       measurements: acceptableMeasurements,
       configuration: .default
     )
-    
+
     XCTAssertTrue(acceptableResult.isAcceptable)
-    
+
     // Test unacceptable result (low success rate)
     let lowSuccessRate = [
-      PerformanceBenchmark.Measurement(operation: "test", duration: 0.1, memoryUsage: 1000, success: true, error: nil, timestamp: Date()),
-      PerformanceBenchmark.Measurement(operation: "test", duration: 0.2, memoryUsage: 2000, success: false, error: .syntaxError(message: "test", file: "test.proto", line: 1, column: 1), timestamp: Date())
+      PerformanceBenchmark.Measurement(
+        operation: "test",
+        duration: 0.1,
+        memoryUsage: 1000,
+        success: true,
+        error: nil,
+        timestamp: Date()
+      ),
+      PerformanceBenchmark.Measurement(
+        operation: "test",
+        duration: 0.2,
+        memoryUsage: 2000,
+        success: false,
+        error: .syntaxError(message: "test", file: "test.proto", line: 1, column: 1),
+        timestamp: Date()
+      ),
     ]
-    
+
     let unacceptableResult = PerformanceBenchmark.BenchmarkResult(
       operation: "unacceptable",
       measurements: lowSuccessRate,
       configuration: .default
     )
-    
-    XCTAssertFalse(unacceptableResult.isAcceptable) // 50% success rate < 95%
+
+    XCTAssertFalse(unacceptableResult.isAcceptable)  // 50% success rate < 95%
   }
 
   // MARK: - BenchmarkSuite Tests
@@ -185,23 +242,37 @@ final class PerformanceBenchmarkTests: XCTestCase {
   func testBenchmarkSuiteStatistics() {
     let startTime = Date()
     let endTime = Date(timeIntervalSinceNow: 5.0)
-    
+
     let result1 = PerformanceBenchmark.BenchmarkResult(
       operation: "op1",
       measurements: [
-        PerformanceBenchmark.Measurement(operation: "op1", duration: 0.1, memoryUsage: 1000, success: true, error: nil, timestamp: Date())
+        PerformanceBenchmark.Measurement(
+          operation: "op1",
+          duration: 0.1,
+          memoryUsage: 1000,
+          success: true,
+          error: nil,
+          timestamp: Date()
+        )
       ],
       configuration: .default
     )
-    
+
     let result2 = PerformanceBenchmark.BenchmarkResult(
-      operation: "op2", 
+      operation: "op2",
       measurements: [
-        PerformanceBenchmark.Measurement(operation: "op2", duration: 0.2, memoryUsage: 2000, success: false, error: .syntaxError(message: "test", file: "test.proto", line: 1, column: 1), timestamp: Date())
+        PerformanceBenchmark.Measurement(
+          operation: "op2",
+          duration: 0.2,
+          memoryUsage: 2000,
+          success: false,
+          error: .syntaxError(message: "test", file: "test.proto", line: 1, column: 1),
+          timestamp: Date()
+        )
       ],
       configuration: .default
     )
-    
+
     let suite = PerformanceBenchmark.BenchmarkSuite(
       name: "TestSuite",
       results: [result1, result2],
@@ -209,10 +280,10 @@ final class PerformanceBenchmarkTests: XCTestCase {
       endTime: endTime,
       configuration: .default
     )
-    
+
     XCTAssertEqual(suite.totalDuration, 5.0, accuracy: 0.1)
-    XCTAssertEqual(suite.overallSuccessRate, 0.5) // 1 success out of 2 measurements
-    XCTAssertFalse(suite.allBenchmarksAcceptable) // result2 is not acceptable
+    XCTAssertEqual(suite.overallSuccessRate, 0.5)  // 1 success out of 2 measurements
+    XCTAssertFalse(suite.allBenchmarksAcceptable)  // result2 is not acceptable
   }
 
   // MARK: - Single File Benchmark Tests
@@ -232,20 +303,20 @@ final class PerformanceBenchmarkTests: XCTestCase {
     try! protoContent.write(to: protoFile, atomically: true, encoding: .utf8)
 
     let result = benchmark.benchmarkSingleFile(protoFile.path)
-    
+
     XCTAssertTrue(result.operation.contains("test.proto"))
-    XCTAssertEqual(result.measurements.count, 3) // quick config has 3 iterations
+    XCTAssertEqual(result.measurements.count, 3)  // quick config has 3 iterations
     XCTAssertGreaterThan(result.successRate, 0.0)
     XCTAssertGreaterThan(result.averageDuration, 0.0)
   }
 
   func testBenchmarkSingleFileNonExistent() {
     let result = benchmark.benchmarkSingleFile("/nonexistent/file.proto")
-    
+
     XCTAssertTrue(result.operation.contains("file.proto"))
-    XCTAssertEqual(result.measurements.count, 3) // quick config has 3 iterations
-    XCTAssertEqual(result.successRate, 0.0) // All should fail
-    
+    XCTAssertEqual(result.measurements.count, 3)  // quick config has 3 iterations
+    XCTAssertEqual(result.successRate, 0.0)  // All should fail
+
     // Check that all measurements have errors
     for measurement in result.measurements {
       XCTAssertFalse(measurement.success)
@@ -266,10 +337,10 @@ final class PerformanceBenchmarkTests: XCTestCase {
       """
 
     let result = benchmark.benchmarkStringParsing(protoContent, name: "testString")
-    
+
     XCTAssertTrue(result.operation.contains("testString"))
     XCTAssertTrue(result.operation.contains("chars"))
-    XCTAssertEqual(result.measurements.count, 3) // quick config has 3 iterations
+    XCTAssertEqual(result.measurements.count, 3)  // quick config has 3 iterations
     XCTAssertGreaterThan(result.successRate, 0.0)
     XCTAssertGreaterThan(result.averageDuration, 0.0)
   }
@@ -281,7 +352,7 @@ final class PerformanceBenchmarkTests: XCTestCase {
       """
 
     let result = benchmark.benchmarkStringParsing(protoContent)
-    
+
     XCTAssertTrue(result.operation.contains("parseProtoString"))
     XCTAssertEqual(result.measurements.count, 3)
   }
@@ -290,10 +361,10 @@ final class PerformanceBenchmarkTests: XCTestCase {
     let invalidContent = "invalid proto content"
 
     let result = benchmark.benchmarkStringParsing(invalidContent, name: "invalid")
-    
+
     XCTAssertTrue(result.operation.contains("invalid"))
     XCTAssertEqual(result.measurements.count, 3)
-    XCTAssertEqual(result.successRate, 0.0) // All should fail
+    XCTAssertEqual(result.successRate, 0.0)  // All should fail
   }
 
   // MARK: - Multi-File Benchmark Tests
@@ -320,20 +391,20 @@ final class PerformanceBenchmarkTests: XCTestCase {
 
     let baseFile = tempDir.appendingPathComponent("base.proto")
     let mainFile = tempDir.appendingPathComponent("main.proto")
-    
+
     try! baseContent.write(to: baseFile, atomically: true, encoding: .utf8)
     try! mainContent.write(to: mainFile, atomically: true, encoding: .utf8)
 
     let result = benchmark.benchmarkWithDependencies(mainFile.path, importPaths: [tempDir.path])
-    
+
     XCTAssertTrue(result.operation.contains("main.proto"))
     XCTAssertEqual(result.measurements.count, 3)
-    XCTAssertGreaterThanOrEqual(result.successRate, 0.0) // May fail due to import issues
+    XCTAssertGreaterThanOrEqual(result.successRate, 0.0)  // May fail due to import issues
   }
 
   func testBenchmarkWithDependenciesNonExistent() {
     let result = benchmark.benchmarkWithDependencies("/nonexistent/main.proto", importPaths: ["/nonexistent"])
-    
+
     XCTAssertEqual(result.measurements.count, 3)
     XCTAssertEqual(result.successRate, 0.0)
   }
@@ -351,13 +422,13 @@ final class PerformanceBenchmarkTests: XCTestCase {
           string name = 1;
         }
         """
-      
+
       let file = tempDir.appendingPathComponent("dir\(i).proto")
       try! content.write(to: file, atomically: true, encoding: .utf8)
     }
 
     let result = benchmark.benchmarkDirectory(tempDir.path)
-    
+
     XCTAssertTrue(result.operation.contains(tempDir.lastPathComponent))
     XCTAssertEqual(result.measurements.count, 3)
     XCTAssertGreaterThan(result.successRate, 0.0)
@@ -367,23 +438,23 @@ final class PerformanceBenchmarkTests: XCTestCase {
     // Create subdirectory with proto file
     let subDir = tempDir.appendingPathComponent("subdir")
     try! FileManager.default.createDirectory(at: subDir, withIntermediateDirectories: true)
-    
+
     let content = """
       syntax = "proto3";
       message SubMessage { string name = 1; }
       """
-    
+
     let subFile = subDir.appendingPathComponent("sub.proto")
     try! content.write(to: subFile, atomically: true, encoding: .utf8)
 
     let result = benchmark.benchmarkDirectory(tempDir.path, recursive: true)
-    
+
     XCTAssertEqual(result.measurements.count, 3)
   }
 
   func testBenchmarkDirectoryNonExistent() {
     let result = benchmark.benchmarkDirectory("/nonexistent/directory")
-    
+
     XCTAssertEqual(result.measurements.count, 3)
     XCTAssertEqual(result.successRate, 0.0)
   }
@@ -405,7 +476,7 @@ final class PerformanceBenchmarkTests: XCTestCase {
     try! protoContent.write(to: protoFile, atomically: true, encoding: .utf8)
 
     let result = benchmark.benchmarkDescriptorGeneration(protoFile.path)
-    
+
     XCTAssertTrue(result.operation.contains("descriptor.proto"))
     XCTAssertEqual(result.measurements.count, 3)
     XCTAssertGreaterThan(result.successRate, 0.0)
@@ -413,7 +484,7 @@ final class PerformanceBenchmarkTests: XCTestCase {
 
   func testBenchmarkDescriptorGenerationNonExistent() {
     let result = benchmark.benchmarkDescriptorGeneration("/nonexistent/descriptor.proto")
-    
+
     XCTAssertEqual(result.measurements.count, 3)
     XCTAssertEqual(result.successRate, 0.0)
   }
@@ -434,7 +505,7 @@ final class PerformanceBenchmarkTests: XCTestCase {
     try! protoContent.write(to: protoFile, atomically: true, encoding: .utf8)
 
     let result = benchmark.benchmarkCacheEffectiveness(protoFile.path)
-    
+
     XCTAssertTrue(result.operation.contains("cache.proto"))
     XCTAssertEqual(result.measurements.count, 3)
     XCTAssertGreaterThan(result.successRate, 0.0)
@@ -442,9 +513,9 @@ final class PerformanceBenchmarkTests: XCTestCase {
 
   func testBenchmarkCacheEffectivenessNoCache() {
     let noCacheBenchmark = PerformanceBenchmark(configuration: .quick, cache: nil, incrementalParser: nil)
-    
+
     let result = noCacheBenchmark.benchmarkCacheEffectiveness("/any/path")
-    
+
     XCTAssertTrue(result.operation.contains("no cache"))
     XCTAssertEqual(result.measurements.count, 0)
   }
@@ -462,13 +533,13 @@ final class PerformanceBenchmarkTests: XCTestCase {
           string name = 1;
         }
         """
-      
+
       let file = tempDir.appendingPathComponent("suite\(i).proto")
       try! content.write(to: file, atomically: true, encoding: .utf8)
     }
 
     let suite = benchmark.runComprehensiveSuite(tempDir.path)
-    
+
     XCTAssertEqual(suite.name, "ComprehensiveSuite")
     XCTAssertGreaterThan(suite.results.count, 0)
     XCTAssertGreaterThan(suite.totalDuration, 0)
@@ -481,19 +552,21 @@ final class PerformanceBenchmarkTests: XCTestCase {
     try! FileManager.default.createDirectory(at: emptyDir, withIntermediateDirectories: true)
 
     let suite = benchmark.runComprehensiveSuite(emptyDir.path)
-    
+
     XCTAssertEqual(suite.name, "ComprehensiveSuite")
-    XCTAssertGreaterThan(suite.results.count, 0) // Should have directory benchmark
+    XCTAssertGreaterThan(suite.results.count, 0)  // Should have directory benchmark
   }
 
   func testRunComprehensiveSuiteNonExistent() {
     let suite = benchmark.runComprehensiveSuite("/nonexistent/directory")
-    
+
     XCTAssertEqual(suite.name, "ComprehensiveSuite")
     XCTAssertGreaterThan(suite.results.count, 0)
-    
+
     // Should have error result or directory benchmark
-    let hasErrorOrDirectory = suite.results.contains { $0.operation.contains("error") || $0.operation.contains("directory") }
+    let hasErrorOrDirectory = suite.results.contains {
+      $0.operation.contains("error") || $0.operation.contains("directory")
+    }
     XCTAssertTrue(hasErrorOrDirectory)
   }
 
@@ -503,19 +576,37 @@ final class PerformanceBenchmarkTests: XCTestCase {
     let baselineResults = [
       PerformanceBenchmark.BenchmarkResult(
         operation: "test1",
-        measurements: [PerformanceBenchmark.Measurement(operation: "test1", duration: 0.1, memoryUsage: 1000, success: true, error: nil, timestamp: Date())],
+        measurements: [
+          PerformanceBenchmark.Measurement(
+            operation: "test1",
+            duration: 0.1,
+            memoryUsage: 1000,
+            success: true,
+            error: nil,
+            timestamp: Date()
+          )
+        ],
         configuration: .default
       )
     ]
-    
+
     let currentResults = [
       PerformanceBenchmark.BenchmarkResult(
         operation: "test1",
-        measurements: [PerformanceBenchmark.Measurement(operation: "test1", duration: 0.2, memoryUsage: 2000, success: true, error: nil, timestamp: Date())],
+        measurements: [
+          PerformanceBenchmark.Measurement(
+            operation: "test1",
+            duration: 0.2,
+            memoryUsage: 2000,
+            success: true,
+            error: nil,
+            timestamp: Date()
+          )
+        ],
         configuration: .default
       )
     ]
-    
+
     let baselineSuite = PerformanceBenchmark.BenchmarkSuite(
       name: "Baseline",
       results: baselineResults,
@@ -523,7 +614,7 @@ final class PerformanceBenchmarkTests: XCTestCase {
       endTime: Date(),
       configuration: .default
     )
-    
+
     let currentSuite = PerformanceBenchmark.BenchmarkSuite(
       name: "Current",
       results: currentResults,
@@ -531,12 +622,12 @@ final class PerformanceBenchmarkTests: XCTestCase {
       endTime: Date(),
       configuration: .default
     )
-    
+
     let comparison = benchmark.compareWithBaseline(currentSuite, baseline: baselineSuite)
-    
+
     XCTAssertTrue(comparison.hasRegressions)
     XCTAssertFalse(comparison.hasImprovements)
-    XCTAssertGreaterThan(comparison.overallPerformanceRatio, 1.0) // Slower than baseline
+    XCTAssertGreaterThan(comparison.overallPerformanceRatio, 1.0)  // Slower than baseline
     XCTAssertGreaterThan(comparison.regressions.count, 0)
   }
 
@@ -544,19 +635,37 @@ final class PerformanceBenchmarkTests: XCTestCase {
     let baselineResults = [
       PerformanceBenchmark.BenchmarkResult(
         operation: "test1",
-        measurements: [PerformanceBenchmark.Measurement(operation: "test1", duration: 0.2, memoryUsage: 2000, success: true, error: nil, timestamp: Date())],
+        measurements: [
+          PerformanceBenchmark.Measurement(
+            operation: "test1",
+            duration: 0.2,
+            memoryUsage: 2000,
+            success: true,
+            error: nil,
+            timestamp: Date()
+          )
+        ],
         configuration: .default
       )
     ]
-    
+
     let currentResults = [
       PerformanceBenchmark.BenchmarkResult(
         operation: "test1",
-        measurements: [PerformanceBenchmark.Measurement(operation: "test1", duration: 0.1, memoryUsage: 1000, success: true, error: nil, timestamp: Date())],
+        measurements: [
+          PerformanceBenchmark.Measurement(
+            operation: "test1",
+            duration: 0.1,
+            memoryUsage: 1000,
+            success: true,
+            error: nil,
+            timestamp: Date()
+          )
+        ],
         configuration: .default
       )
     ]
-    
+
     let baselineSuite = PerformanceBenchmark.BenchmarkSuite(
       name: "Baseline",
       results: baselineResults,
@@ -564,7 +673,7 @@ final class PerformanceBenchmarkTests: XCTestCase {
       endTime: Date(),
       configuration: .default
     )
-    
+
     let currentSuite = PerformanceBenchmark.BenchmarkSuite(
       name: "Current",
       results: currentResults,
@@ -572,12 +681,12 @@ final class PerformanceBenchmarkTests: XCTestCase {
       endTime: Date(),
       configuration: .default
     )
-    
+
     let comparison = benchmark.compareWithBaseline(currentSuite, baseline: baselineSuite)
-    
+
     XCTAssertFalse(comparison.hasRegressions)
     XCTAssertTrue(comparison.hasImprovements)
-    XCTAssertLessThan(comparison.overallPerformanceRatio, 1.0) // Faster than baseline
+    XCTAssertLessThan(comparison.overallPerformanceRatio, 1.0)  // Faster than baseline
     XCTAssertGreaterThan(comparison.improvements.count, 0)
   }
 
@@ -591,13 +700,13 @@ final class PerformanceBenchmarkTests: XCTestCase {
       maxParsingTime: 0.5,
       maxMemoryUsage: 50 * 1024 * 1024
     )
-    
+
     let customBenchmark = PerformanceBenchmark(
       configuration: customConfig,
       cache: performanceCache,
       incrementalParser: nil
     )
-    
+
     XCTAssertNotNil(customBenchmark)
   }
 
@@ -610,35 +719,56 @@ final class PerformanceBenchmarkTests: XCTestCase {
 
   func testBenchmarkResultSingleMeasurement() {
     let singleMeasurement = [
-      PerformanceBenchmark.Measurement(operation: "single", duration: 0.1, memoryUsage: 1000, success: true, error: nil, timestamp: Date())
+      PerformanceBenchmark.Measurement(
+        operation: "single",
+        duration: 0.1,
+        memoryUsage: 1000,
+        success: true,
+        error: nil,
+        timestamp: Date()
+      )
     ]
-    
+
     let result = PerformanceBenchmark.BenchmarkResult(
       operation: "single",
       measurements: singleMeasurement,
       configuration: .default
     )
-    
+
     XCTAssertEqual(result.averageDuration, 0.1)
     XCTAssertEqual(result.medianDuration, 0.1)
     XCTAssertEqual(result.minDuration, 0.1)
     XCTAssertEqual(result.maxDuration, 0.1)
-    XCTAssertEqual(result.standardDeviation, 0) // Single measurement has no deviation
+    XCTAssertEqual(result.standardDeviation, 0)  // Single measurement has no deviation
   }
 
   func testBenchmarkResultOnlyFailures() {
     let failedMeasurements = [
-      PerformanceBenchmark.Measurement(operation: "fail", duration: 0.1, memoryUsage: 1000, success: false, error: .syntaxError(message: "error", file: "test.proto", line: 1, column: 1), timestamp: Date()),
-      PerformanceBenchmark.Measurement(operation: "fail", duration: 0.2, memoryUsage: 2000, success: false, error: .syntaxError(message: "error", file: "test.proto", line: 1, column: 1), timestamp: Date())
+      PerformanceBenchmark.Measurement(
+        operation: "fail",
+        duration: 0.1,
+        memoryUsage: 1000,
+        success: false,
+        error: .syntaxError(message: "error", file: "test.proto", line: 1, column: 1),
+        timestamp: Date()
+      ),
+      PerformanceBenchmark.Measurement(
+        operation: "fail",
+        duration: 0.2,
+        memoryUsage: 2000,
+        success: false,
+        error: .syntaxError(message: "error", file: "test.proto", line: 1, column: 1),
+        timestamp: Date()
+      ),
     ]
-    
+
     let result = PerformanceBenchmark.BenchmarkResult(
       operation: "allFailed",
       measurements: failedMeasurements,
       configuration: .default
     )
-    
-    XCTAssertEqual(result.averageDuration, 0) // No successful measurements
+
+    XCTAssertEqual(result.averageDuration, 0)  // No successful measurements
     XCTAssertEqual(result.successRate, 0)
     XCTAssertFalse(result.isAcceptable)
   }
@@ -651,11 +781,11 @@ final class PerformanceBenchmarkTests: XCTestCase {
       endTime: Date(),
       configuration: .default
     )
-    
+
     let comparison = benchmark.compareWithBaseline(emptySuite, baseline: emptySuite)
-    
+
     XCTAssertFalse(comparison.hasRegressions)
     XCTAssertFalse(comparison.hasImprovements)
-    XCTAssertEqual(comparison.overallPerformanceRatio, 1.0) // No change for empty suites
+    XCTAssertEqual(comparison.overallPerformanceRatio, 1.0)  // No change for empty suites
   }
 }

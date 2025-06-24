@@ -50,49 +50,49 @@ public final class PerformanceCache {
   public struct Configuration {
     /// Maximum number of AST entries to cache.
     public let maxASTEntries: Int
-    
+
     /// Maximum number of descriptor entries to cache.
     public let maxDescriptorEntries: Int
-    
+
     /// Maximum number of dependency resolution entries to cache.
     public let maxDependencyEntries: Int
-    
+
     /// Maximum memory usage in bytes (approximate).
     public let maxMemoryUsage: Int64
-    
+
     /// Time-to-live for cache entries in seconds.
     public let timeToLive: TimeInterval
-    
+
     /// Enable performance monitoring.
     public let enableMonitoring: Bool
-    
+
     /// Default configuration.
     public static let `default` = Configuration(
       maxASTEntries: 1000,
       maxDescriptorEntries: 500,
       maxDependencyEntries: 200,
-      maxMemoryUsage: 100 * 1024 * 1024, // 100MB
-      timeToLive: 3600, // 1 hour
+      maxMemoryUsage: 100 * 1024 * 1024,  // 100MB
+      timeToLive: 3600,  // 1 hour
       enableMonitoring: true
     )
-    
+
     /// High-performance configuration for large projects.
     public static let highPerformance = Configuration(
       maxASTEntries: 5000,
       maxDescriptorEntries: 2500,
       maxDependencyEntries: 1000,
-      maxMemoryUsage: 500 * 1024 * 1024, // 500MB
-      timeToLive: 7200, // 2 hours
+      maxMemoryUsage: 500 * 1024 * 1024,  // 500MB
+      timeToLive: 7200,  // 2 hours
       enableMonitoring: true
     )
-    
+
     /// Memory-constrained configuration.
     public static let memoryConstrained = Configuration(
       maxASTEntries: 100,
       maxDescriptorEntries: 50,
       maxDependencyEntries: 25,
-      maxMemoryUsage: 10 * 1024 * 1024, // 10MB
-      timeToLive: 1800, // 30 minutes
+      maxMemoryUsage: 10 * 1024 * 1024,  // 10MB
+      timeToLive: 1800,  // 30 minutes
       enableMonitoring: false
     )
   }
@@ -102,10 +102,10 @@ public final class PerformanceCache {
   private var astCache: [String: ASTCacheEntry] = [:]
   private var descriptorCache: [String: DescriptorCacheEntry] = [:]
   private var dependencyCache: [String: DependencyCacheEntry] = [:]
-  
+
   private let configuration: Configuration
   private let queue = DispatchQueue(label: "com.swiftprotoparser.cache", attributes: .concurrent)
-  
+
   // MARK: - Performance Metrics
 
   /// Cache performance statistics.
@@ -120,29 +120,34 @@ public final class PerformanceCache {
     public let evictionCount: Int
     public let averageParseTime: TimeInterval
     public let averageBuildTime: TimeInterval
-    
+
     public var astHitRate: Double {
       let total = astCacheHits + astCacheMisses
       return total > 0 ? Double(astCacheHits) / Double(total) : 0.0
     }
-    
+
     public var descriptorHitRate: Double {
       let total = descriptorCacheHits + descriptorCacheMisses
       return total > 0 ? Double(descriptorCacheHits) / Double(total) : 0.0
     }
-    
+
     public var dependencyHitRate: Double {
       let total = dependencyCacheHits + dependencyCacheMisses
       return total > 0 ? Double(dependencyCacheHits) / Double(total) : 0.0
     }
   }
-  
+
   private var stats = Statistics(
-    astCacheHits: 0, astCacheMisses: 0,
-    descriptorCacheHits: 0, descriptorCacheMisses: 0,
-    dependencyCacheHits: 0, dependencyCacheMisses: 0,
-    totalMemoryUsage: 0, evictionCount: 0,
-    averageParseTime: 0.0, averageBuildTime: 0.0
+    astCacheHits: 0,
+    astCacheMisses: 0,
+    descriptorCacheHits: 0,
+    descriptorCacheMisses: 0,
+    dependencyCacheHits: 0,
+    dependencyCacheMisses: 0,
+    totalMemoryUsage: 0,
+    evictionCount: 0,
+    averageParseTime: 0.0,
+    averageBuildTime: 0.0
   )
 
   // MARK: - Initialization
@@ -151,7 +156,7 @@ public final class PerformanceCache {
   /// - Parameter configuration: Cache configuration settings.
   public init(configuration: Configuration = .default) {
     self.configuration = configuration
-    
+
     if configuration.enableMonitoring {
       startPerformanceMonitoring()
     }
@@ -167,8 +172,9 @@ public final class PerformanceCache {
   public func getCachedAST(for filePath: String, contentHash: String) -> ProtoAST? {
     return queue.sync {
       guard let entry = astCache[filePath],
-            entry.contentHash == contentHash,
-            !isExpired(entry.createdAt) else {
+        entry.contentHash == contentHash,
+        !isExpired(entry.createdAt)
+      else {
         updateStats { stats in
           stats = Statistics(
             astCacheHits: stats.astCacheHits,
@@ -185,7 +191,7 @@ public final class PerformanceCache {
         }
         return nil
       }
-      
+
       // Update access statistics
       let updatedEntry = ASTCacheEntry(
         ast: entry.ast,
@@ -197,7 +203,7 @@ public final class PerformanceCache {
         lastAccessed: Date()
       )
       astCache[filePath] = updatedEntry
-      
+
       updateStats { stats in
         stats = Statistics(
           astCacheHits: stats.astCacheHits + 1,
@@ -212,7 +218,7 @@ public final class PerformanceCache {
           averageBuildTime: stats.averageBuildTime
         )
       }
-      
+
       return entry.ast
     }
   }
@@ -224,7 +230,13 @@ public final class PerformanceCache {
   ///   - contentHash: Hash of the file content.
   ///   - fileSize: Size of the file in bytes.
   ///   - parseTime: Time taken to parse the file.
-  public func cacheAST(_ ast: ProtoAST, for filePath: String, contentHash: String, fileSize: Int64, parseTime: TimeInterval) {
+  public func cacheAST(
+    _ ast: ProtoAST,
+    for filePath: String,
+    contentHash: String,
+    fileSize: Int64,
+    parseTime: TimeInterval
+  ) {
     queue.async(flags: .barrier) {
       let entry = ASTCacheEntry(
         ast: ast,
@@ -235,7 +247,7 @@ public final class PerformanceCache {
         accessCount: 1,
         lastAccessed: Date()
       )
-      
+
       self.astCache[filePath] = entry
       self.enforceASTCacheLimits()
       self.updateAverageParseTime(parseTime)
@@ -252,8 +264,9 @@ public final class PerformanceCache {
   public func getCachedDescriptor(for filePath: String, contentHash: String) -> Google_Protobuf_FileDescriptorProto? {
     return queue.sync {
       guard let entry = descriptorCache[filePath],
-            entry.contentHash == contentHash,
-            !isExpired(entry.createdAt) else {
+        entry.contentHash == contentHash,
+        !isExpired(entry.createdAt)
+      else {
         updateStats { stats in
           stats = Statistics(
             astCacheHits: stats.astCacheHits,
@@ -270,7 +283,7 @@ public final class PerformanceCache {
         }
         return nil
       }
-      
+
       // Update access statistics
       let updatedEntry = DescriptorCacheEntry(
         descriptor: entry.descriptor,
@@ -282,7 +295,7 @@ public final class PerformanceCache {
         lastAccessed: Date()
       )
       descriptorCache[filePath] = updatedEntry
-      
+
       updateStats { stats in
         stats = Statistics(
           astCacheHits: stats.astCacheHits,
@@ -297,7 +310,7 @@ public final class PerformanceCache {
           averageBuildTime: stats.averageBuildTime
         )
       }
-      
+
       return entry.descriptor
     }
   }
@@ -309,7 +322,13 @@ public final class PerformanceCache {
   ///   - contentHash: Hash of the file content.
   ///   - fileSize: Size of the file in bytes.
   ///   - buildTime: Time taken to build the descriptor.
-  public func cacheDescriptor(_ descriptor: Google_Protobuf_FileDescriptorProto, for filePath: String, contentHash: String, fileSize: Int64, buildTime: TimeInterval) {
+  public func cacheDescriptor(
+    _ descriptor: Google_Protobuf_FileDescriptorProto,
+    for filePath: String,
+    contentHash: String,
+    fileSize: Int64,
+    buildTime: TimeInterval
+  ) {
     queue.async(flags: .barrier) {
       let entry = DescriptorCacheEntry(
         descriptor: descriptor,
@@ -320,7 +339,7 @@ public final class PerformanceCache {
         accessCount: 1,
         lastAccessed: Date()
       )
-      
+
       self.descriptorCache[filePath] = entry
       self.enforceDescriptorCacheLimits()
       self.updateAverageBuildTime(buildTime)
@@ -334,11 +353,14 @@ public final class PerformanceCache {
   ///   - filePath: Path to the main proto file.
   ///   - contentHash: Hash of the combined content.
   /// - Returns: Cached resolution result if available and valid.
-  public func getCachedDependencyResult(for filePath: String, contentHash: String) -> DependencyResolver.ResolutionResult? {
+  public func getCachedDependencyResult(for filePath: String, contentHash: String) -> DependencyResolver
+    .ResolutionResult?
+  {
     return queue.sync {
       guard let entry = dependencyCache[filePath],
-            entry.contentHash == contentHash,
-            !isExpired(entry.createdAt) else {
+        entry.contentHash == contentHash,
+        !isExpired(entry.createdAt)
+      else {
         updateStats { stats in
           stats = Statistics(
             astCacheHits: stats.astCacheHits,
@@ -355,7 +377,7 @@ public final class PerformanceCache {
         }
         return nil
       }
-      
+
       // Update access statistics
       let updatedEntry = DependencyCacheEntry(
         result: entry.result,
@@ -365,7 +387,7 @@ public final class PerformanceCache {
         lastAccessed: Date()
       )
       dependencyCache[filePath] = updatedEntry
-      
+
       updateStats { stats in
         stats = Statistics(
           astCacheHits: stats.astCacheHits,
@@ -380,7 +402,7 @@ public final class PerformanceCache {
           averageBuildTime: stats.averageBuildTime
         )
       }
-      
+
       return entry.result
     }
   }
@@ -390,7 +412,11 @@ public final class PerformanceCache {
   ///   - result: Resolution result to cache.
   ///   - filePath: Path to the main proto file.
   ///   - contentHash: Hash of the combined content.
-  public func cacheDependencyResult(_ result: DependencyResolver.ResolutionResult, for filePath: String, contentHash: String) {
+  public func cacheDependencyResult(
+    _ result: DependencyResolver.ResolutionResult,
+    for filePath: String,
+    contentHash: String
+  ) {
     queue.async(flags: .barrier) {
       let entry = DependencyCacheEntry(
         result: result,
@@ -399,7 +425,7 @@ public final class PerformanceCache {
         accessCount: 1,
         lastAccessed: Date()
       )
-      
+
       self.dependencyCache[filePath] = entry
       self.enforceDependencyCacheLimits()
     }
@@ -421,7 +447,7 @@ public final class PerformanceCache {
   public func clearExpired() {
     queue.async(flags: .barrier) {
       let now = Date()
-      
+
       self.astCache = self.astCache.filter { !self.isExpired($0.value.createdAt, at: now) }
       self.descriptorCache = self.descriptorCache.filter { !self.isExpired($0.value.createdAt, at: now) }
       self.dependencyCache = self.dependencyCache.filter { !self.isExpired($0.value.createdAt, at: now) }
@@ -510,10 +536,10 @@ public final class PerformanceCache {
   private func updateAverageParseTime(_ parseTime: TimeInterval) {
     updateStats { stats in
       let totalParses = stats.astCacheHits + stats.astCacheMisses
-      let newAverage = totalParses > 0 ? 
-        (stats.averageParseTime * Double(totalParses - 1) + parseTime) / Double(totalParses) : 
-        parseTime
-      
+      let newAverage =
+        totalParses > 0
+        ? (stats.averageParseTime * Double(totalParses - 1) + parseTime) / Double(totalParses) : parseTime
+
       stats = Statistics(
         astCacheHits: stats.astCacheHits,
         astCacheMisses: stats.astCacheMisses,
@@ -532,10 +558,10 @@ public final class PerformanceCache {
   private func updateAverageBuildTime(_ buildTime: TimeInterval) {
     updateStats { stats in
       let totalBuilds = stats.descriptorCacheHits + stats.descriptorCacheMisses
-      let newAverage = totalBuilds > 0 ? 
-        (stats.averageBuildTime * Double(totalBuilds - 1) + buildTime) / Double(totalBuilds) : 
-        buildTime
-      
+      let newAverage =
+        totalBuilds > 0
+        ? (stats.averageBuildTime * Double(totalBuilds - 1) + buildTime) / Double(totalBuilds) : buildTime
+
       stats = Statistics(
         astCacheHits: stats.astCacheHits,
         astCacheMisses: stats.astCacheMisses,
@@ -553,11 +579,16 @@ public final class PerformanceCache {
 
   private func resetStatistics() {
     stats = Statistics(
-      astCacheHits: 0, astCacheMisses: 0,
-      descriptorCacheHits: 0, descriptorCacheMisses: 0,
-      dependencyCacheHits: 0, dependencyCacheMisses: 0,
-      totalMemoryUsage: 0, evictionCount: 0,
-      averageParseTime: 0.0, averageBuildTime: 0.0
+      astCacheHits: 0,
+      astCacheMisses: 0,
+      descriptorCacheHits: 0,
+      descriptorCacheMisses: 0,
+      dependencyCacheHits: 0,
+      dependencyCacheMisses: 0,
+      totalMemoryUsage: 0,
+      evictionCount: 0,
+      averageParseTime: 0.0,
+      averageBuildTime: 0.0
     )
   }
 
@@ -572,7 +603,7 @@ public final class PerformanceCache {
 // MARK: - Content Hashing Utilities
 
 extension PerformanceCache {
-  
+
   /// Generate content hash for a file.
   /// - Parameter content: File content to hash.
   /// - Returns: SHA256 hash of the content.
@@ -583,7 +614,7 @@ extension PerformanceCache {
       return SimpleHash.hash(data: buffer).map { String(format: "%02x", $0) }.joined()
     }
   }
-  
+
   /// Generate combined hash for dependency resolution.
   /// - Parameter files: Array of resolved proto files.
   /// - Returns: Combined hash of all file contents.
@@ -599,16 +630,16 @@ private struct SimpleHash {
   static func hash(data: UnsafeBufferPointer<UInt8>) -> [UInt8] {
     // Simple hash implementation for content hashing
     var hash: UInt64 = 5381
-    
+
     for byte in data {
       hash = ((hash << 5) &+ hash) &+ UInt64(byte)
     }
-    
+
     var result: [UInt8] = []
     for i in 0..<8 {
       result.append(UInt8((hash >> (i * 8)) & 0xFF))
     }
-    
+
     return result
   }
 }

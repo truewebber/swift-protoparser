@@ -3,15 +3,17 @@ import SwiftProtobuf
 
 /// Builds SwiftProtobuf FieldDescriptorProto from AST FieldNode.
 struct FieldDescriptorBuilder {
-  
+
   /// Convert FieldNode to FieldDescriptorProto.
-  static func build(from fieldNode: FieldNode, index: Int32, packageName: String? = nil) throws -> Google_Protobuf_FieldDescriptorProto {
+  static func build(from fieldNode: FieldNode, index: Int32, packageName: String? = nil) throws
+    -> Google_Protobuf_FieldDescriptorProto
+  {
     var fieldProto = Google_Protobuf_FieldDescriptorProto()
-    
+
     // Set basic field properties
     fieldProto.name = fieldNode.name
     fieldProto.number = fieldNode.number
-    
+
     // Convert field label
     switch fieldNode.label {
     case .optional:
@@ -21,20 +23,24 @@ struct FieldDescriptorBuilder {
     case .repeated:
       fieldProto.label = .repeated
     }
-    
+
     // Convert field type
     try setFieldType(fieldProto: &fieldProto, fieldType: fieldNode.type, packageName: packageName)
-    
+
     // Convert field options
     if !fieldNode.options.isEmpty {
       fieldProto.options = try buildFieldOptions(from: fieldNode.options)
     }
-    
+
     return fieldProto
   }
-  
+
   /// Set field type in FieldDescriptorProto with proper type enum mapping.
-  private static func setFieldType(fieldProto: inout Google_Protobuf_FieldDescriptorProto, fieldType: FieldType, packageName: String?) throws {
+  private static func setFieldType(
+    fieldProto: inout Google_Protobuf_FieldDescriptorProto,
+    fieldType: FieldType,
+    packageName: String?
+  ) throws {
     switch fieldType {
     // Scalar types
     case .double:
@@ -67,22 +73,22 @@ struct FieldDescriptorBuilder {
       fieldProto.type = .string
     case .bytes:
       fieldProto.type = .bytes
-      
+
     // Complex types
     case .message(let typeName):
       fieldProto.type = .message
       fieldProto.typeName = buildFullyQualifiedTypeName(typeName, packageName: packageName)
-      
+
     case .enumType(let typeName):
       fieldProto.type = .enum
       fieldProto.typeName = buildFullyQualifiedTypeName(typeName, packageName: packageName)
-      
+
     case .qualifiedType(let qualifiedName):
       // For qualified types like google.protobuf.Timestamp, assume it's a message type
       fieldProto.type = .message
       // Qualified names are already fully qualified, just add leading dot if missing
       fieldProto.typeName = qualifiedName.hasPrefix(".") ? qualifiedName : ".\(qualifiedName)"
-      
+
     case .map(_, _):
       // Maps are represented as repeated message with special structure
       fieldProto.type = .message
@@ -91,26 +97,27 @@ struct FieldDescriptorBuilder {
       fieldProto.label = .repeated
     }
   }
-  
+
   /// Build fully qualified type name with package prefix.
   private static func buildFullyQualifiedTypeName(_ typeName: String, packageName: String?) -> String {
     // If already starts with dot, it's already fully qualified
     if typeName.hasPrefix(".") {
       return typeName
     }
-    
+
     // Build fully qualified name
     if let package = packageName, !package.isEmpty {
       return ".\(package).\(typeName)"
-    } else {
+    }
+    else {
       return ".\(typeName)"
     }
   }
-  
+
   /// Build FieldOptions from AST options.
   private static func buildFieldOptions(from options: [OptionNode]) throws -> Google_Protobuf_FieldOptions {
     var fieldOptions = Google_Protobuf_FieldOptions()
-    
+
     for option in options {
       switch option.name {
       case "deprecated":
@@ -162,7 +169,7 @@ struct FieldDescriptorBuilder {
         namePart.namePart = option.name
         namePart.isExtension = option.isCustom
         uninterpretedOption.name = [namePart]
-        
+
         // Set value based on option value type
         switch option.value {
         case .string(let value):
@@ -174,11 +181,11 @@ struct FieldDescriptorBuilder {
         case .identifier(let value):
           uninterpretedOption.identifierValue = value
         }
-        
+
         fieldOptions.uninterpretedOption.append(uninterpretedOption)
       }
     }
-    
+
     return fieldOptions
   }
 }

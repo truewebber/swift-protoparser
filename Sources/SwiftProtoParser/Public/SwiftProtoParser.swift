@@ -92,11 +92,13 @@ extension SwiftProtoParser {
   /// - Returns: Result containing Google_Protobuf_FileDescriptorProto on success, or ProtoParseError on failure.
   ///
   /// This method performs the complete pipeline: Lexer → Parser → AST → DescriptorBuilder → FileDescriptorProto
-  public static func parseProtoToDescriptors(_ filePath: String) -> Result<Google_Protobuf_FileDescriptorProto, ProtoParseError> {
+  public static func parseProtoToDescriptors(_ filePath: String) -> Result<
+    Google_Protobuf_FileDescriptorProto, ProtoParseError
+  > {
     do {
       // Read file content
       let content = try String(contentsOfFile: filePath, encoding: .utf8)
-      
+
       // Extract file name from path for descriptor
       let fileName = URL(fileURLWithPath: filePath).lastPathComponent
 
@@ -117,10 +119,12 @@ extension SwiftProtoParser {
   /// - Returns: Result containing Google_Protobuf_FileDescriptorProto on success, or ProtoParseError on failure.
   ///
   /// This method performs the complete pipeline: Lexer → Parser → AST → DescriptorBuilder → FileDescriptorProto
-  public static func parseProtoStringToDescriptors(_ content: String, fileName: String = "string.proto") -> Result<Google_Protobuf_FileDescriptorProto, ProtoParseError> {
+  public static func parseProtoStringToDescriptors(_ content: String, fileName: String = "string.proto") -> Result<
+    Google_Protobuf_FileDescriptorProto, ProtoParseError
+  > {
     // Step 1: Parse to AST
     let astResult = parseProtoString(content, fileName: fileName)
-    
+
     switch astResult {
     case .success(let ast):
       // Step 2: Convert AST to FileDescriptorProto using DescriptorBuilder
@@ -135,7 +139,7 @@ extension SwiftProtoParser {
       catch {
         return .failure(.internalError(message: "DescriptorBuilder failed: \(error.localizedDescription)"))
       }
-      
+
     case .failure(let parseError):
       return .failure(parseError)
     }
@@ -208,14 +212,14 @@ extension SwiftProtoParser {
         maxDepth: 50
       )
       let resolver = DependencyResolver(importPaths: importPaths, options: options)
-      
+
       // Resolve all dependencies
       let resolutionResult = try resolver.resolveDependencies(for: filePath)
-      
+
       // Parse the main file content to AST
       let mainFile = resolutionResult.mainFile
       return parseProtoString(mainFile.content, fileName: mainFile.fileName)
-      
+
     }
     catch let resolverError as ResolverError {
       return .failure(.dependencyResolutionError(message: resolverError.localizedDescription, importPath: filePath))
@@ -245,7 +249,7 @@ extension SwiftProtoParser {
     do {
       // Include the directory itself in import paths
       let allImportPaths = [directoryPath] + importPaths
-      
+
       // Create DependencyResolver with appropriate options
       let options = DependencyResolver.Options(
         allowMissingImports: allowMissingImports,
@@ -255,16 +259,16 @@ extension SwiftProtoParser {
         maxDepth: 50
       )
       let resolver = DependencyResolver(importPaths: allImportPaths, options: options)
-      
+
       // Resolve all files in directory
       let resolutionResults = try resolver.resolveDirectory(directoryPath, recursive: recursive)
-      
+
       // Parse each main file to AST
       var allASTs: [ProtoAST] = []
       for result in resolutionResults {
         let mainFile = result.mainFile
         let astResult = parseProtoString(mainFile.content, fileName: mainFile.fileName)
-        
+
         switch astResult {
         case .success(let ast):
           allASTs.append(ast)
@@ -272,12 +276,14 @@ extension SwiftProtoParser {
           return .failure(error)
         }
       }
-      
+
       return .success(allASTs)
-      
+
     }
     catch let resolverError as ResolverError {
-      return .failure(.dependencyResolutionError(message: resolverError.localizedDescription, importPath: directoryPath))
+      return .failure(
+        .dependencyResolutionError(message: resolverError.localizedDescription, importPath: directoryPath)
+      )
     }
     catch {
       return .failure(.ioError(underlying: error))
@@ -305,8 +311,12 @@ extension SwiftProtoParser {
     allowMissingImports: Bool = false
   ) -> Result<Google_Protobuf_FileDescriptorProto, ProtoParseError> {
     // First parse with imports to get AST
-    let astResult = parseProtoFileWithImports(filePath, importPaths: importPaths, allowMissingImports: allowMissingImports)
-    
+    let astResult = parseProtoFileWithImports(
+      filePath,
+      importPaths: importPaths,
+      allowMissingImports: allowMissingImports
+    )
+
     switch astResult {
     case .success(let ast):
       // Convert AST to FileDescriptorProto
@@ -321,7 +331,7 @@ extension SwiftProtoParser {
       catch {
         return .failure(.internalError(message: "DescriptorBuilder failed: \(error.localizedDescription)"))
       }
-      
+
     case .failure(let error):
       return .failure(error)
     }
@@ -345,13 +355,18 @@ extension SwiftProtoParser {
     allowMissingImports: Bool = false
   ) -> Result<[Google_Protobuf_FileDescriptorProto], ProtoParseError> {
     // First parse directory to get ASTs
-    let astResults = parseProtoDirectory(directoryPath, recursive: recursive, importPaths: importPaths, allowMissingImports: allowMissingImports)
-    
+    let astResults = parseProtoDirectory(
+      directoryPath,
+      recursive: recursive,
+      importPaths: importPaths,
+      allowMissingImports: allowMissingImports
+    )
+
     switch astResults {
     case .success(let asts):
       // Convert each AST to FileDescriptorProto
       var fileDescriptors: [Google_Protobuf_FileDescriptorProto] = []
-      
+
       for (index, ast) in asts.enumerated() {
         do {
           // Generate file name based on index since AST doesn't contain file name
@@ -366,9 +381,9 @@ extension SwiftProtoParser {
           return .failure(.internalError(message: "DescriptorBuilder failed: \(error.localizedDescription)"))
         }
       }
-      
+
       return .success(fileDescriptors)
-      
+
     case .failure(let error):
       return .failure(error)
     }
@@ -381,7 +396,7 @@ extension SwiftProtoParser {
 
   /// Shared performance cache instance for optimized parsing.
   public static let sharedCache = PerformanceCache(configuration: .default)
-  
+
   /// Shared incremental parser instance for large projects.
   public static let sharedIncrementalParser = IncrementalParser(
     configuration: .default,
@@ -401,33 +416,34 @@ extension SwiftProtoParser {
     _ filePath: String,
     enableCaching: Bool = true
   ) -> Result<ProtoAST, ProtoParseError> {
-    
+
     guard enableCaching else {
       return parseProtoFile(filePath)
     }
-    
+
     do {
       let content = try String(contentsOfFile: filePath, encoding: .utf8)
       let contentHash = PerformanceCache.contentHash(for: content)
-      
+
       // Check cache first
       if let cachedAST = sharedCache.getCachedAST(for: filePath, contentHash: contentHash) {
         return .success(cachedAST)
       }
-      
+
       // Parse and cache result
       let startTime = Date()
       let result = parseProtoString(content, fileName: filePath)
       let parseTime = Date().timeIntervalSince(startTime)
-      
+
       if case .success(let ast) = result {
         let fileSize = try getFileSize(filePath)
         sharedCache.cacheAST(ast, for: filePath, contentHash: contentHash, fileSize: fileSize, parseTime: parseTime)
       }
-      
+
       return result
-      
-    } catch {
+
+    }
+    catch {
       return .failure(.ioError(underlying: error))
     }
   }
@@ -447,24 +463,24 @@ extension SwiftProtoParser {
     recursive: Bool = false,
     importPaths: [String] = []
   ) -> Result<[ProtoAST], ProtoParseError> {
-    
+
     do {
       // Detect changes
       let changeSet = try sharedIncrementalParser.detectChanges(in: directoryPath, recursive: recursive)
-      
+
       if !changeSet.hasChanges {
         // No changes - return cached results if available
         // For now, fall back to regular parsing
         return parseProtoDirectory(directoryPath, recursive: recursive, importPaths: importPaths)
       }
-      
+
       // Parse incrementally
       let allImportPaths = [directoryPath] + importPaths
       let results = try sharedIncrementalParser.parseIncremental(
         changeSet: changeSet,
         importPaths: allImportPaths
       )
-      
+
       // Extract successful ASTs
       var asts: [ProtoAST] = []
       for (_, result) in results {
@@ -475,10 +491,11 @@ extension SwiftProtoParser {
           return .failure(error)
         }
       }
-      
+
       return .success(asts)
-      
-    } catch {
+
+    }
+    catch {
       // Fall back to regular parsing on incremental parsing errors
       return parseProtoDirectory(directoryPath, recursive: recursive, importPaths: importPaths)
     }
@@ -497,10 +514,11 @@ extension SwiftProtoParser {
     _ filePath: String,
     importPaths: [String] = []
   ) -> Result<ProtoAST, ProtoParseError> {
-    
+
     do {
       return try sharedIncrementalParser.parseStreamingFile(filePath, importPaths: importPaths)
-    } catch {
+    }
+    catch {
       return .failure(.ioError(underlying: error))
     }
   }
@@ -540,13 +558,13 @@ extension SwiftProtoParser {
     _ path: String,
     configuration: PerformanceBenchmark.Configuration = .default
   ) -> PerformanceBenchmark.BenchmarkResult {
-    
+
     let benchmark = PerformanceBenchmark(
       configuration: configuration,
       cache: sharedCache,
       incrementalParser: sharedIncrementalParser
     )
-    
+
     // Determine if path is file or directory
     var isDirectory: ObjCBool = false
     guard FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory) else {
@@ -556,10 +574,11 @@ extension SwiftProtoParser {
         configuration: configuration
       )
     }
-    
+
     if isDirectory.boolValue {
       return benchmark.benchmarkDirectory(path)
-    } else {
+    }
+    else {
       return benchmark.benchmarkSingleFile(path)
     }
   }

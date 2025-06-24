@@ -1,15 +1,16 @@
 import XCTest
+
 @testable import SwiftProtoParser
 
 final class PerformanceCacheTests: XCTestCase {
 
   var cache: PerformanceCache!
-  
+
   override func setUp() {
     super.setUp()
     cache = PerformanceCache(configuration: .default)
   }
-  
+
   override func tearDown() {
     cache.clearAll()
     cache = nil
@@ -54,22 +55,22 @@ final class PerformanceCacheTests: XCTestCase {
     let protoContent = """
       syntax = "proto3";
       package test;
-      
+
       message TestMessage {
         string name = 1;
         int32 value = 2;
       }
       """
-    
+
     let ast = createTestAST()
     let filePath = "/test/file.proto"
     let contentHash = PerformanceCache.contentHash(for: protoContent)
     let fileSize: Int64 = 1024
     let parseTime: TimeInterval = 0.05
-    
+
     // Cache AST
     cache.cacheAST(ast, for: filePath, contentHash: contentHash, fileSize: fileSize, parseTime: parseTime)
-    
+
     // Retrieve cached AST
     let cachedAST = cache.getCachedAST(for: filePath, contentHash: contentHash)
     XCTAssertNotNil(cachedAST)
@@ -81,7 +82,7 @@ final class PerformanceCacheTests: XCTestCase {
   func testASTCacheMiss() {
     let filePath = "/test/file.proto"
     let contentHash = "nonexistent_hash"
-    
+
     let cachedAST = cache.getCachedAST(for: filePath, contentHash: contentHash)
     XCTAssertNil(cachedAST)
   }
@@ -93,14 +94,14 @@ final class PerformanceCacheTests: XCTestCase {
     let newContentHash = "new_hash"
     let fileSize: Int64 = 1024
     let parseTime: TimeInterval = 0.05
-    
+
     // Cache with old hash
     cache.cacheAST(ast, for: filePath, contentHash: oldContentHash, fileSize: fileSize, parseTime: parseTime)
-    
+
     // Try to retrieve with new hash (should miss)
     let cachedAST = cache.getCachedAST(for: filePath, contentHash: newContentHash)
     XCTAssertNil(cachedAST)
-    
+
     // Should still be able to retrieve with old hash
     let oldCachedAST = cache.getCachedAST(for: filePath, contentHash: oldContentHash)
     XCTAssertNotNil(oldCachedAST)
@@ -126,16 +127,16 @@ final class PerformanceCacheTests: XCTestCase {
     let contentHash = "test_hash"
     let fileSize: Int64 = 1024
     let parseTime: TimeInterval = 0.05
-    
+
     // Cache AST
     cache.cacheAST(ast, for: filePath, contentHash: contentHash, fileSize: fileSize, parseTime: parseTime)
-    
+
     // First retrieval (hit)
     _ = cache.getCachedAST(for: filePath, contentHash: contentHash)
-    
+
     // Second retrieval (another hit)
     _ = cache.getCachedAST(for: filePath, contentHash: contentHash)
-    
+
     let stats = cache.getStatistics()
     XCTAssertEqual(stats.astCacheHits, 2)
     XCTAssertEqual(stats.astCacheMisses, 0)
@@ -145,7 +146,7 @@ final class PerformanceCacheTests: XCTestCase {
   func testCacheMissStatistics() {
     // Try to retrieve non-existent entry
     _ = cache.getCachedAST(for: "/nonexistent", contentHash: "nonexistent")
-    
+
     let stats = cache.getStatistics()
     XCTAssertEqual(stats.astCacheHits, 0)
     XCTAssertEqual(stats.astCacheMisses, 1)
@@ -158,17 +159,17 @@ final class PerformanceCacheTests: XCTestCase {
     let contentHash = "test_hash"
     let fileSize: Int64 = 1024
     let parseTime: TimeInterval = 0.05
-    
+
     // Cache AST
     cache.cacheAST(ast, for: filePath, contentHash: contentHash, fileSize: fileSize, parseTime: parseTime)
-    
+
     // One hit
     _ = cache.getCachedAST(for: filePath, contentHash: contentHash)
-    
+
     // Two misses
     _ = cache.getCachedAST(for: "/nonexistent1", contentHash: "nonexistent1")
     _ = cache.getCachedAST(for: "/nonexistent2", contentHash: "nonexistent2")
-    
+
     let stats = cache.getStatistics()
     XCTAssertEqual(stats.astCacheHits, 1)
     XCTAssertEqual(stats.astCacheMisses, 2)
@@ -183,25 +184,25 @@ final class PerformanceCacheTests: XCTestCase {
     let contentHash = "test_hash"
     let fileSize: Int64 = 1024
     let parseTime: TimeInterval = 0.05
-    
+
     // Cache AST
     cache.cacheAST(ast, for: filePath, contentHash: contentHash, fileSize: fileSize, parseTime: parseTime)
-    
+
     // Verify it's cached
     let cachedAST = cache.getCachedAST(for: filePath, contentHash: contentHash)
     XCTAssertNotNil(cachedAST)
-    
+
     // Clear cache
     cache.clearAll()
-    
+
     // Verify it's gone
     let clearedAST = cache.getCachedAST(for: filePath, contentHash: contentHash)
     XCTAssertNil(clearedAST)
-    
+
     // After clearAll(), statistics should be reset, but the check above adds 1 miss
     let stats = cache.getStatistics()
     XCTAssertEqual(stats.astCacheHits, 0)
-    XCTAssertEqual(stats.astCacheMisses, 1) // The miss from checking cleared cache
+    XCTAssertEqual(stats.astCacheMisses, 1)  // The miss from checking cleared cache
   }
 
   // MARK: - Content Hashing Tests
@@ -210,17 +211,17 @@ final class PerformanceCacheTests: XCTestCase {
     let content1 = "syntax = \"proto3\"; message Test { string name = 1; }"
     let content2 = "syntax = \"proto3\"; message Test { string name = 1; }"
     let content3 = "syntax = \"proto3\"; message Test { string value = 1; }"
-    
+
     let hash1 = PerformanceCache.contentHash(for: content1)
     let hash2 = PerformanceCache.contentHash(for: content2)
     let hash3 = PerformanceCache.contentHash(for: content3)
-    
+
     // Same content should produce same hash
     XCTAssertEqual(hash1, hash2)
-    
+
     // Different content should produce different hash
     XCTAssertNotEqual(hash1, hash3)
-    
+
     // Hashes should be non-empty
     XCTAssertFalse(hash1.isEmpty)
     XCTAssertFalse(hash3.isEmpty)
@@ -238,7 +239,7 @@ final class PerformanceCacheTests: XCTestCase {
     let contentHash = "test_hash"
     let fileSize: Int64 = 1024
     let parseTime: TimeInterval = 0.05
-    
+
     // Measure caching performance
     measure {
       for i in 0..<1000 {
@@ -253,13 +254,13 @@ final class PerformanceCacheTests: XCTestCase {
     let contentHash = "test_hash"
     let fileSize: Int64 = 1024
     let parseTime: TimeInterval = 0.05
-    
+
     // Cache many entries
     for i in 0..<1000 {
       let filePath = "/test/file_\(i).proto"
       cache.cacheAST(ast, for: filePath, contentHash: "\(contentHash)_\(i)", fileSize: fileSize, parseTime: parseTime)
     }
-    
+
     // Measure retrieval performance
     measure {
       for i in 0..<1000 {

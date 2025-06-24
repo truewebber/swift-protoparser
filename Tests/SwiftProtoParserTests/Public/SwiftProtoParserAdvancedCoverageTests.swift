@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import SwiftProtoParser
 
 final class SwiftProtoParserAdvancedCoverageTests: XCTestCase {
@@ -18,14 +19,15 @@ final class SwiftProtoParserAdvancedCoverageTests: XCTestCase {
 
   func testParseProtoFileNonexistentFile() {
     let result = SwiftProtoParser.parseProtoFile("/nonexistent/path/file.proto")
-    
+
     switch result {
     case .success:
       XCTFail("Should fail for nonexistent file")
     case .failure(let error):
       if case .ioError = error {
         XCTAssertTrue(true, "Correctly failed with ioError")
-      } else {
+      }
+      else {
         XCTFail("Expected ioError, got: \(error)")
       }
     }
@@ -33,14 +35,15 @@ final class SwiftProtoParserAdvancedCoverageTests: XCTestCase {
 
   func testParseProtoToDescriptorsNonexistentFile() {
     let result = SwiftProtoParser.parseProtoToDescriptors("/nonexistent/path/file.proto")
-    
+
     switch result {
     case .success:
       XCTFail("Should fail for nonexistent file")
     case .failure(let error):
       if case .ioError = error {
         XCTAssertTrue(true, "Correctly failed with ioError")
-      } else {
+      }
+      else {
         XCTFail("Expected ioError, got: \(error)")
       }
     }
@@ -48,14 +51,15 @@ final class SwiftProtoParserAdvancedCoverageTests: XCTestCase {
 
   func testParseProtoFileWithCachingNonexistentFile() {
     let result = SwiftProtoParser.parseProtoFileWithCaching("/nonexistent/path/file.proto")
-    
+
     switch result {
     case .success:
       XCTFail("Should fail for nonexistent file")
     case .failure(let error):
       if case .ioError = error {
         XCTAssertTrue(true, "Correctly failed with ioError")
-      } else {
+      }
+      else {
         XCTFail("Expected ioError, got: \(error)")
       }
     }
@@ -70,9 +74,9 @@ final class SwiftProtoParserAdvancedCoverageTests: XCTestCase {
         string = 1; // missing field name
       }
       """
-    
+
     let result = SwiftProtoParser.parseProtoString(invalidProto, fileName: "test.proto")
-    
+
     switch result {
     case .success:
       XCTFail("Should fail for invalid proto")
@@ -80,7 +84,8 @@ final class SwiftProtoParserAdvancedCoverageTests: XCTestCase {
       if case .syntaxError(let message, let file, _, _) = error {
         XCTAssertTrue(message.contains("field name") || message.contains("unexpected"))
         XCTAssertEqual(file, "test.proto")
-      } else {
+      }
+      else {
         XCTFail("Expected syntaxError, got: \(error)")
       }
     }
@@ -89,9 +94,9 @@ final class SwiftProtoParserAdvancedCoverageTests: XCTestCase {
   func testParseProtoStringEmptyParserErrors() {
     // Test edge case where parser returns failure with empty errors array
     let emptyContent = ""
-    
+
     let result = SwiftProtoParser.parseProtoString(emptyContent)
-    
+
     switch result {
     case .success:
       XCTFail("Empty content should fail")
@@ -107,14 +112,14 @@ final class SwiftProtoParserAdvancedCoverageTests: XCTestCase {
     // Test scenario where AST parses but DescriptorBuilder fails
     let protoWithUnsupportedFeature = """
       syntax = "proto3";
-      
+
       message Test {
         string name = 1;
       }
       """
-    
+
     let result = SwiftProtoParser.parseProtoStringToDescriptors(protoWithUnsupportedFeature)
-    
+
     switch result {
     case .success(let descriptor):
       // Should actually succeed for this simple case
@@ -132,9 +137,9 @@ final class SwiftProtoParserAdvancedCoverageTests: XCTestCase {
         string value = 1;
       }
       """
-    
+
     let result = SwiftProtoParser.parseProtoStringToDescriptors(simpleProto)
-    
+
     switch result {
     case .success(let descriptor):
       XCTAssertEqual(descriptor.name, "string.proto")
@@ -147,14 +152,15 @@ final class SwiftProtoParserAdvancedCoverageTests: XCTestCase {
 
   func testGetProtoVersionInvalidFile() {
     let result = SwiftProtoParser.getProtoVersion("/nonexistent/file.proto")
-    
+
     switch result {
     case .success:
       XCTFail("Should fail for nonexistent file")
     case .failure(let error):
       if case .ioError = error {
         XCTAssertTrue(true, "Correctly failed with ioError")
-      } else {
+      }
+      else {
         XCTFail("Expected ioError, got: \(error)")
       }
     }
@@ -162,14 +168,15 @@ final class SwiftProtoParserAdvancedCoverageTests: XCTestCase {
 
   func testGetPackageNameInvalidFile() {
     let result = SwiftProtoParser.getPackageName("/nonexistent/file.proto")
-    
+
     switch result {
     case .success:
       XCTFail("Should fail for nonexistent file")
     case .failure(let error):
       if case .ioError = error {
         XCTAssertTrue(true, "Correctly failed with ioError")
-      } else {
+      }
+      else {
         XCTFail("Expected ioError, got: \(error)")
       }
     }
@@ -177,14 +184,15 @@ final class SwiftProtoParserAdvancedCoverageTests: XCTestCase {
 
   func testGetMessageNamesInvalidFile() {
     let result = SwiftProtoParser.getMessageNames("/nonexistent/file.proto")
-    
+
     switch result {
     case .success:
       XCTFail("Should fail for nonexistent file")
     case .failure(let error):
       if case .ioError = error {
         XCTAssertTrue(true, "Correctly failed with ioError")
-      } else {
+      }
+      else {
         XCTFail("Expected ioError, got: \(error)")
       }
     }
@@ -198,7 +206,7 @@ final class SwiftProtoParserAdvancedCoverageTests: XCTestCase {
       importPaths: ["/some/path"],
       allowMissingImports: false
     )
-    
+
     switch result {
     case .success:
       XCTFail("Should fail for nonexistent file")
@@ -220,7 +228,7 @@ final class SwiftProtoParserAdvancedCoverageTests: XCTestCase {
       importPaths: [],
       allowMissingImports: false
     )
-    
+
     switch result {
     case .success:
       XCTFail("Should fail for nonexistent directory")
@@ -240,7 +248,7 @@ final class SwiftProtoParserAdvancedCoverageTests: XCTestCase {
       importPaths: [],
       allowMissingImports: true
     )
-    
+
     switch result {
     case .success:
       XCTFail("Should fail for nonexistent file")
@@ -261,7 +269,7 @@ final class SwiftProtoParserAdvancedCoverageTests: XCTestCase {
       importPaths: ["/some/path"],
       allowMissingImports: true
     )
-    
+
     switch result {
     case .success:
       XCTFail("Should fail for nonexistent directory")
@@ -278,16 +286,18 @@ final class SwiftProtoParserAdvancedCoverageTests: XCTestCase {
   // MARK: - Performance Caching Tests
 
   func testParseProtoFileWithCachingDisabled() {
-    let tempFile = createTempProtoFile(content: """
-      syntax = "proto3";
-      message CacheTest {
-        string value = 1;
-      }
-      """)
+    let tempFile = createTempProtoFile(
+      content: """
+        syntax = "proto3";
+        message CacheTest {
+          string value = 1;
+        }
+        """
+    )
     defer { removeTempFile(tempFile) }
-    
+
     let result = SwiftProtoParser.parseProtoFileWithCaching(tempFile, enableCaching: false)
-    
+
     switch result {
     case .success(let ast):
       XCTAssertEqual(ast.messages.count, 1)
@@ -298,28 +308,30 @@ final class SwiftProtoParserAdvancedCoverageTests: XCTestCase {
   }
 
   func testParseProtoFileWithCachingEnabled() {
-    let tempFile = createTempProtoFile(content: """
-      syntax = "proto3";
-      message CacheTest {
-        string value = 1;
-      }
-      """)
+    let tempFile = createTempProtoFile(
+      content: """
+        syntax = "proto3";
+        message CacheTest {
+          string value = 1;
+        }
+        """
+    )
     defer { removeTempFile(tempFile) }
-    
+
     // First parse - should cache
     let result1 = SwiftProtoParser.parseProtoFileWithCaching(tempFile, enableCaching: true)
     switch result1 {
     case .success: XCTAssertTrue(true)
     case .failure: XCTFail("First parse should succeed")
     }
-    
+
     // Second parse - should use cache
     let result2 = SwiftProtoParser.parseProtoFileWithCaching(tempFile, enableCaching: true)
     switch result2 {
     case .success: XCTAssertTrue(true)
     case .failure: XCTFail("Second parse should succeed")
     }
-    
+
     // Statistics should show cache usage
     let stats = SwiftProtoParser.getCacheStatistics()
     XCTAssertGreaterThan(stats.astCacheHits, 0)
@@ -333,7 +345,7 @@ final class SwiftProtoParserAdvancedCoverageTests: XCTestCase {
       recursive: true,
       importPaths: []
     )
-    
+
     switch result {
     case .success:
       XCTFail("Should fail for nonexistent directory")
@@ -350,22 +362,22 @@ final class SwiftProtoParserAdvancedCoverageTests: XCTestCase {
   func testParseProtoDirectoryIncrementalFallback() {
     let tempDir = createTempDirectory()
     defer { removeTempDirectory(tempDir) }
-    
+
     // Create a proto file
     let protoFile = tempDir.appendingPathComponent("test.proto")
     try! """
-      syntax = "proto3";
-      message Test {
-        string name = 1;
-      }
-      """.write(to: protoFile, atomically: true, encoding: .utf8)
-    
+    syntax = "proto3";
+    message Test {
+      string name = 1;
+    }
+    """.write(to: protoFile, atomically: true, encoding: .utf8)
+
     let result = SwiftProtoParser.parseProtoDirectoryIncremental(
       tempDir.path,
       recursive: false,
       importPaths: []
     )
-    
+
     switch result {
     case .success(let asts):
       XCTAssertGreaterThan(asts.count, 0)
@@ -381,34 +393,37 @@ final class SwiftProtoParserAdvancedCoverageTests: XCTestCase {
       "/nonexistent/file.proto",
       importPaths: []
     )
-    
+
     switch result {
     case .success:
       XCTFail("Should fail for nonexistent file")
     case .failure(let error):
       if case .ioError = error {
         XCTAssertTrue(true, "Correctly failed with ioError")
-      } else {
+      }
+      else {
         XCTFail("Expected ioError, got: \(error)")
       }
     }
   }
 
   func testParseProtoFileStreamingValidFile() {
-    let tempFile = createTempProtoFile(content: """
-      syntax = "proto3";
-      message StreamingTest {
-        string large_field = 1;
-        repeated string items = 2;
-      }
-      """)
+    let tempFile = createTempProtoFile(
+      content: """
+        syntax = "proto3";
+        message StreamingTest {
+          string large_field = 1;
+          repeated string items = 2;
+        }
+        """
+    )
     defer { removeTempFile(tempFile) }
-    
+
     let result = SwiftProtoParser.parseProtoFileStreaming(
       tempFile,
       importPaths: []
     )
-    
+
     switch result {
     case .success(let ast):
       XCTAssertEqual(ast.messages.count, 1)
@@ -422,7 +437,7 @@ final class SwiftProtoParserAdvancedCoverageTests: XCTestCase {
 
   func testGetCacheStatistics() {
     let stats = SwiftProtoParser.getCacheStatistics()
-    
+
     // Should have valid statistics structure
     XCTAssertGreaterThanOrEqual(stats.astCacheHits, 0)
     XCTAssertGreaterThanOrEqual(stats.dependencyCacheHits, 0)
@@ -431,7 +446,7 @@ final class SwiftProtoParserAdvancedCoverageTests: XCTestCase {
 
   func testGetIncrementalStatistics() {
     let stats = SwiftProtoParser.getIncrementalStatistics()
-    
+
     // Should have valid statistics structure
     XCTAssertGreaterThanOrEqual(stats.totalFilesTracked, 0)
     XCTAssertGreaterThanOrEqual(stats.filesProcessedIncrementally, 0)
@@ -440,23 +455,25 @@ final class SwiftProtoParserAdvancedCoverageTests: XCTestCase {
 
   func testClearPerformanceCaches() {
     // Add some data to caches first
-    let tempFile = createTempProtoFile(content: """
-      syntax = "proto3";
-      message ClearTest {
-        string value = 1;
-      }
-      """)
+    let tempFile = createTempProtoFile(
+      content: """
+        syntax = "proto3";
+        message ClearTest {
+          string value = 1;
+        }
+        """
+    )
     defer { removeTempFile(tempFile) }
-    
+
     _ = SwiftProtoParser.parseProtoFileWithCaching(tempFile)
-    
+
     // Clear caches
     SwiftProtoParser.clearPerformanceCaches()
-    
+
     // Statistics should be reset
     _ = SwiftProtoParser.getCacheStatistics()
     _ = SwiftProtoParser.getIncrementalStatistics()
-    
+
     XCTAssertTrue(true, "Cache clearing completed")
   }
 
@@ -464,66 +481,76 @@ final class SwiftProtoParserAdvancedCoverageTests: XCTestCase {
 
   func testBenchmarkPerformanceNonexistentPath() {
     let result = SwiftProtoParser.benchmarkPerformance("/nonexistent/path")
-    
+
     XCTAssertTrue(result.operation.contains("not found"))
     XCTAssertTrue(result.measurements.isEmpty)
   }
 
   func testBenchmarkPerformanceValidFile() {
-    let tempFile = createTempProtoFile(content: """
-      syntax = "proto3";
-      message BenchmarkTest {
-        string name = 1;
-        int32 id = 2;
-        repeated string tags = 3;
-      }
-      """)
+    let tempFile = createTempProtoFile(
+      content: """
+        syntax = "proto3";
+        message BenchmarkTest {
+          string name = 1;
+          int32 id = 2;
+          repeated string tags = 3;
+        }
+        """
+    )
     defer { removeTempFile(tempFile) }
-    
+
     let result = SwiftProtoParser.benchmarkPerformance(tempFile)
-    
+
     XCTAssertFalse(result.operation.isEmpty)
     // Check that operation contains meaningful content
-    XCTAssertTrue(result.operation.contains("parseProtoFile") || result.operation.contains("benchmark") || result.operation.contains(".proto"))
+    XCTAssertTrue(
+      result.operation.contains("parseProtoFile") || result.operation.contains("benchmark")
+        || result.operation.contains(".proto")
+    )
   }
 
   func testBenchmarkPerformanceValidDirectory() {
     let tempDir = createTempDirectory()
     defer { removeTempDirectory(tempDir) }
-    
+
     // Create multiple proto files
     let protoFile1 = tempDir.appendingPathComponent("test1.proto")
     try! """
-      syntax = "proto3";
-      message Test1 {
-        string name = 1;
-      }
-      """.write(to: protoFile1, atomically: true, encoding: .utf8)
-    
+    syntax = "proto3";
+    message Test1 {
+      string name = 1;
+    }
+    """.write(to: protoFile1, atomically: true, encoding: .utf8)
+
     let protoFile2 = tempDir.appendingPathComponent("test2.proto")
     try! """
-      syntax = "proto3";
-      message Test2 {
-        int32 id = 1;
-      }
-      """.write(to: protoFile2, atomically: true, encoding: .utf8)
-    
+    syntax = "proto3";
+    message Test2 {
+      int32 id = 1;
+    }
+    """.write(to: protoFile2, atomically: true, encoding: .utf8)
+
     let result = SwiftProtoParser.benchmarkPerformance(tempDir.path)
-    
+
     XCTAssertFalse(result.operation.isEmpty)
     // Check that operation contains meaningful content
-    XCTAssertTrue(result.operation.contains("parseProtoDirectory") || result.operation.contains("benchmark") || result.operation.contains("Directory"))
+    XCTAssertTrue(
+      result.operation.contains("parseProtoDirectory") || result.operation.contains("benchmark")
+        || result.operation.contains("Directory")
+    )
   }
 
   func testBenchmarkPerformanceCustomConfiguration() {
-    let tempFile = createTempProtoFile(content: """
-      syntax = "proto3";
-      message ConfigTest {
-        string value = 1;
-      }
-      """)
+    let tempFile = createTempProtoFile(
+      content: """
+        syntax = "proto3";
+        message ConfigTest {
+          string value = 1;
+        }
+        """
+    )
     defer { removeTempFile(tempFile) }
-    
+
     let customConfig = PerformanceBenchmark.Configuration(
       iterations: 1,
       warmupIterations: 0,
@@ -531,9 +558,9 @@ final class SwiftProtoParserAdvancedCoverageTests: XCTestCase {
       maxParsingTime: 5.0,
       maxMemoryUsage: 200 * 1024 * 1024
     )
-    
+
     let result = SwiftProtoParser.benchmarkPerformance(tempFile, configuration: customConfig)
-    
+
     XCTAssertFalse(result.operation.isEmpty)
     XCTAssertEqual(result.configuration.iterations, 1)
   }
@@ -541,14 +568,16 @@ final class SwiftProtoParserAdvancedCoverageTests: XCTestCase {
   // MARK: - Edge Cases for Private Helpers
 
   func testPrivateGetFileSizeHelper() {
-    let tempFile = createTempProtoFile(content: """
-      syntax = "proto3";
-      message SizeTest {
-        string data = 1;
-      }
-      """)
+    let tempFile = createTempProtoFile(
+      content: """
+        syntax = "proto3";
+        message SizeTest {
+          string data = 1;
+        }
+        """
+    )
     defer { removeTempFile(tempFile) }
-    
+
     // This tests the private getFileSize helper indirectly through caching
     let result = SwiftProtoParser.parseProtoFileWithCaching(tempFile)
     switch result {
@@ -562,7 +591,7 @@ final class SwiftProtoParserAdvancedCoverageTests: XCTestCase {
   func testSharedCacheInstance() {
     let cache1 = SwiftProtoParser.sharedCache
     let cache2 = SwiftProtoParser.sharedCache
-    
+
     // Should be the same instance
     XCTAssertTrue(cache1 === cache2)
   }
@@ -570,7 +599,7 @@ final class SwiftProtoParserAdvancedCoverageTests: XCTestCase {
   func testSharedIncrementalParserInstance() {
     let parser1 = SwiftProtoParser.sharedIncrementalParser
     let parser2 = SwiftProtoParser.sharedIncrementalParser
-    
+
     // Should be the same instance
     XCTAssertTrue(parser1 === parser2)
   }
@@ -580,9 +609,9 @@ final class SwiftProtoParserAdvancedCoverageTests: XCTestCase {
   private func createTempProtoFile(content: String) -> String {
     let tempDir = FileManager.default.temporaryDirectory
     let tempFile = tempDir.appendingPathComponent(UUID().uuidString + ".proto")
-    
+
     try! content.write(to: tempFile, atomically: true, encoding: .utf8)
-    
+
     return tempFile.path
   }
 
@@ -593,9 +622,9 @@ final class SwiftProtoParserAdvancedCoverageTests: XCTestCase {
   private func createTempDirectory() -> URL {
     let tempDir = FileManager.default.temporaryDirectory
     let subDir = tempDir.appendingPathComponent(UUID().uuidString)
-    
+
     try! FileManager.default.createDirectory(at: subDir, withIntermediateDirectories: true, attributes: nil)
-    
+
     return subDir
   }
 

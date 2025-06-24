@@ -4,22 +4,22 @@ import Foundation
 public enum DescriptorError: LocalizedError, Equatable {
   /// Unable to convert AST node to descriptor.
   case conversionFailed(reason: String)
-  
+
   /// Missing required field in AST node.
   case missingRequiredField(field: String, in: String)
-  
+
   /// Invalid field type for descriptor conversion.
   case invalidFieldType(type: String, context: String)
-  
+
   /// Duplicate element found during conversion.
   case duplicateElement(name: String, type: String)
-  
+
   /// Unsupported feature for descriptor conversion.
   case unsupportedFeature(feature: String, context: String)
-  
+
   /// Internal error during descriptor building.
   case internalError(message: String)
-  
+
   public var errorDescription: String? {
     switch self {
     case .conversionFailed(let reason):
@@ -45,27 +45,27 @@ extension DescriptorError {
   public static func conversionFailed(_ reason: String) -> DescriptorError {
     return .conversionFailed(reason: reason)
   }
-  
+
   /// Create a missing required field error.
   public static func missingField(_ field: String, in context: String) -> DescriptorError {
     return .missingRequiredField(field: field, in: context)
   }
-  
+
   /// Create an invalid field type error.
   public static func invalidType(_ type: String, in context: String) -> DescriptorError {
     return .invalidFieldType(type: type, context: context)
   }
-  
+
   /// Create a duplicate element error.
   public static func duplicate(_ name: String, type: String) -> DescriptorError {
     return .duplicateElement(name: name, type: type)
   }
-  
+
   /// Create an unsupported feature error.
   public static func unsupported(_ feature: String, in context: String) -> DescriptorError {
     return .unsupportedFeature(feature: feature, context: context)
   }
-  
+
   /// Create an internal error.
   public static func internalError(_ message: String) -> DescriptorError {
     return .internalError(message: message)

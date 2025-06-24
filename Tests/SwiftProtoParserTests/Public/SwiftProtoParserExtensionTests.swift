@@ -297,7 +297,9 @@ final class SwiftProtoParserExtensionTests: XCTestCase {
 
     XCTAssertTrue(result.isFailure)
     if case .failure(let error) = result {
-      XCTAssertTrue(error.description.contains("Dependency resolution failed") || error.description.contains("I/O error"))
+      XCTAssertTrue(
+        error.description.contains("Dependency resolution failed") || error.description.contains("I/O error")
+      )
     }
   }
 
@@ -306,7 +308,9 @@ final class SwiftProtoParserExtensionTests: XCTestCase {
 
     XCTAssertTrue(result.isFailure)
     if case .failure(let error) = result {
-      XCTAssertTrue(error.description.contains("Dependency resolution failed") || error.description.contains("I/O error"))
+      XCTAssertTrue(
+        error.description.contains("Dependency resolution failed") || error.description.contains("I/O error")
+      )
     }
   }
 

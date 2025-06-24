@@ -722,99 +722,103 @@ final class ParserTests: XCTestCase {
   }
 
   // MARK: - Qualified Types Tests
-  
+
   func testQualifiedTypesParsing() throws {
     let protoString = """
-    syntax = "proto3";
-    
-    message TestMessage {
-      google.protobuf.Timestamp timestamp = 1;
-      string name = 2;
-    }
-    
-    message NextMessage {
-      string id = 1;
-    }
-    """
-    
+      syntax = "proto3";
+
+      message TestMessage {
+        google.protobuf.Timestamp timestamp = 1;
+        string name = 2;
+      }
+
+      message NextMessage {
+        string id = 1;
+      }
+      """
+
     let result = SwiftProtoParser.parseProtoString(protoString)
-    
+
     switch result {
     case .success(let ast):
       // Should have 2 messages
       XCTAssertEqual(ast.messages.count, 2)
-      
+
       // First message should have qualified type
       let testMessage = ast.messages.first { $0.name == "TestMessage" }
       XCTAssertNotNil(testMessage)
       XCTAssertEqual(testMessage?.fields.count, 2)
-      
+
       let timestampField = testMessage?.fields.first { $0.name == "timestamp" }
       XCTAssertNotNil(timestampField)
-      
+
       // Should be qualifiedType
       if case .qualifiedType(let typeName) = timestampField?.type {
         XCTAssertEqual(typeName, "google.protobuf.Timestamp")
-      } else {
+      }
+      else {
         XCTFail("Expected qualifiedType, got \(timestampField?.type.description ?? "nil")")
       }
-      
+
       // Second message should parse normally
       let nextMessage = ast.messages.first { $0.name == "NextMessage" }
       XCTAssertNotNil(nextMessage)
       XCTAssertEqual(nextMessage?.fields.count, 1)
-      
+
     case .failure(let error):
       XCTFail("Failed to parse qualified types: \(error)")
     }
   }
-  
+
   func testNestedQualifiedTypesParsing() throws {
     let protoString = """
-    syntax = "proto3";
-    
-    message DeepRequest {
-      Level1.Level2.Level3 extracted_level3 = 1;
-      map<string, Level1.Level2.Level3.Level4.Level5> level5_map = 2;
-    }
-    """
-    
+      syntax = "proto3";
+
+      message DeepRequest {
+        Level1.Level2.Level3 extracted_level3 = 1;
+        map<string, Level1.Level2.Level3.Level4.Level5> level5_map = 2;
+      }
+      """
+
     let result = SwiftProtoParser.parseProtoString(protoString)
-    
+
     switch result {
     case .success(let ast):
       // Should have 1 message
       XCTAssertEqual(ast.messages.count, 1)
-      
+
       let deepRequest = ast.messages.first { $0.name == "DeepRequest" }
       XCTAssertNotNil(deepRequest)
       XCTAssertEqual(deepRequest?.fields.count, 2)
-      
+
       let extractedField = deepRequest?.fields.first { $0.name == "extracted_level3" }
       XCTAssertNotNil(extractedField)
-      
+
       // Should be qualifiedType
       if case .qualifiedType(let typeName) = extractedField?.type {
         XCTAssertEqual(typeName, "Level1.Level2.Level3")
-      } else {
+      }
+      else {
         XCTFail("Expected qualifiedType, got \(extractedField?.type.description ?? "nil")")
       }
-      
+
       // Test map with qualified types
       let mapField = deepRequest?.fields.first { $0.name == "level5_map" }
       XCTAssertNotNil(mapField)
-      
+
       if case .map(let keyType, let valueType) = mapField?.type {
         XCTAssertEqual(keyType, .string)
         if case .qualifiedType(let qualifiedName) = valueType {
           XCTAssertEqual(qualifiedName, "Level1.Level2.Level3.Level4.Level5")
-        } else {
+        }
+        else {
           XCTFail("Expected qualifiedType in map value, got \(valueType)")
         }
-      } else {
+      }
+      else {
         XCTFail("Expected map type, got \(mapField?.type.description ?? "nil")")
       }
-      
+
     case .failure(let error):
       XCTFail("Failed to parse nested qualified types: \(error)")
     }
@@ -822,65 +826,66 @@ final class ParserTests: XCTestCase {
 
   func testOneofWithQualifiedTypes() throws {
     let protoString = """
-    syntax = "proto3";
-    
-    message TestRequest {
-      oneof credential {
-        string api_key = 1;
-        google.protobuf.Timestamp token = 2;
-        BasicAuth basic_auth = 3;
+      syntax = "proto3";
+
+      message TestRequest {
+        oneof credential {
+          string api_key = 1;
+          google.protobuf.Timestamp token = 2;
+          BasicAuth basic_auth = 3;
+        }
+        string client_ip = 4;
+        string user_agent = 5;
       }
-      string client_ip = 4;
-      string user_agent = 5;
-    }
-    
-    message BasicAuth {
-      string username = 1;
-      string password = 2;
-    }
-    
-    message NextMessage {
-      string id = 1;
-    }
-    """
-    
+
+      message BasicAuth {
+        string username = 1;
+        string password = 2;
+      }
+
+      message NextMessage {
+        string id = 1;
+      }
+      """
+
     let result = SwiftProtoParser.parseProtoString(protoString)
-    
+
     switch result {
     case .success(let ast):
       // Should have 3 messages
       XCTAssertEqual(ast.messages.count, 3)
-      
+
       // Check TestRequest message
       let testRequest = ast.messages.first { $0.name == "TestRequest" }
       XCTAssertNotNil(testRequest)
-      XCTAssertEqual(testRequest?.fields.count, 2) // client_ip, user_agent (oneof fields are in oneof groups)
+      XCTAssertEqual(testRequest?.fields.count, 2)  // client_ip, user_agent (oneof fields are in oneof groups)
       XCTAssertEqual(testRequest?.oneofGroups.count, 1)
-      
+
       // Check oneof group
       let oneofGroup = testRequest?.oneofGroups.first
       XCTAssertNotNil(oneofGroup)
       XCTAssertEqual(oneofGroup?.name, "credential")
       XCTAssertEqual(oneofGroup?.fields.count, 3)
-      
+
       // Check qualified type in oneof
       let tokenField = oneofGroup?.fields.first { $0.name == "token" }
       XCTAssertNotNil(tokenField)
       if case .qualifiedType(let typeName) = tokenField?.type {
         XCTAssertEqual(typeName, "google.protobuf.Timestamp")
-      } else {
+      }
+      else {
         XCTFail("Expected qualifiedType, got \(tokenField?.type.description ?? "nil")")
       }
-      
+
       // Check that other messages parsed correctly
       let basicAuth = ast.messages.first { $0.name == "BasicAuth" }
       XCTAssertNotNil(basicAuth)
       XCTAssertEqual(basicAuth?.fields.count, 2)
-      
+
       let nextMessage = ast.messages.first { $0.name == "NextMessage" }
       XCTAssertNotNil(nextMessage)
       XCTAssertEqual(nextMessage?.fields.count, 1)
-      
+
     case .failure(let error):
       XCTFail("Failed to parse oneof with qualified types: \(error)")
     }
