@@ -31,7 +31,7 @@ Add SwiftProtoParser to your Swift Package:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/truewebber/SwiftProtoParser", from: "0.1.0")
+    .package(url: "https://github.com/truewebber/swift-protoparser", from: "0.1.0")
 ]
 ```
 
