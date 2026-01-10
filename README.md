@@ -1,41 +1,29 @@
 # SwiftProtoParser
 
-🚀 **Production-Ready Swift Library** for parsing Protocol Buffers `.proto` files into Abstract Syntax Trees (AST) and Google Protocol Buffer descriptors.
+A Swift library for parsing Protocol Buffers `.proto` files into AST and descriptors without `protoc`.
 
-[![Swift](https://img.shields.io/badge/Swift-5.9+-orange.svg)](https://swift.org)
-[![Platform](https://img.shields.io/badge/Platform-macOS%20%7C%20iOS%20%7C%20Linux-lightgrey.svg)](https://swift.org)
-[![Tests](https://img.shields.io/badge/Tests-1086%2F1086%20✅-brightgreen.svg)](#quality-metrics)
-[![Coverage](https://img.shields.io/badge/Coverage-95.01%25-brightgreen.svg)](#quality-metrics)
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Platform](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Ftruewebber%2Fswift-protoparser%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/truewebber/swift-protoparser)
+[![Swift Package Index](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Ftruewebber%2Fswift-protoparser%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/truewebber/swift-protoparser)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg?style=flat)](LICENSE)
+[![Coverage](https://img.shields.io/badge/Test%20Coverage-95%25-green.svg?style=flat)](#testing)
 
-## 🎯 What is SwiftProtoParser?
+## Overview
 
-**SwiftProtoParser** is a comprehensive Swift library that parses Protocol Buffers `.proto` files and converts them into structured data for Swift applications. Unlike other parsers, it provides **complete proto3 specification support** including advanced features like extend statements, qualified types, and enterprise-grade dependency resolution.
+SwiftProtoParser enables native parsing of Protocol Buffers schema files directly in Swift without requiring the `protoc` compiler. This is useful for building code generation tools, schema analyzers, API documentation generators, and other applications that need to process `.proto` files at runtime.
 
-### ✨ Key Features
+## Installation
 
-- **🎯 Complete Proto3 Support** - All syntax, semantics, and advanced features
-- **🔧 Extend Statements** - Full custom options support for `google.protobuf.*` types  
-- **🏗️ Qualified Types** - Well-known types (`google.protobuf.Timestamp`) and nested types
-- **📦 Dependency Resolution** - Multi-file imports with circular dependency detection
-- **⚡ High Performance** - Sub-millisecond parsing with intelligent caching
-- **🛡️ Production Quality** - Thread-safe, memory-efficient, comprehensive error handling
-- **🔄 SwiftProtobuf Integration** - Generate descriptors compatible with swift-protobuf
-- **📈 Advanced Features** - Incremental parsing, streaming for large files, performance monitoring
-
-## 🚀 Quick Start
-
-### Installation
-
-Add SwiftProtoParser to your Swift Package:
+Add to your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/truewebber/swift-protoparser", from: "0.1.0")
+    .package(url: "https://github.com/truewebber/swift-protoparser.git", from: "0.1.0")
 ]
 ```
 
-### Basic Usage
+## Basic Usage
+
+### Parsing Proto Files
 
 ```swift
 import SwiftProtoParser
@@ -43,53 +31,83 @@ import SwiftProtoParser
 // Parse a single .proto file
 let result = SwiftProtoParser.parseProtoFile("user.proto")
 switch result {
-case .success(let descriptor):
-    print("Parsed successfully: \(descriptor.packageName)")
-    print("Messages: \(descriptor.messageNames)")
+case .success(let ast):
+    print("Package: \(ast.package ?? "none")")
+    print("Messages: \(ast.messages.map { $0.name })")
+    print("Services: \(ast.services.map { $0.name })")
 case .failure(let error):
     print("Parse error: \(error.localizedDescription)")
 }
 
-// Parse with import dependencies
-let resultWithImports = SwiftProtoParser.parseProtoFileWithImports(
-    "main.proto", 
-    importPaths: ["/path/to/imports", "/path/to/google/protobuf"]
+// Parse from string content
+let protoContent = """
+syntax = "proto3";
+package example;
+message Person {
+    string name = 1;
+    int32 age = 2;
+}
+"""
+let result = SwiftProtoParser.parseProtoString(protoContent)
+```
+
+### Working with Imports
+
+```swift
+// Parse with import resolution
+let result = SwiftProtoParser.parseProtoFileWithImports(
+    "api.proto",
+    importPaths: [
+        "/path/to/proto/files",
+        "/path/to/google/protobuf"
+    ]
 )
 
 // Parse entire directory
-let directoryResult = SwiftProtoParser.parseProtoDirectory(
-    "/path/to/proto/files", 
-    recursive: true
+let result = SwiftProtoParser.parseProtoDirectory(
+    "/path/to/proto/files",
+    recursive: true,
+    importPaths: ["/path/to/imports"]
 )
 ```
 
-### Advanced Features
+### Generating Descriptors
 
 ```swift
-// Performance-optimized parsing with caching
-let cachedResult = SwiftProtoParser.parseProtoFileWithCaching("user.proto")
-
-// Incremental parsing for large projects
-let incrementalResult = SwiftProtoParser.parseProtoDirectoryIncremental("/proto/dir")
-
-// Streaming for very large files (>50MB)
-let streamingResult = SwiftProtoParser.parseProtoFileStreaming("large_schema.proto")
-
-// Get performance statistics
-let stats = SwiftProtoParser.getCacheStatistics()
-print("Cache hit rate: \(stats.hitRate)%")
+// Convert to SwiftProtobuf descriptors
+let result = SwiftProtoParser.parseProtoToDescriptors("user.proto")
+switch result {
+case .success(let descriptor):
+    // Use Google_Protobuf_FileDescriptorProto
+    print("File: \(descriptor.name)")
+    print("Package: \(descriptor.package)")
+case .failure(let error):
+    print("Error: \(error)")
+}
 ```
 
-## 📋 Supported Proto3 Features
+## Features
 
-### Core Language Features
+- **Complete Proto3 Support**: All standard proto3 syntax and semantics
+- **AST Generation**: Parse files into structured Abstract Syntax Tree
+- **Descriptor Building**: Generate `Google_Protobuf_FileDescriptorProto` compatible with SwiftProtobuf
+- **Dependency Resolution**: Handle `import` statements and multi-file dependencies
+- **Extend Statements**: Support for proto3 custom options (`extend google.protobuf.*`)
+- **Qualified Types**: Well-known types and nested message references
+- **Performance Caching**: Content-based caching with 85%+ hit rates
+- **Incremental Parsing**: Only re-parse changed files in large projects
+- **Streaming Support**: Memory-efficient parsing of large files (>50MB)
+
+## Supported Proto3 Features
+
+The library supports the complete proto3 specification including:
+
+### Core Features
 ```protobuf
 syntax = "proto3";
-
 package example.v1;
 
 import "google/protobuf/timestamp.proto";
-import "google/protobuf/duration.proto";
 
 // Messages with all field types
 message User {
@@ -104,12 +122,11 @@ message User {
     string street = 1;
     string city = 2;
   }
-  Address address = 6;
   
   // Oneof groups
   oneof contact {
-    string phone = 10;
-    string slack = 11;
+    string email = 10;
+    string phone = 11;
   }
 }
 
@@ -117,20 +134,17 @@ message User {
 enum Status {
   STATUS_UNSPECIFIED = 0;
   STATUS_ACTIVE = 1;
-  STATUS_INACTIVE = 2;
 }
 
-// Services with qualified types
+// Services with streaming
 service UserService {
   rpc GetUser(GetUserRequest) returns (User);
-  rpc CreateUser(CreateUserRequest) returns (google.protobuf.Empty);
-  rpc StreamUsers(google.protobuf.Empty) returns (stream User);
+  rpc StreamUsers(stream GetUserRequest) returns (stream User);
 }
 ```
 
-### Advanced Features (Extend Statements)
+### Custom Options (Extend)
 ```protobuf
-// Custom options with extend statements
 import "google/protobuf/descriptor.proto";
 
 extend google.protobuf.FileOptions {
@@ -141,110 +155,96 @@ extend google.protobuf.MessageOptions {
   bool enable_validation = 50002;
 }
 
-extend google.protobuf.FieldOptions {
-  string validation_rule = 50003;
-}
-
 option (api_version) = "v1.0";
 
 message ValidatedMessage {
   option (enable_validation) = true;
-  
-  string email = 1 [(validation_rule) = "email"];
-  int32 age = 2 [(validation_rule) = "min:0,max:150"];
+  string email = 1;
 }
 ```
 
-## 🏆 Quality Metrics
+## Performance Features
 
-| Metric | Value | Status |
-|--------|-------|---------|
-| **Test Success Rate** | **1086/1086** | ✅ **Perfect** |
-| **Line Coverage** | **95.01%** | ✅ **Excellent** |
-| **Function Coverage** | **93.00%** | ✅ **Very Good** |
-| **Region Coverage** | **91.84%** | ✅ **Excellent** |
-| **Performance** | **Sub-millisecond** | ✅ **Outstanding** |
-
-## ⚡ Performance
-
-| File Size | Parse Time | Memory Usage |
-|-----------|------------|--------------|
-| Small (< 10KB) | 0.1-2ms | < 1MB |
-| Medium (10-100KB) | 2-10ms | 1-5MB |
-| Large (100KB-1MB) | 10-50ms | 5-20MB |
-| Very Large (> 1MB) | 50-200ms | 20-50MB |
-
-**Performance Features:**
-- **85%+ cache hit rate** for repeated parsing
-- **Content-based caching** with automatic invalidation  
-- **Incremental parsing** for development workflows
-- **Parallel processing** for directory parsing
-- **Memory-efficient streaming** for large files
-
-## 🔧 API Reference
-
-### Core Parsing Methods
+### Caching
 ```swift
-// Basic parsing
-static func parseProtoFile(_ filePath: String) -> Result<ProtoAST, ProtoParseError>
-static func parseProtoString(_ content: String) -> Result<ProtoAST, ProtoParseError>
+// Enable automatic caching
+let result = SwiftProtoParser.parseProtoFileWithCaching("user.proto")
 
-// With dependencies
-static func parseProtoFileWithImports(_ filePath: String, importPaths: [String]) -> Result<ProtoAST, ProtoParseError>
-static func parseProtoDirectory(_ directoryPath: String, recursive: Bool) -> Result<[ProtoAST], ProtoParseError>
+// Check cache statistics
+let stats = SwiftProtoParser.getCacheStatistics()
+print("Cache hit rate: \(stats.astHitRate * 100)%")
+print("Memory usage: \(stats.totalMemoryUsage / 1024 / 1024) MB")
 
-// Descriptor generation (SwiftProtobuf compatible)
-static func parseProtoToDescriptors(_ filePath: String) -> Result<[Google_Protobuf_DescriptorProto], ProtoParseError>
-static func parseProtoStringToDescriptors(_ content: String) -> Result<[Google_Protobuf_DescriptorProto], ProtoParseError>
+// Clear caches
+SwiftProtoParser.clearPerformanceCaches()
 ```
 
-### Performance Methods
+### Incremental Parsing
 ```swift
-// Caching
-static func parseProtoFileWithCaching(_ filePath: String) -> Result<ProtoAST, ProtoParseError>
-static func getCacheStatistics() -> CacheStatistics
-static func clearPerformanceCaches()
-
-// Incremental parsing
-static func parseProtoDirectoryIncremental(_ directoryPath: String) -> Result<[String: ProtoAST], ProtoParseError>
-static func detectChanges(in directoryPath: String) -> ChangeSet
-
-// Streaming (for large files)
-static func parseProtoFileStreaming(_ filePath: String) -> AsyncSequence<Result<ProtoAST, ProtoParseError>>
+// Parse directory incrementally (only changed files)
+let result = SwiftProtoParser.parseProtoDirectoryIncremental(
+    "/path/to/proto/directory",
+    recursive: true
+)
 ```
 
-### Utility Methods
+### Benchmarking
 ```swift
-// Metadata extraction
-static func getProtoVersion(_ filePath: String) -> String?
-static func getPackageName(_ filePath: String) -> String?
-static func getMessageNames(_ filePath: String) -> [String]
-static func getServiceNames(_ filePath: String) -> [String]
-
-// Performance monitoring
-static func benchmarkPerformance(_ path: String) -> PerformanceBenchmark
+// Benchmark parsing performance
+let benchmark = SwiftProtoParser.benchmarkPerformance("/path/to/proto")
+print("Average parse time: \(benchmark.averageDuration * 1000)ms")
+print("Success rate: \(benchmark.successRate * 100)%")
 ```
 
-## 🛠️ Requirements
+## Requirements
 
-- **Swift 5.9+**
-- **macOS 12.0+**, **iOS 15.0+**, or **Linux (Ubuntu 20.04+)**
-- **SwiftProtobuf 1.29.0+** (for descriptor generation)
+- Swift 5.9+
+- macOS 12.0+ / iOS 15.0+ / watchOS 8.0+ / tvOS 15.0+
+- Linux (Ubuntu 20.04+)
 
-## 📖 Documentation
+## Dependencies
 
-- **[Architecture Guide](docs/ARCHITECTURE.md)** - Technical implementation details
-- **[Performance Guide](docs/PERFORMANCE_GUIDE.md)** - Optimization techniques
-- **[Quick Reference](docs/QUICK_REFERENCE.md)** - Common patterns and API summary
+- [SwiftProtobuf](https://github.com/apple/swift-protobuf) 1.29.0+ (for descriptor generation)
 
-## 🤝 Contributing
+## Documentation
 
-We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
+- **[Architecture Guide](docs/ARCHITECTURE.md)**: Technical implementation details and module design
+- **[Performance Guide](docs/PERFORMANCE_GUIDE.md)**: Caching, incremental parsing, and optimization
+- **[Quick Reference](docs/QUICK_REFERENCE.md)**: API summary and common patterns
 
-## 📄 License
+## Use Cases
 
-SwiftProtoParser is released under the [MIT License](LICENSE).
+- Protocol Buffer code generators for Swift
+- Schema validation and linting tools
+- API documentation generators from `.proto` files
+- Proto file analysis and visualization tools
+- Dynamic proto file processing without `protoc`
+- Build systems requiring schema introspection
 
----
+## Testing
 
-**Built with ❤️ by [truewebber](https://truewebber.com)**
+The library has comprehensive test coverage with 1094 tests covering all functionality:
+
+```bash
+# Run all tests
+swift test
+
+# Run with coverage
+make test
+make coverage
+```
+
+Test coverage: **95.21%** (lines), **92.99%** (functions), **92.30%** (regions)
+
+## Contributing
+
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on:
+
+- Code style and formatting
+- Testing requirements (90%+ coverage for new code)
+- Pull request process
+- Development workflow
+
+## License
+
+MIT License. See [LICENSE](LICENSE) for details.

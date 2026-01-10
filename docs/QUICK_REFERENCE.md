@@ -1,11 +1,11 @@
 # QUICK REFERENCE - Swift ProtoParser
 
-## 🏗️ ARCHITECTURE OVERVIEW
+## ARCHITECTURE OVERVIEW
 ```
 .proto files → DependencyResolver → Lexer → Parser → DescriptorBuilder → ProtoDescriptors
 ```
 
-## 📦 MODULES & RESPONSIBILITIES
+## MODULES & RESPONSIBILITIES
 
 ### 1. Core
 - **What**: Common types, errors, utilities
@@ -37,14 +37,14 @@
 - **Key files**: `SwiftProtoParser.swift`
 - **Dependencies**: All modules
 
-## 🎯 KEY CONSTRAINTS
+## KEY CONSTRAINTS
 - **Swift 5.9+** minimum
 - **Proto3 only** (no Proto2)
 - **95% test coverage** required
 - **Performance**: within 20% of protoc
 - **Zero external dependencies** except swift-protobuf
 
-## ✅ SUPPORTED FEATURES
+## SUPPORTED FEATURES
 - **Complete Proto3 syntax** including extend statements
 - **Extend support** for proto3 custom options (`extend google.protobuf.*`)
 - **Qualified types** (`google.protobuf.Timestamp`, nested types)
@@ -52,7 +52,7 @@
 - **Services & RPCs** with full gRPC support
 - **Comprehensive error handling** with precise location information
 
-## 🔧 MAIN PUBLIC API
+## MAIN PUBLIC API
 ```swift
 // Simple case - single file
 SwiftProtoParser.parseProtoFile(_ filePath: String) -> Result<ProtoDescriptor, ProtoParseError>
@@ -70,13 +70,8 @@ SwiftProtoParser.parseProtoDirectory(
 ) -> Result<[ProtoDescriptor], ProtoParseError>
 ```
 
-## 🧪 TESTING STRATEGY
+## TESTING STRATEGY
 - Unit tests per module
 - Integration tests for full pipeline
 - Performance benchmarks
 - Test resources in `Tests/TestResources/`
-
-## 📊 PRODUCTION STATUS
-- **1086/1086 tests** passing (100% success)
-- **95.01% code coverage** achieved
-- **Ready for v1.0 release** - production quality

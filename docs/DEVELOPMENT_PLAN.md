@@ -4,7 +4,7 @@
 1. Read `PROJECT_STATUS.md` - check CURRENT FOCUS
 2. If first time - run `make setup` to create folder structure
 3. Check module docs in `docs/modules/` for implementation details
-4. Update `PROJECT_STATUS.md` at end of session
+4. Update `PROJECT_STATUS.md` at end of session (create if there's no one)
 
 ## 📁 PROJECT STRUCTURE (run `make setup` to create)
 ```
@@ -74,11 +74,8 @@ swift-protoparser/
 4. **CI/CD setup** ✅
 
 ## ⚡ QUICK COMMANDS
-- `make start-session` - Begin work (shows status + reference)
-- `make status` - Check current progress
-- `make quick-ref` - Show architecture overview
+- `make lint` - check code
 - `make test` - Run all tests
-- `make build` - Build project
 
 ## 🎯 FOCUS RULES
 - **Single module at a time** - Complete one before starting next
