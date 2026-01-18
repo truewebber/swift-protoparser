@@ -93,6 +93,7 @@ case .failure(let error):
 - **Descriptor Building**: Generate `Google_Protobuf_FileDescriptorProto` compatible with SwiftProtobuf
 - **Dependency Resolution**: Handle `import` statements and multi-file dependencies
 - **Extend Statements**: Support for proto3 custom options (`extend google.protobuf.*`)
+- **Scope-Aware Enum Resolution**: Strict protobuf scoping rules enforcement (matches `protoc` behavior)
 - **Qualified Types**: Well-known types and nested message references
 - **Performance Caching**: Content-based caching with 85%+ hit rates
 - **Incremental Parsing**: Only re-parse changed files in large projects
@@ -223,7 +224,7 @@ print("Success rate: \(benchmark.successRate * 100)%")
 
 ## Testing
 
-The library has comprehensive test coverage with 1094 tests covering all functionality:
+The library has comprehensive test coverage with 1120 tests covering all functionality:
 
 ```bash
 # Run all tests
@@ -234,7 +235,7 @@ make test
 make coverage
 ```
 
-Test coverage: **95.21%** (lines), **92.99%** (functions), **92.30%** (regions)
+Test coverage: **95.32%** (lines), **93.20%** (functions), **92.44%** (regions)
 
 ## Contributing
 
