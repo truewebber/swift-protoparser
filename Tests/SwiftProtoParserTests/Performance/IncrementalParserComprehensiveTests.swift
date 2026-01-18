@@ -492,37 +492,37 @@ final class IncrementalParserComprehensiveTests: XCTestCase {
   func testParseStreamingFileHuge() throws {
     // Test large file streaming path by creating a file bigger than maxInMemorySize
     let streamingConfig = IncrementalParser.Configuration(
-      maxInMemorySize: 1024, // 1KB - very small to trigger streaming
+      maxInMemorySize: 1024,  // 1KB - very small to trigger streaming
       streamingChunkSize: 256,
       maxParallelFiles: 2,
       enableChangeDetection: true,
       enableResultCaching: true
     )
-    
+
     let streamingParser = IncrementalParser(configuration: streamingConfig, cache: performanceCache)
-    
+
     // Create a large proto file content (bigger than 1KB)
     var largeContent = """
       syntax = "proto3";
       package huge.test;
-      
+
       message HugeMessage {
       """
-    
+
     // Add many fields to make it large
     for i in 1...100 {
       largeContent += "  string field\(i) = \(i);\n"
     }
     largeContent += "}\n"
-    
+
     let hugeFile = tempDir.appendingPathComponent("huge.proto")
     try largeContent.write(to: hugeFile, atomically: true, encoding: .utf8)
-    
+
     // This should trigger parseFileInChunks due to small maxInMemorySize
     // It might fail due to memory limits, which is expected behavior
     do {
       let result = try streamingParser.parseStreamingFile(hugeFile.path)
-      
+
       switch result {
       case .success(let ast):
         XCTAssertEqual(ast.package, "huge.test")
@@ -532,7 +532,8 @@ final class IncrementalParserComprehensiveTests: XCTestCase {
       case .failure:
         XCTAssertTrue(true, "Large file correctly failed due to streaming limits")
       }
-    } catch {
+    }
+    catch {
       // parseFileInChunks was called and threw an error due to memory limits
       // This is the expected behavior and tests the streaming code path
       XCTAssertTrue(true, "Streaming parser correctly threw error for oversized file")
@@ -557,11 +558,11 @@ final class IncrementalParserComprehensiveTests: XCTestCase {
     // Parse the same file again with same content - should hit cache
     let changeSet2 = try incrementalParser.detectChanges(in: tempDir.path, recursive: false)
     _ = try incrementalParser.parseIncremental(changeSet: changeSet2)
-    
+
     // Should be empty since no changes detected, but let's force a cache hit
     // by directly calling parseStreamingFile on the same content
     let result = try incrementalParser.parseStreamingFile(cacheFile.path)
-    
+
     switch result {
     case .success(let ast):
       XCTAssertEqual(ast.package, "cache.test")
@@ -575,7 +576,7 @@ final class IncrementalParserComprehensiveTests: XCTestCase {
     let protoWithoutImports = """
       syntax = "proto3";
       package deps.test;
-      
+
       message MessageWithDeps {
         string created_at = 1;
         string name = 2;
@@ -588,9 +589,9 @@ final class IncrementalParserComprehensiveTests: XCTestCase {
     // Parse file to extract dependencies (tests internal dependency extraction)
     let changeSet = try incrementalParser.detectChanges(in: tempDir.path, recursive: false)
     let results = try incrementalParser.parseIncremental(changeSet: changeSet)
-    
+
     XCTAssertEqual(results.count, 1)
-    
+
     // Verify the file was parsed successfully (dependency extraction happens internally)
     switch results.values.first! {
     case .success(let ast):
@@ -604,11 +605,12 @@ final class IncrementalParserComprehensiveTests: XCTestCase {
   func testErrorPathsAndEdgeCases() throws {
     // Test file that doesn't exist during change detection
     let nonExistentDir = tempDir.appendingPathComponent("nonexistent")
-    
+
     do {
       _ = try incrementalParser.detectChanges(in: nonExistentDir.path, recursive: false)
       XCTFail("Should fail for non-existent directory")
-    } catch {
+    }
+    catch {
       // Expected error path
       XCTAssertTrue(true, "Correctly failed for non-existent directory")
     }
@@ -626,7 +628,7 @@ final class IncrementalParserComprehensiveTests: XCTestCase {
     let results = try incrementalParser.parseIncremental(changeSet: changeSet)
 
     XCTAssertEqual(results.count, 1)
-    
+
     // Should have parsing error
     switch results.values.first! {
     case .success:
@@ -640,16 +642,17 @@ final class IncrementalParserComprehensiveTests: XCTestCase {
     // Test error in recursive enumeration by creating a file with restricted permissions
     let restrictedDir = tempDir.appendingPathComponent("restricted")
     try! FileManager.default.createDirectory(at: restrictedDir, withIntermediateDirectories: true)
-    
+
     // Create a file in the restricted directory first
     let protoFile = restrictedDir.appendingPathComponent("test.proto")
     try! "syntax = \"proto3\";".write(to: protoFile, atomically: true, encoding: .utf8)
-    
+
     do {
       // This should work normally
       let changeSet = try incrementalParser.detectChanges(in: restrictedDir.path, recursive: true)
       XCTAssertGreaterThanOrEqual(changeSet.addedFiles.count, 0)
-    } catch {
+    }
+    catch {
       // If we can't access the directory, that's an expected error path
       XCTAssertTrue(true, "Directory access error is expected in some environments")
     }
@@ -658,23 +661,23 @@ final class IncrementalParserComprehensiveTests: XCTestCase {
   func testMemoryLimitExceeded() throws {
     // Test scenario where memory limit would be exceeded during streaming
     let veryTinyConfig = IncrementalParser.Configuration(
-      maxInMemorySize: 10, // 10 bytes - impossibly small
+      maxInMemorySize: 10,  // 10 bytes - impossibly small
       streamingChunkSize: 5,
       maxParallelFiles: 1,
       enableChangeDetection: true,
       enableResultCaching: false
     )
-    
+
     let tinyParser = IncrementalParser(configuration: veryTinyConfig, cache: performanceCache)
-    
+
     let contentLargerThanLimit = """
       syntax = "proto3";
       message TinyTest { string data = 1; }
       """
-    
+
     let tinyFile = tempDir.appendingPathComponent("tiny_limit.proto")
     try contentLargerThanLimit.write(to: tinyFile, atomically: true, encoding: .utf8)
-    
+
     // This should either succeed with in-memory parsing or potentially fail with memory limit
     do {
       let result = try tinyParser.parseStreamingFile(tinyFile.path)
@@ -684,7 +687,8 @@ final class IncrementalParserComprehensiveTests: XCTestCase {
       case .failure:
         XCTAssertTrue(true, "Failed as expected due to memory constraints")
       }
-    } catch {
+    }
+    catch {
       // Error is expected with such a tiny memory limit
       XCTAssertTrue(true, "Error expected with impossibly small memory limit")
     }
@@ -709,10 +713,10 @@ final class IncrementalParserComprehensiveTests: XCTestCase {
 
     // Second detection - should show as removed
     let secondChangeSet = try incrementalParser.detectChanges(in: tempDir.path, recursive: false)
-    
+
     // Process the changeSet with removed files to trigger the removal code path
     let results = try incrementalParser.parseIncremental(changeSet: secondChangeSet)
-    
+
     // Results should be empty since we're only removing files
     XCTAssertTrue(results.isEmpty)
     XCTAssertEqual(secondChangeSet.removedFiles.count, 1)
@@ -730,14 +734,14 @@ final class IncrementalParserComprehensiveTests: XCTestCase {
 
     // First time seeing this file - should trigger the "new file" path
     let changeSet = try incrementalParser.detectChanges(in: tempDir.path, recursive: false)
-    
+
     XCTAssertEqual(changeSet.addedFiles.count, 1)
     XCTAssertTrue(changeSet.addedFiles.contains(newFile.path))
-    
+
     // Parse it to complete the cycle
     let results = try incrementalParser.parseIncremental(changeSet: changeSet)
     XCTAssertEqual(results.count, 1)
-    
+
     // Verify successful parsing
     switch results.values.first! {
     case .success(let ast):

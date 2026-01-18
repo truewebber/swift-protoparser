@@ -39,7 +39,11 @@ public final class Parser {
       let ast = try parseProtoFile()
 
       if state.errors.isEmpty {
-        return .success(ast)
+        // Resolve enum field types (convert .message to .enumType where appropriate)
+        let resolver = EnumFieldTypeResolver(ast: ast)
+        let resolvedAST = resolver.resolveFieldTypes()
+
+        return .success(resolvedAST)
       }
       else {
         return .failure(ParserErrors(state.errors))

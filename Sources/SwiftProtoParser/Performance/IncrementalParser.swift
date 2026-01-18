@@ -358,7 +358,7 @@ public final class IncrementalParser {
     // Use a simple sequential approach to avoid all concurrency warnings
     // while still benefiting from parallel processing at the batch level
     var batchResults: [String: Result<ProtoAST, ProtoParseError>] = [:]
-    
+
     for filePath in batch {
       let result = parseFileWithCaching(filePath, importPaths: importPaths)
       batchResults[filePath] = result
@@ -506,41 +506,40 @@ public final class IncrementalParser {
 
   private func getCurrentMemoryUsage() -> Int64 {
     #if os(macOS) || os(iOS) || os(watchOS) || os(tvOS)
-    var info = mach_task_basic_info()
-    var count = mach_msg_type_number_t(MemoryLayout<mach_task_basic_info>.size) / 4
+      var info = mach_task_basic_info()
+      var count = mach_msg_type_number_t(MemoryLayout<mach_task_basic_info>.size) / 4
 
-    let kerr: kern_return_t = withUnsafeMutablePointer(to: &info) {
-      $0.withMemoryRebound(to: integer_t.self, capacity: 1) {
-        task_info(mach_task_self_, task_flavor_t(MACH_TASK_BASIC_INFO), $0, &count)
+      let kerr: kern_return_t = withUnsafeMutablePointer(to: &info) {
+        $0.withMemoryRebound(to: integer_t.self, capacity: 1) {
+          task_info(mach_task_self_, task_flavor_t(MACH_TASK_BASIC_INFO), $0, &count)
+        }
       }
-    }
 
-    if kerr == KERN_SUCCESS {
-      return Int64(info.resident_size)
-    }
+      if kerr == KERN_SUCCESS {
+        return Int64(info.resident_size)
+      }
 
-    return 0
+      return 0
     #elseif os(Linux)
-    // Use /proc/self/status on Linux
-    do {
-      let statusContent = try String(contentsOfFile: "/proc/self/status", encoding: .utf8)
-      let lines = statusContent.components(separatedBy: .newlines)
-      
-      for line in lines {
-        if line.hasPrefix("VmRSS:") {
+      // Use /proc/self/status on Linux
+      do {
+        let statusContent = try String(contentsOfFile: "/proc/self/status", encoding: .utf8)
+        let lines = statusContent.components(separatedBy: .newlines)
+
+        for line in lines where line.hasPrefix("VmRSS:") {
           let components = line.components(separatedBy: .whitespaces).compactMap(Int.init)
           if let memoryKB = components.first {
-            return Int64(memoryKB * 1024) // Convert KB to bytes
+            return Int64(memoryKB * 1024)  // Convert KB to bytes
           }
         }
       }
-    } catch {
-      // Fallback if /proc/self/status is not available
-    }
-    return 0
+      catch {
+        // Fallback if /proc/self/status is not available
+      }
+      return 0
     #else
-    // Fallback for other platforms
-    return 0
+      // Fallback for other platforms
+      return 0
     #endif
   }
 
