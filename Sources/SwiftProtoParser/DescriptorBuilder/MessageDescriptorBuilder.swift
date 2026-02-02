@@ -18,6 +18,10 @@ struct MessageDescriptorBuilder {
       messageProto.field.append(fieldProto)
     }
 
+    // Generate synthetic map entry messages for map fields
+    let mapEntryMessages = try generateMapEntryMessages(from: messageNode.fields, packageName: packageName)
+    messageProto.nestedType.append(contentsOf: mapEntryMessages)
+
     // Convert nested messages
     for nestedMessage in messageNode.nestedMessages {
       let nestedProto = try build(from: nestedMessage, packageName: packageName)
@@ -195,5 +199,158 @@ struct MessageDescriptorBuilder {
     }
 
     return oneofOptions
+  }
+
+  // MARK: - Map Entry Message Generation
+
+  /// Generate synthetic entry messages for map fields.
+  ///
+  /// According to the Protocol Buffers specification, map fields are syntactic sugar
+  /// for a repeated nested message. This method generates those synthetic entry messages.
+  ///
+  /// For example, `map<string, int32> counts = 1;` generates:
+  /// ```
+  /// message CountsEntry {
+  ///   option map_entry = true;
+  ///   string key = 1;
+  ///   int32 value = 2;
+  /// }
+  /// ```
+  ///
+  /// - Parameters:
+  ///   - fields: Array of field nodes to scan for map types
+  ///   - packageName: Optional package name for type resolution
+  /// - Returns: Array of generated entry message descriptors
+  private static func generateMapEntryMessages(
+    from fields: [FieldNode],
+    packageName: String?
+  ) throws -> [Google_Protobuf_DescriptorProto] {
+    var entryMessages: [Google_Protobuf_DescriptorProto] = []
+
+    for field in fields {
+      // Only process map fields
+      guard case .map(let keyType, let valueType) = field.type else {
+        continue
+      }
+
+      // Generate entry message name: capitalize first letter + "Entry"
+      let entryName = field.name.prefix(1).uppercased() + field.name.dropFirst() + "Entry"
+
+      var entryMessage = Google_Protobuf_DescriptorProto()
+      entryMessage.name = entryName
+
+      // Set map_entry option to true
+      var messageOptions = Google_Protobuf_MessageOptions()
+      messageOptions.mapEntry = true
+      entryMessage.options = messageOptions
+
+      // Create key field (field number 1)
+      var keyField = Google_Protobuf_FieldDescriptorProto()
+      keyField.name = "key"
+      keyField.number = 1
+      keyField.label = .optional
+      try setFieldTypeAndName(&keyField, fieldType: keyType, packageName: packageName)
+
+      // Create value field (field number 2)
+      var valueField = Google_Protobuf_FieldDescriptorProto()
+      valueField.name = "value"
+      valueField.number = 2
+      valueField.label = .optional
+      try setFieldTypeAndName(&valueField, fieldType: valueType, packageName: packageName)
+
+      // Add fields to entry message
+      entryMessage.field = [keyField, valueField]
+
+      entryMessages.append(entryMessage)
+    }
+
+    return entryMessages
+  }
+
+  /// Set field type and type name in a FieldDescriptorProto based on FieldType.
+  ///
+  /// - Parameters:
+  ///   - fieldProto: Field descriptor to modify
+  ///   - fieldType: AST field type
+  ///   - packageName: Optional package name for type resolution
+  private static func setFieldTypeAndName(
+    _ fieldProto: inout Google_Protobuf_FieldDescriptorProto,
+    fieldType: FieldType,
+    packageName: String?
+  ) throws {
+    switch fieldType {
+    // Scalar types
+    case .double:
+      fieldProto.type = .double
+    case .float:
+      fieldProto.type = .float
+    case .int32:
+      fieldProto.type = .int32
+    case .int64:
+      fieldProto.type = .int64
+    case .uint32:
+      fieldProto.type = .uint32
+    case .uint64:
+      fieldProto.type = .uint64
+    case .sint32:
+      fieldProto.type = .sint32
+    case .sint64:
+      fieldProto.type = .sint64
+    case .fixed32:
+      fieldProto.type = .fixed32
+    case .fixed64:
+      fieldProto.type = .fixed64
+    case .sfixed32:
+      fieldProto.type = .sfixed32
+    case .sfixed64:
+      fieldProto.type = .sfixed64
+    case .bool:
+      fieldProto.type = .bool
+    case .string:
+      fieldProto.type = .string
+    case .bytes:
+      fieldProto.type = .bytes
+
+    // Complex types
+    case .message(let typeName):
+      fieldProto.type = .message
+      fieldProto.typeName = buildFullyQualifiedTypeName(typeName, packageName: packageName)
+
+    case .enumType(let typeName):
+      fieldProto.type = .enum
+      fieldProto.typeName = buildFullyQualifiedTypeName(typeName, packageName: packageName)
+
+    case .qualifiedType(let qualifiedName):
+      // For qualified types like google.protobuf.Timestamp, assume it's a message type
+      fieldProto.type = .message
+      // Qualified names are already fully qualified, just add leading dot if missing
+      fieldProto.typeName = qualifiedName.hasPrefix(".") ? qualifiedName : ".\(qualifiedName)"
+
+    case .map(_, _):
+      // Maps should not appear as key or value types in map entries
+      // This is invalid in proto3
+      throw DescriptorError.invalidMapType("Map cannot be used as key or value type in another map")
+    }
+  }
+
+  /// Build fully qualified type name with package prefix.
+  ///
+  /// - Parameters:
+  ///   - typeName: Type name to qualify
+  ///   - packageName: Optional package name
+  /// - Returns: Fully qualified type name with leading dot
+  private static func buildFullyQualifiedTypeName(_ typeName: String, packageName: String?) -> String {
+    // If already starts with dot, it's already fully qualified
+    if typeName.hasPrefix(".") {
+      return typeName
+    }
+
+    // Build fully qualified name
+    if let package = packageName, !package.isEmpty {
+      return ".\(package).\(typeName)"
+    }
+    else {
+      return ".\(typeName)"
+    }
   }
 }

@@ -17,7 +17,7 @@ Add to your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/truewebber/swift-protoparser.git", from: "0.1.0")
+    .package(url: "https://github.com/truewebber/swift-protoparser.git", from: "0.3.0")
 ]
 ```
 
@@ -91,6 +91,7 @@ case .failure(let error):
 - **Complete Proto3 Support**: All standard proto3 syntax and semantics
 - **AST Generation**: Parse files into structured Abstract Syntax Tree
 - **Descriptor Building**: Generate `Google_Protobuf_FileDescriptorProto` compatible with SwiftProtobuf
+- **Map Fields**: Full support for map types with automatic synthetic entry message generation (protoc-compatible)
 - **Dependency Resolution**: Handle `import` statements and multi-file dependencies
 - **Extend Statements**: Support for proto3 custom options (`extend google.protobuf.*`)
 - **Scope-Aware Enum Resolution**: Strict protobuf scoping rules enforcement (matches `protoc` behavior)
@@ -199,7 +200,7 @@ print("Success rate: \(benchmark.successRate * 100)%")
 
 ## Requirements
 
-- Swift 5.9+
+- Swift 5.10+
 - macOS 12.0+ / iOS 15.0+ / watchOS 8.0+ / tvOS 15.0+
 - Linux (Ubuntu 20.04+)
 

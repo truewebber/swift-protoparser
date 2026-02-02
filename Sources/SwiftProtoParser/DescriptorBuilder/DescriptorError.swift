@@ -17,6 +17,9 @@ public enum DescriptorError: LocalizedError, Equatable {
   /// Unsupported feature for descriptor conversion.
   case unsupportedFeature(feature: String, context: String)
 
+  /// Invalid map type configuration.
+  case invalidMapType(String)
+
   /// Internal error during descriptor building.
   case internalError(message: String)
 
@@ -32,6 +35,8 @@ public enum DescriptorError: LocalizedError, Equatable {
       return "Duplicate \(type) '\(name)' found during conversion"
     case .unsupportedFeature(let feature, let context):
       return "Unsupported feature '\(feature)' in \(context)"
+    case .invalidMapType(let message):
+      return "Invalid map type: \(message)"
     case .internalError(let message):
       return "Internal descriptor builder error: \(message)"
     }

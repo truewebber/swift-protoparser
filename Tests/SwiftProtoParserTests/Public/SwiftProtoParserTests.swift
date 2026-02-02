@@ -599,9 +599,31 @@ final class SwiftProtoParserTests: XCTestCase {
       let outerMessage = fileDescriptor.messageType[0]
       XCTAssertEqual(outerMessage.name, "Outer")
 
-      // Check nested type
-      XCTAssertEqual(outerMessage.nestedType.count, 1)
-      XCTAssertEqual(outerMessage.nestedType[0].name, "Inner")
+      // Check nested types (Inner + CountsEntry for map)
+      XCTAssertEqual(outerMessage.nestedType.count, 2)
+
+      // Verify CountsEntry (synthetic map entry message)
+      let countsEntry = outerMessage.nestedType.first { $0.name == "CountsEntry" }
+      XCTAssertNotNil(countsEntry, "CountsEntry should be generated for map field")
+      XCTAssertTrue(countsEntry?.options.mapEntry ?? false, "CountsEntry should have map_entry = true")
+      XCTAssertEqual(countsEntry?.field.count, 2, "CountsEntry should have 2 fields (key and value)")
+
+      // Verify key field in CountsEntry
+      let keyField = countsEntry?.field.first { $0.name == "key" }
+      XCTAssertEqual(keyField?.number, 1)
+      XCTAssertEqual(keyField?.type, .string)
+      XCTAssertEqual(keyField?.label, .optional)
+
+      // Verify value field in CountsEntry
+      let valueField = countsEntry?.field.first { $0.name == "value" }
+      XCTAssertEqual(valueField?.number, 2)
+      XCTAssertEqual(valueField?.type, .int32)
+      XCTAssertEqual(valueField?.label, .optional)
+
+      // Verify Inner nested message
+      let innerMessage = outerMessage.nestedType.first { $0.name == "Inner" }
+      XCTAssertNotNil(innerMessage, "Inner nested message should exist")
+      XCTAssertEqual(innerMessage?.field.count, 1)
 
       // Check fields
       XCTAssertEqual(outerMessage.field.count, 3)

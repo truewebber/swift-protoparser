@@ -117,6 +117,7 @@ SwiftProtoParser/
 - Integration with `Google.Protobuf.*` types
 - Semantic validation
 - **Extend Processing**: Processing extend statements into descriptors
+- **Map Field Support**: Automatic generation of synthetic entry messages for map fields (protoc-compatible)
 
 #### Public Module
 **Responsibility**: Public API
@@ -172,6 +173,72 @@ public struct ExtendNode {
 - `google.protobuf.MethodOptions`
 - `google.protobuf.EnumOptions`
 - `google.protobuf.EnumValueOptions`
+
+## 3.4 Map Fields Support Architecture
+
+### 3.4.1 Map Fields Overview
+SwiftProtoParser provides full support for Protocol Buffers map types with automatic generation of synthetic entry messages, matching `protoc` behavior exactly.
+
+```protobuf
+syntax = "proto3";
+
+message DataRequest {
+  map<string, string> metadata = 4;
+  map<string, UserInfo> users = 5;
+}
+```
+
+### 3.4.2 Map Field Implementation
+
+According to the Protocol Buffers specification, `map<K, V>` fields are syntactic sugar for a repeated nested message:
+
+```protobuf
+// This proto syntax:
+message DataRequest {
+  map<string, string> metadata = 4;
+}
+
+// Is equivalent to:
+message DataRequest {
+  message MetadataEntry {
+    option map_entry = true;
+    string key = 1;
+    string value = 2;
+  }
+  repeated MetadataEntry metadata = 4;
+}
+```
+
+### 3.4.3 Descriptor Generation
+
+**MessageDescriptorBuilder** automatically generates synthetic entry messages for map fields:
+
+1. **Detection**: Scans all fields in a message for `.map(key, value)` type
+2. **Entry Generation**: Creates a nested message named `{FieldName}Entry`:
+   - Sets `options.map_entry = true`
+   - Adds `key` field (number 1, label .optional)
+   - Adds `value` field (number 2, label .optional)
+3. **Type Conversion**: Converts AST field types to protobuf types for key/value
+4. **Integration**: Adds entry message to parent's `nestedType` array
+
+### 3.4.4 Supported Map Key Types
+Per Protocol Buffers specification:
+- All integer types: `int32`, `int64`, `uint32`, `uint64`, `sint32`, `sint64`, `fixed32`, `fixed64`, `sfixed32`, `sfixed64`
+- `bool`
+- `string`
+
+### 3.4.5 Supported Map Value Types
+- All scalar types (int32, int64, uint32, uint64, sint32, sint64, fixed32, fixed64, sfixed32, sfixed64, float, double, bool, string, bytes)
+- Message types
+- Enum types
+- Qualified types (e.g., `google.protobuf.Timestamp`)
+
+**Note**: Maps with map values (`map<K, map<K2, V>>`) are invalid in proto3 and will throw `DescriptorError.invalidMapType`.
+
+### 3.4.6 Compatibility
+- **protoc Compatible**: Generated descriptors match `protoc --descriptor_set_out` output exactly
+- **SwiftProtobuf Compatible**: Works seamlessly with SwiftProtobuf descriptor types
+- **Type Resolution**: Fully qualified type names for message/enum values in packages
 
 ## 4. API Design
 
