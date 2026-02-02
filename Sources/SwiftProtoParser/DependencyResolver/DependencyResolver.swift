@@ -6,7 +6,7 @@ public class DependencyResolver {
   // MARK: - Types
 
   /// Configuration options for dependency resolution.
-  public struct Options {
+  public struct Options: Sendable {
     /// Whether to allow missing imports (skip them instead of failing).
     public let allowMissingImports: Bool
 
@@ -48,7 +48,7 @@ public class DependencyResolver {
   }
 
   /// Result of dependency resolution.
-  public struct ResolutionResult {
+  public struct ResolutionResult: Sendable {
     /// The main file that was resolved.
     public let mainFile: ResolvedProtoFile
 
@@ -66,7 +66,7 @@ public class DependencyResolver {
   }
 
   /// Statistics about the resolution process.
-  public struct ResolutionStats {
+  public struct ResolutionStats: Sendable {
     /// Total number of files resolved.
     public let totalFiles: Int
 

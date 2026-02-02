@@ -47,7 +47,7 @@ public final class PerformanceCache {
   // MARK: - Configuration
 
   /// Cache configuration settings.
-  public struct Configuration {
+  public struct Configuration: Sendable {
     /// Maximum number of AST entries to cache.
     public let maxASTEntries: Int
 
@@ -65,6 +65,23 @@ public final class PerformanceCache {
 
     /// Enable performance monitoring.
     public let enableMonitoring: Bool
+    
+    /// Initialize cache configuration.
+    public init(
+      maxASTEntries: Int,
+      maxDescriptorEntries: Int,
+      maxDependencyEntries: Int,
+      maxMemoryUsage: Int64,
+      timeToLive: TimeInterval,
+      enableMonitoring: Bool
+    ) {
+      self.maxASTEntries = maxASTEntries
+      self.maxDescriptorEntries = maxDescriptorEntries
+      self.maxDependencyEntries = maxDependencyEntries
+      self.maxMemoryUsage = maxMemoryUsage
+      self.timeToLive = timeToLive
+      self.enableMonitoring = enableMonitoring
+    }
 
     /// Default configuration.
     public static let `default` = Configuration(
@@ -105,12 +122,12 @@ public final class PerformanceCache {
 
   private let configuration: Configuration
   private let queue = DispatchQueue(label: "com.swiftprotoparser.cache", attributes: .concurrent)
-  private var monitoringTimer: Timer?
+  private var monitoringTask: Task<Void, Never>?
 
   // MARK: - Performance Metrics
 
   /// Cache performance statistics.
-  public struct Statistics {
+  public struct Statistics: Sendable {
     public let astCacheHits: Int
     public let astCacheMisses: Int
     public let descriptorCacheHits: Int
@@ -176,24 +193,25 @@ public final class PerformanceCache {
         entry.contentHash == contentHash,
         !isExpired(entry.createdAt)
       else {
-        updateStats { stats in
-          stats = Statistics(
-            astCacheHits: stats.astCacheHits,
-            astCacheMisses: stats.astCacheMisses + 1,
-            descriptorCacheHits: stats.descriptorCacheHits,
-            descriptorCacheMisses: stats.descriptorCacheMisses,
-            dependencyCacheHits: stats.dependencyCacheHits,
-            dependencyCacheMisses: stats.dependencyCacheMisses,
-            totalMemoryUsage: stats.totalMemoryUsage,
-            evictionCount: stats.evictionCount,
-            averageParseTime: stats.averageParseTime,
-            averageBuildTime: stats.averageBuildTime
-          )
-        }
+        // Miss - update stats synchronously for immediate feedback
+        var newStats = stats
+        newStats = Statistics(
+          astCacheHits: newStats.astCacheHits,
+          astCacheMisses: newStats.astCacheMisses + 1,
+          descriptorCacheHits: newStats.descriptorCacheHits,
+          descriptorCacheMisses: newStats.descriptorCacheMisses,
+          dependencyCacheHits: newStats.dependencyCacheHits,
+          dependencyCacheMisses: newStats.dependencyCacheMisses,
+          totalMemoryUsage: newStats.totalMemoryUsage,
+          evictionCount: newStats.evictionCount,
+          averageParseTime: newStats.averageParseTime,
+          averageBuildTime: newStats.averageBuildTime
+        )
+        stats = newStats
         return nil
       }
 
-      // Update access statistics
+      // Hit - update entry and stats
       let updatedEntry = ASTCacheEntry(
         ast: entry.ast,
         contentHash: entry.contentHash,
@@ -205,20 +223,20 @@ public final class PerformanceCache {
       )
       astCache[filePath] = updatedEntry
 
-      updateStats { stats in
-        stats = Statistics(
-          astCacheHits: stats.astCacheHits + 1,
-          astCacheMisses: stats.astCacheMisses,
-          descriptorCacheHits: stats.descriptorCacheHits,
-          descriptorCacheMisses: stats.descriptorCacheMisses,
-          dependencyCacheHits: stats.dependencyCacheHits,
-          dependencyCacheMisses: stats.dependencyCacheMisses,
-          totalMemoryUsage: stats.totalMemoryUsage,
-          evictionCount: stats.evictionCount,
-          averageParseTime: stats.averageParseTime,
-          averageBuildTime: stats.averageBuildTime
-        )
-      }
+      var newStats = stats
+      newStats = Statistics(
+        astCacheHits: newStats.astCacheHits + 1,
+        astCacheMisses: newStats.astCacheMisses,
+        descriptorCacheHits: newStats.descriptorCacheHits,
+        descriptorCacheMisses: newStats.descriptorCacheMisses,
+        dependencyCacheHits: newStats.dependencyCacheHits,
+        dependencyCacheMisses: newStats.dependencyCacheMisses,
+        totalMemoryUsage: newStats.totalMemoryUsage,
+        evictionCount: newStats.evictionCount,
+        averageParseTime: newStats.averageParseTime,
+        averageBuildTime: newStats.averageBuildTime
+      )
+      stats = newStats
 
       return entry.ast
     }
@@ -238,21 +256,19 @@ public final class PerformanceCache {
     fileSize: Int64,
     parseTime: TimeInterval
   ) {
-    queue.async(flags: .barrier) {
-      let entry = ASTCacheEntry(
-        ast: ast,
-        contentHash: contentHash,
-        fileSize: fileSize,
-        parseTime: parseTime,
-        createdAt: Date(),
-        accessCount: 1,
-        lastAccessed: Date()
-      )
+    let entry = ASTCacheEntry(
+      ast: ast,
+      contentHash: contentHash,
+      fileSize: fileSize,
+      parseTime: parseTime,
+      createdAt: Date(),
+      accessCount: 1,
+      lastAccessed: Date()
+    )
 
-      self.astCache[filePath] = entry
-      self.enforceASTCacheLimits()
-      self.updateAverageParseTime(parseTime)
-    }
+    astCache[filePath] = entry
+    enforceASTCacheLimits()
+    updateAverageParseTime(parseTime)
   }
 
   // MARK: - Descriptor Caching
@@ -263,46 +279,16 @@ public final class PerformanceCache {
   ///   - contentHash: Hash of the file content.
   /// - Returns: Cached descriptor if available and valid.
   public func getCachedDescriptor(for filePath: String, contentHash: String) -> Google_Protobuf_FileDescriptorProto? {
-    return queue.sync {
-      guard let entry = descriptorCache[filePath],
-        entry.contentHash == contentHash,
-        !isExpired(entry.createdAt)
-      else {
-        updateStats { stats in
-          stats = Statistics(
-            astCacheHits: stats.astCacheHits,
-            astCacheMisses: stats.astCacheMisses,
-            descriptorCacheHits: stats.descriptorCacheHits,
-            descriptorCacheMisses: stats.descriptorCacheMisses + 1,
-            dependencyCacheHits: stats.dependencyCacheHits,
-            dependencyCacheMisses: stats.dependencyCacheMisses,
-            totalMemoryUsage: stats.totalMemoryUsage,
-            evictionCount: stats.evictionCount,
-            averageParseTime: stats.averageParseTime,
-            averageBuildTime: stats.averageBuildTime
-          )
-        }
-        return nil
-      }
-
-      // Update access statistics
-      let updatedEntry = DescriptorCacheEntry(
-        descriptor: entry.descriptor,
-        contentHash: entry.contentHash,
-        fileSize: entry.fileSize,
-        buildTime: entry.buildTime,
-        createdAt: entry.createdAt,
-        accessCount: entry.accessCount + 1,
-        lastAccessed: Date()
-      )
-      descriptorCache[filePath] = updatedEntry
-
-      updateStats { stats in
+    guard let entry = descriptorCache[filePath],
+      entry.contentHash == contentHash,
+      !isExpired(entry.createdAt)
+    else {
+      updateStatsSync { stats in
         stats = Statistics(
           astCacheHits: stats.astCacheHits,
           astCacheMisses: stats.astCacheMisses,
-          descriptorCacheHits: stats.descriptorCacheHits + 1,
-          descriptorCacheMisses: stats.descriptorCacheMisses,
+          descriptorCacheHits: stats.descriptorCacheHits,
+          descriptorCacheMisses: stats.descriptorCacheMisses + 1,
           dependencyCacheHits: stats.dependencyCacheHits,
           dependencyCacheMisses: stats.dependencyCacheMisses,
           totalMemoryUsage: stats.totalMemoryUsage,
@@ -311,9 +297,37 @@ public final class PerformanceCache {
           averageBuildTime: stats.averageBuildTime
         )
       }
-
-      return entry.descriptor
+      return nil
     }
+
+    // Update access statistics
+    let updatedEntry = DescriptorCacheEntry(
+      descriptor: entry.descriptor,
+      contentHash: entry.contentHash,
+      fileSize: entry.fileSize,
+      buildTime: entry.buildTime,
+      createdAt: entry.createdAt,
+      accessCount: entry.accessCount + 1,
+      lastAccessed: Date()
+    )
+    descriptorCache[filePath] = updatedEntry
+
+    updateStatsSync { stats in
+      stats = Statistics(
+        astCacheHits: stats.astCacheHits,
+        astCacheMisses: stats.astCacheMisses,
+        descriptorCacheHits: stats.descriptorCacheHits + 1,
+        descriptorCacheMisses: stats.descriptorCacheMisses,
+        dependencyCacheHits: stats.dependencyCacheHits,
+        dependencyCacheMisses: stats.dependencyCacheMisses,
+        totalMemoryUsage: stats.totalMemoryUsage,
+        evictionCount: stats.evictionCount,
+        averageParseTime: stats.averageParseTime,
+        averageBuildTime: stats.averageBuildTime
+      )
+    }
+
+    return entry.descriptor
   }
 
   /// Cache built descriptor for a file.
@@ -330,21 +344,19 @@ public final class PerformanceCache {
     fileSize: Int64,
     buildTime: TimeInterval
   ) {
-    queue.async(flags: .barrier) {
-      let entry = DescriptorCacheEntry(
-        descriptor: descriptor,
-        contentHash: contentHash,
-        fileSize: fileSize,
-        buildTime: buildTime,
-        createdAt: Date(),
-        accessCount: 1,
-        lastAccessed: Date()
-      )
+    let entry = DescriptorCacheEntry(
+      descriptor: descriptor,
+      contentHash: contentHash,
+      fileSize: fileSize,
+      buildTime: buildTime,
+      createdAt: Date(),
+      accessCount: 1,
+      lastAccessed: Date()
+    )
 
-      self.descriptorCache[filePath] = entry
-      self.enforceDescriptorCacheLimits()
-      self.updateAverageBuildTime(buildTime)
-    }
+    descriptorCache[filePath] = entry
+    enforceDescriptorCacheLimits()
+    updateAverageBuildTime(buildTime)
   }
 
   // MARK: - Dependency Caching
@@ -357,55 +369,53 @@ public final class PerformanceCache {
   public func getCachedDependencyResult(for filePath: String, contentHash: String) -> DependencyResolver
     .ResolutionResult?
   {
-    return queue.sync {
-      guard let entry = dependencyCache[filePath],
-        entry.contentHash == contentHash,
-        !isExpired(entry.createdAt)
-      else {
-        updateStats { stats in
-          stats = Statistics(
-            astCacheHits: stats.astCacheHits,
-            astCacheMisses: stats.astCacheMisses,
-            descriptorCacheHits: stats.descriptorCacheHits,
-            descriptorCacheMisses: stats.descriptorCacheMisses,
-            dependencyCacheHits: stats.dependencyCacheHits,
-            dependencyCacheMisses: stats.dependencyCacheMisses + 1,
-            totalMemoryUsage: stats.totalMemoryUsage,
-            evictionCount: stats.evictionCount,
-            averageParseTime: stats.averageParseTime,
-            averageBuildTime: stats.averageBuildTime
-          )
-        }
-        return nil
-      }
-
-      // Update access statistics
-      let updatedEntry = DependencyCacheEntry(
-        result: entry.result,
-        contentHash: entry.contentHash,
-        createdAt: entry.createdAt,
-        accessCount: entry.accessCount + 1,
-        lastAccessed: Date()
-      )
-      dependencyCache[filePath] = updatedEntry
-
-      updateStats { stats in
+    guard let entry = dependencyCache[filePath],
+      entry.contentHash == contentHash,
+      !isExpired(entry.createdAt)
+    else {
+      updateStatsSync { stats in
         stats = Statistics(
           astCacheHits: stats.astCacheHits,
           astCacheMisses: stats.astCacheMisses,
           descriptorCacheHits: stats.descriptorCacheHits,
           descriptorCacheMisses: stats.descriptorCacheMisses,
-          dependencyCacheHits: stats.dependencyCacheHits + 1,
-          dependencyCacheMisses: stats.dependencyCacheMisses,
+          dependencyCacheHits: stats.dependencyCacheHits,
+          dependencyCacheMisses: stats.dependencyCacheMisses + 1,
           totalMemoryUsage: stats.totalMemoryUsage,
           evictionCount: stats.evictionCount,
           averageParseTime: stats.averageParseTime,
           averageBuildTime: stats.averageBuildTime
         )
       }
-
-      return entry.result
+      return nil
     }
+
+    // Update access statistics
+    let updatedEntry = DependencyCacheEntry(
+      result: entry.result,
+      contentHash: entry.contentHash,
+      createdAt: entry.createdAt,
+      accessCount: entry.accessCount + 1,
+      lastAccessed: Date()
+    )
+    dependencyCache[filePath] = updatedEntry
+
+    updateStatsSync { stats in
+      stats = Statistics(
+        astCacheHits: stats.astCacheHits,
+        astCacheMisses: stats.astCacheMisses,
+        descriptorCacheHits: stats.descriptorCacheHits,
+        descriptorCacheMisses: stats.descriptorCacheMisses,
+        dependencyCacheHits: stats.dependencyCacheHits + 1,
+        dependencyCacheMisses: stats.dependencyCacheMisses,
+        totalMemoryUsage: stats.totalMemoryUsage,
+        evictionCount: stats.evictionCount,
+        averageParseTime: stats.averageParseTime,
+        averageBuildTime: stats.averageBuildTime
+      )
+    }
+
+    return entry.result
   }
 
   /// Cache dependency resolution result.
@@ -418,49 +428,41 @@ public final class PerformanceCache {
     for filePath: String,
     contentHash: String
   ) {
-    queue.async(flags: .barrier) {
-      let entry = DependencyCacheEntry(
-        result: result,
-        contentHash: contentHash,
-        createdAt: Date(),
-        accessCount: 1,
-        lastAccessed: Date()
-      )
+    let entry = DependencyCacheEntry(
+      result: result,
+      contentHash: contentHash,
+      createdAt: Date(),
+      accessCount: 1,
+      lastAccessed: Date()
+    )
 
-      self.dependencyCache[filePath] = entry
-      self.enforceDependencyCacheLimits()
-    }
+    dependencyCache[filePath] = entry
+    enforceDependencyCacheLimits()
   }
 
   // MARK: - Cache Management
 
   /// Clear all caches.
   public func clearAll() {
-    queue.async(flags: .barrier) {
-      self.astCache.removeAll()
-      self.descriptorCache.removeAll()
-      self.dependencyCache.removeAll()
-      self.resetStatistics()
-    }
+    astCache.removeAll()
+    descriptorCache.removeAll()
+    dependencyCache.removeAll()
+    resetStatistics()
   }
 
   /// Clear expired entries from all caches.
   public func clearExpired() {
-    queue.async(flags: .barrier) {
-      let now = Date()
+    let now = Date()
 
-      self.astCache = self.astCache.filter { !self.isExpired($0.value.createdAt, at: now) }
-      self.descriptorCache = self.descriptorCache.filter { !self.isExpired($0.value.createdAt, at: now) }
-      self.dependencyCache = self.dependencyCache.filter { !self.isExpired($0.value.createdAt, at: now) }
-    }
+    astCache = astCache.filter { !isExpired($0.value.createdAt, at: now) }
+    descriptorCache = descriptorCache.filter { !isExpired($0.value.createdAt, at: now) }
+    dependencyCache = dependencyCache.filter { !isExpired($0.value.createdAt, at: now) }
   }
 
   /// Get current cache statistics.
   /// - Returns: Current performance statistics.
   public func getStatistics() -> Statistics {
-    return queue.sync {
-      return stats
-    }
+    return stats
   }
 
   // MARK: - Private Implementation
@@ -511,14 +513,14 @@ public final class PerformanceCache {
     updateEvictionCount()
   }
 
-  private func updateStats(_ update: (inout Statistics) -> Void) {
+  private func updateStatsSync(_ update: (inout Statistics) -> Void) {
     var newStats = stats
     update(&newStats)
     stats = newStats
   }
 
   private func updateEvictionCount() {
-    updateStats { stats in
+    updateStatsSync { stats in
       stats = Statistics(
         astCacheHits: stats.astCacheHits,
         astCacheMisses: stats.astCacheMisses,
@@ -535,7 +537,7 @@ public final class PerformanceCache {
   }
 
   private func updateAverageParseTime(_ parseTime: TimeInterval) {
-    updateStats { stats in
+    updateStatsSync { stats in
       let totalParses = stats.astCacheHits + stats.astCacheMisses
       let newAverage =
         totalParses > 0
@@ -557,7 +559,7 @@ public final class PerformanceCache {
   }
 
   private func updateAverageBuildTime(_ buildTime: TimeInterval) {
-    updateStats { stats in
+    updateStatsSync { stats in
       let totalBuilds = stats.descriptorCacheHits + stats.descriptorCacheMisses
       let newAverage =
         totalBuilds > 0
@@ -594,9 +596,12 @@ public final class PerformanceCache {
   }
 
   private func startPerformanceMonitoring() {
-    // Start a timer to periodically clear expired entries
-    monitoringTimer = Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { [weak self] _ in
-      self?.clearExpired()
+    // Start a task to periodically clear expired entries
+    monitoringTask = Task { [weak self] in
+      while !Task.isCancelled {
+        try? await Task.sleep(nanoseconds: 300_000_000_000) // 300 seconds
+        await self?.clearExpired()
+      }
     }
   }
 }

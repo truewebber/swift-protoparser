@@ -5,7 +5,7 @@ import Foundation
 /// Represents a token in Protocol Buffers source code.
 ///
 /// This struct contains the token type and position information for error reporting.
-public struct Token {
+public struct Token: Sendable {
   /// The type of the token.
   public let type: TokenType
 
@@ -18,7 +18,7 @@ public struct Token {
   }
 
   /// Position information for a token.
-  public struct Position: Equatable {
+  public struct Position: Equatable, Sendable {
     public let line: Int
     public let column: Int
 
@@ -30,7 +30,7 @@ public struct Token {
 }
 
 /// Token types that can appear in a proto3 file.
-public enum TokenType {
+public enum TokenType: Sendable {
 
   // MARK: - Language Elements
 
@@ -79,7 +79,7 @@ public enum TokenType {
 // MARK: - ProtoKeyword
 
 /// Protocol Buffers keywords for proto3 syntax.
-public enum ProtoKeyword: String, CaseIterable {
+public enum ProtoKeyword: String, CaseIterable, Sendable {
 
   // MARK: - Core Keywords
 

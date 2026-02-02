@@ -1,7 +1,7 @@
 import Foundation
 
 /// Represents a proto file that has been resolved with its dependencies.
-public struct ResolvedProtoFile {
+public struct ResolvedProtoFile: Sendable {
 
   // MARK: - Properties
 

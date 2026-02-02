@@ -4,7 +4,7 @@
 ///
 /// SwiftProtoParser focuses on Protocol Buffers 3 (proto3) syntax only.
 /// Proto2 is explicitly not supported to keep the implementation simple and focused.
-public enum ProtoVersion: String, CaseIterable {
+public enum ProtoVersion: String, CaseIterable, Sendable {
   /// Protocol Buffers version 3 (proto3).
   case proto3 = "proto3"
 

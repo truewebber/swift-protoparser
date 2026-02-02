@@ -23,7 +23,7 @@ public final class IncrementalParser {
   }
 
   /// Change detection result.
-  public struct ChangeSet {
+  public struct ChangeSet: Sendable {
     /// Files that have been modified.
     public let modifiedFiles: Set<String>
 
@@ -50,7 +50,7 @@ public final class IncrementalParser {
   // MARK: - Configuration
 
   /// Configuration for incremental parsing.
-  public struct Configuration {
+  public struct Configuration: Sendable {
     /// Maximum file size for in-memory processing (bytes).
     public let maxInMemorySize: Int64
 
@@ -65,6 +65,21 @@ public final class IncrementalParser {
 
     /// Cache parsed results for incremental updates.
     public let enableResultCaching: Bool
+    
+    /// Initialize incremental parser configuration.
+    public init(
+      maxInMemorySize: Int64,
+      streamingChunkSize: Int,
+      maxParallelFiles: Int,
+      enableChangeDetection: Bool,
+      enableResultCaching: Bool
+    ) {
+      self.maxInMemorySize = maxInMemorySize
+      self.streamingChunkSize = streamingChunkSize
+      self.maxParallelFiles = maxParallelFiles
+      self.enableChangeDetection = enableChangeDetection
+      self.enableResultCaching = enableResultCaching
+    }
 
     /// Default configuration.
     public static let `default` = Configuration(
@@ -105,7 +120,7 @@ public final class IncrementalParser {
   // MARK: - Statistics
 
   /// Incremental parsing statistics.
-  public struct Statistics {
+  public struct Statistics: Sendable {
     public let totalFilesTracked: Int
     public let filesProcessedIncrementally: Int
     public let filesProcessedFromScratch: Int
@@ -152,7 +167,9 @@ public final class IncrementalParser {
 
     // Scan directory for current proto files
     let currentFiles = try scanProtoFiles(in: directoryPath, recursive: recursive)
-    let previousFiles = Set(fileMetadata.keys)
+    
+    // Read previous files with synchronization
+    let previousFiles = queue.sync { Set(fileMetadata.keys) }
 
     // Determine added and removed files
     let addedFiles = currentFiles.subtracting(previousFiles)
@@ -166,10 +183,14 @@ public final class IncrementalParser {
     for filePath in commonFiles where try hasFileChanged(filePath) {
       modifiedFiles.insert(filePath)
 
-      // Add dependent files to affected set
-      if let metadata = fileMetadata[filePath] {
-        affectedFiles.formUnion(metadata.dependents)
+      // Add dependent files to affected set with synchronization
+      let dependents = queue.sync { () -> Set<String> in
+        if let metadata = fileMetadata[filePath] {
+          return metadata.dependents
+        }
+        return Set()
       }
+      affectedFiles.formUnion(dependents)
     }
 
     // Update statistics
@@ -206,9 +227,11 @@ public final class IncrementalParser {
     let startTime = Date()
     var results: [String: Result<ProtoAST, ProtoParseError>] = [:]
 
-    // Remove deleted files from metadata
-    for removedFile in changeSet.removedFiles {
-      fileMetadata.removeValue(forKey: removedFile)
+    // Remove deleted files from metadata with synchronization
+    queue.async(flags: .barrier) {
+      for removedFile in changeSet.removedFiles {
+        self.fileMetadata.removeValue(forKey: removedFile)
+      }
     }
 
     // Files that need processing
@@ -320,7 +343,10 @@ public final class IncrementalParser {
   }
 
   private func hasFileChanged(_ filePath: String) throws -> Bool {
-    guard let existingMetadata = fileMetadata[filePath] else {
+    // Read existing metadata with synchronization
+    let existingMetadata = queue.sync { fileMetadata[filePath] }
+    
+    guard let metadata = existingMetadata else {
       // New file, needs processing
       return true
     }
@@ -339,7 +365,7 @@ public final class IncrementalParser {
     }
 
     // Quick check: modification date or size changed
-    if modificationDate != existingMetadata.lastModified || fileSize != existingMetadata.fileSize {
+    if modificationDate != metadata.lastModified || fileSize != metadata.fileSize {
       return true
     }
 
@@ -347,7 +373,7 @@ public final class IncrementalParser {
     let content = try String(contentsOfFile: filePath, encoding: .utf8)
     let contentHash = PerformanceCache.contentHash(for: content)
 
-    return contentHash != existingMetadata.contentHash
+    return contentHash != metadata.contentHash
   }
 
   private func processBatch(
