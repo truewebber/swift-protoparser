@@ -600,7 +600,7 @@ public final class PerformanceCache {
     monitoringTask = Task { [weak self] in
       while !Task.isCancelled {
         try? await Task.sleep(nanoseconds: 300_000_000_000) // 300 seconds
-        await self?.clearExpired()
+        self?.clearExpired()
       }
     }
   }
