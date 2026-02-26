@@ -286,7 +286,7 @@ public final class Parser {
       state.advance()  // consume "("
       skipIgnorableTokens()
 
-      guard let customName = state.identifierName else {
+      guard let firstPart = state.identifierName else {
         state.addError(
           .unexpectedToken(
             state.currentToken ?? Token(type: .eof, position: Token.Position(line: 0, column: 0)),
@@ -296,8 +296,27 @@ public final class Parser {
         return OptionNode(name: "", value: .string(""))
       }
 
-      optionName = customName
       state.advance()
+      var nameParts = [firstPart]
+
+      // Parse fullIdent: ident { "." ident }
+      while state.checkSymbol(".") {
+        state.advance()  // consume "."
+        skipIgnorableTokens()
+        guard let nextPart = state.identifierName else {
+          state.addError(
+            .unexpectedToken(
+              state.currentToken ?? Token(type: .eof, position: Token.Position(line: 0, column: 0)),
+              expected: "identifier after '.' in option name"
+            )
+          )
+          return OptionNode(name: "", value: .string(""))
+        }
+        nameParts.append(nextPart)
+        state.advance()
+      }
+
+      optionName = nameParts.joined(separator: ".")
       skipIgnorableTokens()
       _ = state.expectSymbol(")")
     }
@@ -712,7 +731,7 @@ public final class Parser {
         state.advance()  // consume "("
         skipIgnorableTokens()
 
-        guard let customName = state.identifierName else {
+        guard let firstPart = state.identifierName else {
           state.addError(
             .unexpectedToken(
               state.currentToken ?? Token(type: .eof, position: Token.Position(line: 0, column: 0)),
@@ -722,8 +741,27 @@ public final class Parser {
           break
         }
 
-        optionName = customName
         state.advance()
+        var nameParts = [firstPart]
+
+        // Parse fullIdent: ident { "." ident }
+        while state.checkSymbol(".") {
+          state.advance()  // consume "."
+          skipIgnorableTokens()
+          guard let nextPart = state.identifierName else {
+            state.addError(
+              .unexpectedToken(
+                state.currentToken ?? Token(type: .eof, position: Token.Position(line: 0, column: 0)),
+                expected: "identifier after '.' in option name"
+              )
+            )
+            break
+          }
+          nameParts.append(nextPart)
+          state.advance()
+        }
+
+        optionName = nameParts.joined(separator: ".")
         skipIgnorableTokens()
         _ = state.expectSymbol(")")
       }
