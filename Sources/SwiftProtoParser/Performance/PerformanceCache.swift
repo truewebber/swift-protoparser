@@ -65,7 +65,7 @@ public final class PerformanceCache {
 
     /// Enable performance monitoring.
     public let enableMonitoring: Bool
-    
+
     /// Initialize cache configuration.
     public init(
       maxASTEntries: Int,
@@ -599,7 +599,7 @@ public final class PerformanceCache {
     // Start a task to periodically clear expired entries
     monitoringTask = Task { [weak self] in
       while !Task.isCancelled {
-        try? await Task.sleep(nanoseconds: 300_000_000_000) // 300 seconds
+        try? await Task.sleep(nanoseconds: 300_000_000_000)  // 300 seconds
         self?.clearExpired()
       }
     }

@@ -20,7 +20,7 @@ final class QualifiedOptionNameTests: XCTestCase {
       package example;
 
       extend google.protobuf.FieldOptions {
-        optional string my_option = 50001;
+        string my_option = 50001;
       }
 
       message Foo {
@@ -43,7 +43,7 @@ final class QualifiedOptionNameTests: XCTestCase {
       syntax = "proto3";
 
       extend google.protobuf.FieldOptions {
-        optional int32 user_data = 50002;
+        int32 user_data = 50002;
       }
 
       message User {
@@ -66,7 +66,7 @@ final class QualifiedOptionNameTests: XCTestCase {
       syntax = "proto3";
 
       extend google.protobuf.FileOptions {
-        optional string pkg_option = 50003;
+        string pkg_option = 50003;
       }
 
       option (pkg.pkg_option) = "com.example";
@@ -88,7 +88,7 @@ final class QualifiedOptionNameTests: XCTestCase {
       syntax = "proto3";
 
       extend google.protobuf.MessageOptions {
-        optional bool my_msg_option = 50004;
+        bool my_msg_option = 50004;
       }
 
       message Foo {
@@ -112,7 +112,7 @@ final class QualifiedOptionNameTests: XCTestCase {
       syntax = "proto3";
 
       extend google.protobuf.ServiceOptions {
-        optional string service_version = 50005;
+        string service_version = 50005;
       }
 
       message Req {}
@@ -139,7 +139,7 @@ final class QualifiedOptionNameTests: XCTestCase {
       syntax = "proto3";
 
       extend google.protobuf.MethodOptions {
-        optional bool requires_auth = 50006;
+        bool requires_auth = 50006;
       }
 
       message Req {}
@@ -167,7 +167,7 @@ final class QualifiedOptionNameTests: XCTestCase {
       syntax = "proto3";
 
       extend google.protobuf.EnumValueOptions {
-        optional string display_name = 50007;
+        string display_name = 50007;
       }
 
       enum Status {
@@ -267,7 +267,8 @@ final class QualifiedOptionNameTests: XCTestCase {
     let option = ast.messages[0].fields[0].options[0]
     XCTAssertEqual(option.name, "pkg.opt")
     guard case .string(let val) = option.value else {
-      XCTFail("Expected .string value, got \(option.value)"); return
+      XCTFail("Expected .string value, got \(option.value)")
+      return
     }
     XCTAssertEqual(val, "hello")
   }
@@ -284,7 +285,8 @@ final class QualifiedOptionNameTests: XCTestCase {
     guard case .success(let ast) = result else { return }
     let option = ast.messages[0].fields[0].options[0]
     guard case .number(let val) = option.value else {
-      XCTFail("Expected .number value, got \(option.value)"); return
+      XCTFail("Expected .number value, got \(option.value)")
+      return
     }
     XCTAssertEqual(val, 42.0)
   }
@@ -301,7 +303,8 @@ final class QualifiedOptionNameTests: XCTestCase {
     guard case .success(let ast) = result else { return }
     let option = ast.messages[0].fields[0].options[0]
     guard case .boolean(let val) = option.value else {
-      XCTFail("Expected .boolean value, got \(option.value)"); return
+      XCTFail("Expected .boolean value, got \(option.value)")
+      return
     }
     XCTAssertTrue(val)
   }
@@ -318,7 +321,8 @@ final class QualifiedOptionNameTests: XCTestCase {
     guard case .success(let ast) = result else { return }
     let option = ast.messages[0].fields[0].options[0]
     guard case .number(let val) = option.value else {
-      XCTFail("Expected .number value, got \(option.value)"); return
+      XCTFail("Expected .number value, got \(option.value)")
+      return
     }
     XCTAssertEqual(val, 3.14, accuracy: 0.001)
   }
@@ -335,7 +339,8 @@ final class QualifiedOptionNameTests: XCTestCase {
     guard case .success(let ast) = result else { return }
     let option = ast.messages[0].fields[0].options[0]
     guard case .identifier(let val) = option.value else {
-      XCTFail("Expected .identifier value, got \(option.value)"); return
+      XCTFail("Expected .identifier value, got \(option.value)")
+      return
     }
     XCTAssertEqual(val, "SOME_ENUM_VALUE")
   }
@@ -408,7 +413,8 @@ final class QualifiedOptionNameTests: XCTestCase {
       """
 
     guard case .success(let ast) = SwiftProtoParser.parseProtoString(proto) else {
-      XCTFail("Parse failed"); return
+      XCTFail("Parse failed")
+      return
     }
     XCTAssertTrue(ast.messages[0].fields[0].options[0].isCustom)
   }
@@ -420,7 +426,8 @@ final class QualifiedOptionNameTests: XCTestCase {
       """
 
     guard case .success(let ast) = SwiftProtoParser.parseProtoString(proto) else {
-      XCTFail("Parse failed"); return
+      XCTFail("Parse failed")
+      return
     }
     XCTAssertEqual(ast.messages[0].fields[0].options[0].name, "x.y.z")
   }
@@ -432,7 +439,8 @@ final class QualifiedOptionNameTests: XCTestCase {
       """
 
     guard case .success(let ast) = SwiftProtoParser.parseProtoString(proto) else {
-      XCTFail("Parse failed"); return
+      XCTFail("Parse failed")
+      return
     }
     let option = ast.messages[0].fields[0].options[0]
     XCTAssertEqual(option.name, "my_option")
@@ -446,7 +454,8 @@ final class QualifiedOptionNameTests: XCTestCase {
       """
 
     guard case .success(let ast) = SwiftProtoParser.parseProtoString(proto) else {
-      XCTFail("Parse failed"); return
+      XCTFail("Parse failed")
+      return
     }
     let option = ast.messages[0].fields[0].options[0]
     XCTAssertEqual(option.name, "deprecated")
@@ -461,7 +470,7 @@ final class QualifiedOptionNameTests: XCTestCase {
       syntax = "proto3";
 
       extend google.protobuf.EnumOptions {
-        optional bool my_enum_option = 50010;
+        bool my_enum_option = 50010;
       }
 
       enum Status {
@@ -490,7 +499,7 @@ final class QualifiedOptionNameTests: XCTestCase {
       package example;
 
       extend google.protobuf.FieldOptions {
-        optional string my_option = 50001;
+        string my_option = 50001;
       }
 
       message Foo {
@@ -524,15 +533,19 @@ final class QualifiedOptionNameTests: XCTestCase {
 
     let result = SwiftProtoParser.parseProtoString(proto)
     guard case .success(let ast) = result else {
-      XCTFail("Parse failed"); return
+      XCTFail("Parse failed")
+      return
     }
 
     let field = ast.messages[0].fields[0]
     XCTAssertEqual(field.options.count, 1)
 
     let option = field.options[0]
-    XCTAssertEqual(option.name, "example.my_option",
-      "Full qualified name must be preserved, not truncated to first segment")
+    XCTAssertEqual(
+      option.name,
+      "example.my_option",
+      "Full qualified name must be preserved, not truncated to first segment"
+    )
     XCTAssertTrue(option.isCustom)
   }
 

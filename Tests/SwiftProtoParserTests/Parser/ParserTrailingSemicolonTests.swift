@@ -341,6 +341,18 @@ final class ParserTrailingSemicolonTests: XCTestCase {
     )
   }
 
+  func test_extend_trailingSemicolon_withoutOptionalLabel_succeeds() {
+    assertSuccess(
+      """
+      syntax = "proto3";
+
+      extend google.protobuf.MessageOptions {
+        string my_option = 50001;
+      };
+      """
+    )
+  }
+
   // MARK: - Mixed combinations
 
   func test_mixed_messageAndEnum_bothTrailingSemicolons_succeeds() {

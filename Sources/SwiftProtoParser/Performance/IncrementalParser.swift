@@ -65,7 +65,7 @@ public final class IncrementalParser {
 
     /// Cache parsed results for incremental updates.
     public let enableResultCaching: Bool
-    
+
     /// Initialize incremental parser configuration.
     public init(
       maxInMemorySize: Int64,
@@ -167,7 +167,7 @@ public final class IncrementalParser {
 
     // Scan directory for current proto files
     let currentFiles = try scanProtoFiles(in: directoryPath, recursive: recursive)
-    
+
     // Read previous files with synchronization
     let previousFiles = queue.sync { Set(fileMetadata.keys) }
 
@@ -345,7 +345,7 @@ public final class IncrementalParser {
   private func hasFileChanged(_ filePath: String) throws -> Bool {
     // Read existing metadata with synchronization
     let existingMetadata = queue.sync { fileMetadata[filePath] }
-    
+
     guard let metadata = existingMetadata else {
       // New file, needs processing
       return true

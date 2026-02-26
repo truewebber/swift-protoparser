@@ -1416,27 +1416,18 @@ public final class Parser {
           let option = try parseOptionDeclaration()
           options.append(option)
 
-        case .optional:
-          // Custom option fields in extend statements
+        case .optional, .repeated:
           let field = try parseFieldDeclaration()
           fields.append(field)
 
         default:
-          state.addError(.unexpectedToken(token, expected: "optional field or option"))
+          state.addError(.unexpectedToken(token, expected: "field or option"))
           state.advance()
           state.synchronize()
         }
 
       case .identifier:
-        // Regular field type (should have optional modifier for custom options)
-        state.addError(
-          .missingFieldLabel(
-            "Custom option fields in extend statements should have 'optional' label",
-            line: token.position.line,
-            column: token.position.column
-          )
-        )
-        // Try to parse anyway for error recovery
+        // Field declared without an explicit label — valid proto3 singular field
         let field = try parseFieldDeclaration()
         fields.append(field)
 

@@ -5,17 +5,17 @@ import "google/protobuf/descriptor.proto";
 // Valid proto3 extends - custom options only
 extend google.protobuf.FileOptions {
   optional string my_file_option = 50001;
-  optional int32 file_version = 50002;
+  int32 file_version = 50002;
 }
 
 extend google.protobuf.MessageOptions {
-  optional string message_tag = 50003;
+  string message_tag = 50003;
   optional bool is_critical = 50004;
 }
 
 extend google.protobuf.FieldOptions {
   optional string validation_rule = 50005;
-  optional double max_value = 50006;
+  double max_value = 50006;
 }
 
 extend google.protobuf.EnumValueOptions {
@@ -23,7 +23,7 @@ extend google.protobuf.EnumValueOptions {
 }
 
 extend google.protobuf.ServiceOptions {
-  optional string service_version = 50008;
+  string service_version = 50008;
 }
 
 extend google.protobuf.MethodOptions {

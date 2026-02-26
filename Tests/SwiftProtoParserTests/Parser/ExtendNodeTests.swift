@@ -480,6 +480,541 @@ final class ExtendNodeTests: XCTestCase {
 
   // MARK: - Complex Scenarios Tests
 
+  // MARK: - Extend Fields Without Label Tests
+
+  func test_parseExtend_stringFieldWithoutLabel_succeeds() {
+    let content = """
+      syntax = "proto3";
+
+      extend google.protobuf.FieldOptions {
+        string my_option = 50001;
+      }
+      """
+
+    let result = SwiftProtoParser.parseProtoString(content)
+
+    switch result {
+    case .success(let ast):
+      XCTAssertEqual(ast.extends.count, 1)
+      XCTAssertEqual(ast.extends[0].fields.count, 1)
+      XCTAssertEqual(ast.extends[0].fields[0].name, "my_option")
+      XCTAssertEqual(ast.extends[0].fields[0].number, 50001)
+      XCTAssertEqual(ast.extends[0].fields[0].type, .string)
+    case .failure(let error):
+      XCTFail("Expected success for string field without label, got: \(error)")
+    }
+  }
+
+  func test_parseExtend_int32FieldWithoutLabel_succeeds() {
+    let content = """
+      syntax = "proto3";
+
+      extend google.protobuf.FieldOptions {
+        int32 my_option = 50001;
+      }
+      """
+
+    let result = SwiftProtoParser.parseProtoString(content)
+
+    switch result {
+    case .success(let ast):
+      XCTAssertEqual(ast.extends[0].fields[0].type, .int32)
+    case .failure(let error):
+      XCTFail("Expected success for int32 field without label, got: \(error)")
+    }
+  }
+
+  func test_parseExtend_boolFieldWithoutLabel_succeeds() {
+    let content = """
+      syntax = "proto3";
+
+      extend google.protobuf.FieldOptions {
+        bool my_option = 50001;
+      }
+      """
+
+    let result = SwiftProtoParser.parseProtoString(content)
+
+    switch result {
+    case .success(let ast):
+      XCTAssertEqual(ast.extends[0].fields[0].type, .bool)
+    case .failure(let error):
+      XCTFail("Expected success for bool field without label, got: \(error)")
+    }
+  }
+
+  func test_parseExtend_doubleFieldWithoutLabel_succeeds() {
+    let content = """
+      syntax = "proto3";
+
+      extend google.protobuf.FieldOptions {
+        double my_option = 50001;
+      }
+      """
+
+    let result = SwiftProtoParser.parseProtoString(content)
+
+    switch result {
+    case .success(let ast):
+      XCTAssertEqual(ast.extends[0].fields[0].type, .double)
+    case .failure(let error):
+      XCTFail("Expected success for double field without label, got: \(error)")
+    }
+  }
+
+  func test_parseExtend_bytesFieldWithoutLabel_succeeds() {
+    let content = """
+      syntax = "proto3";
+
+      extend google.protobuf.FieldOptions {
+        bytes my_option = 50001;
+      }
+      """
+
+    let result = SwiftProtoParser.parseProtoString(content)
+
+    switch result {
+    case .success(let ast):
+      XCTAssertEqual(ast.extends[0].fields[0].type, .bytes)
+    case .failure(let error):
+      XCTFail("Expected success for bytes field without label, got: \(error)")
+    }
+  }
+
+  func test_parseExtend_fileOptionsWithoutLabel_succeeds() {
+    let content = """
+      syntax = "proto3";
+
+      extend google.protobuf.FileOptions {
+        string my_option = 50001;
+      }
+      """
+
+    let result = SwiftProtoParser.parseProtoString(content)
+
+    switch result {
+    case .success(let ast):
+      XCTAssertEqual(ast.extends.count, 1)
+      XCTAssertEqual(ast.extends[0].extendedType, "google.protobuf.FileOptions")
+      XCTAssertEqual(ast.extends[0].fields.count, 1)
+    case .failure(let error):
+      XCTFail("Expected success for FileOptions without label, got: \(error)")
+    }
+  }
+
+  func test_parseExtend_messageOptionsWithoutLabel_succeeds() {
+    let content = """
+      syntax = "proto3";
+
+      extend google.protobuf.MessageOptions {
+        string my_option = 50001;
+      }
+      """
+
+    let result = SwiftProtoParser.parseProtoString(content)
+
+    switch result {
+    case .success(let ast):
+      XCTAssertEqual(ast.extends[0].extendedType, "google.protobuf.MessageOptions")
+      XCTAssertEqual(ast.extends[0].fields.count, 1)
+    case .failure(let error):
+      XCTFail("Expected success for MessageOptions without label, got: \(error)")
+    }
+  }
+
+  func test_parseExtend_enumOptionsWithoutLabel_succeeds() {
+    let content = """
+      syntax = "proto3";
+
+      extend google.protobuf.EnumOptions {
+        string my_option = 50001;
+      }
+      """
+
+    let result = SwiftProtoParser.parseProtoString(content)
+
+    switch result {
+    case .success(let ast):
+      XCTAssertEqual(ast.extends[0].extendedType, "google.protobuf.EnumOptions")
+      XCTAssertEqual(ast.extends[0].fields.count, 1)
+    case .failure(let error):
+      XCTFail("Expected success for EnumOptions without label, got: \(error)")
+    }
+  }
+
+  func test_parseExtend_enumValueOptionsWithoutLabel_succeeds() {
+    let content = """
+      syntax = "proto3";
+
+      extend google.protobuf.EnumValueOptions {
+        string my_option = 50001;
+      }
+      """
+
+    let result = SwiftProtoParser.parseProtoString(content)
+
+    switch result {
+    case .success(let ast):
+      XCTAssertEqual(ast.extends[0].extendedType, "google.protobuf.EnumValueOptions")
+      XCTAssertEqual(ast.extends[0].fields.count, 1)
+    case .failure(let error):
+      XCTFail("Expected success for EnumValueOptions without label, got: \(error)")
+    }
+  }
+
+  func test_parseExtend_serviceOptionsWithoutLabel_succeeds() {
+    let content = """
+      syntax = "proto3";
+
+      extend google.protobuf.ServiceOptions {
+        string my_option = 50001;
+      }
+      """
+
+    let result = SwiftProtoParser.parseProtoString(content)
+
+    switch result {
+    case .success(let ast):
+      XCTAssertEqual(ast.extends[0].extendedType, "google.protobuf.ServiceOptions")
+      XCTAssertEqual(ast.extends[0].fields.count, 1)
+    case .failure(let error):
+      XCTFail("Expected success for ServiceOptions without label, got: \(error)")
+    }
+  }
+
+  func test_parseExtend_methodOptionsWithoutLabel_succeeds() {
+    let content = """
+      syntax = "proto3";
+
+      extend google.protobuf.MethodOptions {
+        bool my_option = 50001;
+      }
+      """
+
+    let result = SwiftProtoParser.parseProtoString(content)
+
+    switch result {
+    case .success(let ast):
+      XCTAssertEqual(ast.extends[0].extendedType, "google.protobuf.MethodOptions")
+      XCTAssertEqual(ast.extends[0].fields.count, 1)
+    case .failure(let error):
+      XCTFail("Expected success for MethodOptions without label, got: \(error)")
+    }
+  }
+
+  func test_parseExtend_fieldWithoutLabel_nameAndNumberCorrect() {
+    let content = """
+      syntax = "proto3";
+
+      extend google.protobuf.FieldOptions {
+        string validation_rule = 50042;
+      }
+      """
+
+    let result = SwiftProtoParser.parseProtoString(content)
+
+    switch result {
+    case .success(let ast):
+      let field = ast.extends[0].fields[0]
+      XCTAssertEqual(field.name, "validation_rule")
+      XCTAssertEqual(field.number, 50042)
+      XCTAssertEqual(field.type, .string)
+    case .failure(let error):
+      XCTFail("Expected success, got: \(error)")
+    }
+  }
+
+  // MARK: - Repeated Fields in Extend Tests
+
+  func test_parseExtend_repeatedStringField_succeeds() {
+    let content = """
+      syntax = "proto3";
+
+      extend google.protobuf.FieldOptions {
+        repeated string tags = 50002;
+      }
+      """
+
+    let result = SwiftProtoParser.parseProtoString(content)
+
+    switch result {
+    case .success(let ast):
+      XCTAssertEqual(ast.extends.count, 1)
+      XCTAssertEqual(ast.extends[0].fields.count, 1)
+      let field = ast.extends[0].fields[0]
+      XCTAssertEqual(field.name, "tags")
+      XCTAssertEqual(field.number, 50002)
+      XCTAssertEqual(field.type, .string)
+      XCTAssertEqual(field.label, .repeated)
+    case .failure(let error):
+      XCTFail("Expected success for repeated string field in extend, got: \(error)")
+    }
+  }
+
+  func test_parseExtend_repeatedInt32Field_succeeds() {
+    let content = """
+      syntax = "proto3";
+
+      extend google.protobuf.MessageOptions {
+        repeated int32 codes = 50003;
+      }
+      """
+
+    let result = SwiftProtoParser.parseProtoString(content)
+
+    switch result {
+    case .success(let ast):
+      let field = ast.extends[0].fields[0]
+      XCTAssertEqual(field.label, .repeated)
+      XCTAssertEqual(field.type, .int32)
+    case .failure(let error):
+      XCTFail("Expected success for repeated int32 field in extend, got: \(error)")
+    }
+  }
+
+  // MARK: - Mixed Label Styles Tests
+
+  func test_parseExtend_mixedOptionalAndNoLabel_succeeds() {
+    let content = """
+      syntax = "proto3";
+
+      extend google.protobuf.FieldOptions {
+        optional string with_label = 50001;
+        string without_label = 50002;
+      }
+      """
+
+    let result = SwiftProtoParser.parseProtoString(content)
+
+    switch result {
+    case .success(let ast):
+      XCTAssertEqual(ast.extends[0].fields.count, 2)
+      XCTAssertEqual(ast.extends[0].fields[0].name, "with_label")
+      XCTAssertEqual(ast.extends[0].fields[1].name, "without_label")
+    case .failure(let error):
+      XCTFail("Expected success for mixed optional and no-label extend, got: \(error)")
+    }
+  }
+
+  func test_parseExtend_allThreeStyles_succeeds() {
+    let content = """
+      syntax = "proto3";
+
+      extend google.protobuf.FieldOptions {
+        optional string opt_field = 50001;
+        string bare_field = 50002;
+        repeated string rep_field = 50003;
+      }
+      """
+
+    let result = SwiftProtoParser.parseProtoString(content)
+
+    switch result {
+    case .success(let ast):
+      XCTAssertEqual(ast.extends[0].fields.count, 3)
+    case .failure(let error):
+      XCTFail("Expected success for all three label styles in extend, got: \(error)")
+    }
+  }
+
+  // MARK: - Multiple Extend Blocks Mixed Style Tests
+
+  func test_parseMultipleExtends_mixedStyles_succeeds() {
+    let content = """
+      syntax = "proto3";
+
+      extend google.protobuf.FileOptions {
+        optional string file_opt = 50001;
+      }
+
+      extend google.protobuf.FieldOptions {
+        string field_opt = 50002;
+      }
+      """
+
+    let result = SwiftProtoParser.parseProtoString(content)
+
+    switch result {
+    case .success(let ast):
+      XCTAssertEqual(ast.extends.count, 2)
+      XCTAssertEqual(ast.extends[0].fields[0].name, "file_opt")
+      XCTAssertEqual(ast.extends[1].fields[0].name, "field_opt")
+    case .failure(let error):
+      XCTFail("Expected success for multiple extends with mixed styles, got: \(error)")
+    }
+  }
+
+  // MARK: - End-to-End Without Label Tests
+
+  func test_extendWithCustomOptions_withoutOptionalLabel_succeeds() {
+    let content = """
+      syntax = "proto3";
+
+      extend google.protobuf.ServiceOptions {
+        string service_version = 50008;
+      }
+
+      service TestService {
+        option (service_version) = "v1.0";
+      }
+      """
+
+    let result = SwiftProtoParser.parseProtoString(content)
+
+    switch result {
+    case .success(let ast):
+      XCTAssertEqual(ast.extends.count, 1)
+      XCTAssertEqual(ast.services.count, 1)
+      XCTAssertEqual(ast.services[0].options.count, 1)
+    case .failure(let error):
+      XCTFail("Expected success for extend with custom options without label, got: \(error)")
+    }
+  }
+
+  func test_extendWithRPCMethodOptions_withoutOptionalLabel_succeeds() {
+    let content = """
+      syntax = "proto3";
+
+      extend google.protobuf.MethodOptions {
+        bool requires_auth = 50009;
+      }
+
+      message TestMessage {
+        string name = 1;
+      }
+
+      service TestService {
+        rpc GetUser(TestMessage) returns (TestMessage) {
+          option (requires_auth) = true;
+        }
+      }
+      """
+
+    let result = SwiftProtoParser.parseProtoString(content)
+
+    switch result {
+    case .success(let ast):
+      XCTAssertEqual(ast.extends.count, 1)
+      XCTAssertEqual(ast.services[0].methods[0].options.count, 1)
+    case .failure(let error):
+      XCTFail("Expected success for extend with RPC method options without label, got: \(error)")
+    }
+  }
+
+  func test_fullCustomOptionsFlow_withoutOptionalLabel_succeeds() {
+    let content = """
+      syntax = "proto3";
+
+      import "google/protobuf/descriptor.proto";
+
+      extend google.protobuf.FileOptions {
+        string my_file_option = 50001;
+      }
+
+      extend google.protobuf.MethodOptions {
+        bool requires_auth = 50009;
+      }
+
+      option (my_file_option) = "test_file";
+
+      message TestMessage {
+        string name = 1;
+      }
+
+      service TestService {
+        rpc GetUser(TestMessage) returns (TestMessage) {
+          option (requires_auth) = true;
+        }
+      }
+      """
+
+    let result = SwiftProtoParser.parseProtoString(content)
+
+    switch result {
+    case .success(let ast):
+      XCTAssertEqual(ast.extends.count, 2)
+      XCTAssertEqual(ast.services.count, 1)
+      XCTAssertEqual(ast.messages.count, 1)
+    case .failure(let error):
+      XCTFail("Expected success for full custom options flow without label, got: \(error)")
+    }
+  }
+
+  func test_validGoogleProtobufExtend_withoutOptionalLabel_succeeds() {
+    let content = """
+      syntax = "proto3";
+
+      extend google.protobuf.FileOptions {
+        string my_option = 50001;
+      }
+      """
+
+    let result = SwiftProtoParser.parseProtoString(content)
+
+    switch result {
+    case .success(let ast):
+      XCTAssertEqual(ast.extends.count, 1)
+      XCTAssertEqual(ast.extends[0].extendedType, "google.protobuf.FileOptions")
+      XCTAssertTrue(ast.extends[0].isValidProto3ExtendTarget)
+    case .failure(let error):
+      XCTFail("Valid google.protobuf extend without label should not fail: \(error)")
+    }
+  }
+
+  func test_simpleExtendParsing_withoutOptionalLabel_succeeds() {
+    let content = """
+      syntax = "proto3";
+
+      extend google.protobuf.FileOptions {
+        string my_option = 50001;
+      }
+      """
+
+    let result = SwiftProtoParser.parseProtoString(content)
+
+    switch result {
+    case .success(let ast):
+      XCTAssertEqual(ast.extends.count, 1)
+      let extend = ast.extends[0]
+      XCTAssertEqual(extend.extendedType, "google.protobuf.FileOptions")
+      XCTAssertEqual(extend.fields.count, 1)
+      XCTAssertEqual(extend.fields[0].name, "my_option")
+      XCTAssertEqual(extend.fields[0].number, 50001)
+    case .failure(let error):
+      XCTFail("Failed to parse simple extend without label: \(error)")
+    }
+  }
+
+  // MARK: - Descriptor Pipeline Without Label Tests
+
+  func test_parseToDescriptors_extendFieldWithoutLabel_succeeds() {
+    let proto = """
+      syntax = "proto3";
+
+      extend google.protobuf.FieldOptions {
+        string my_option = 50001;
+      }
+
+      message Foo {
+        string bar = 1 [(my_option) = "hello"];
+      }
+      """
+
+    let tmpURL = FileManager.default.temporaryDirectory
+      .appendingPathComponent("extend_no_label_\(UUID().uuidString).proto")
+    defer { try? FileManager.default.removeItem(at: tmpURL) }
+    try! proto.write(to: tmpURL, atomically: true, encoding: .utf8)
+
+    let result = SwiftProtoParser.parseProtoFileWithImportsToDescriptors(
+      tmpURL.path,
+      importPaths: [],
+      allowMissingImports: true
+    )
+    XCTAssertTrue(result.isSuccess, "Expected descriptor pipeline to succeed for extend without label, got: \(result)")
+  }
+
+  // MARK: - Complex Scenarios Tests
+
   func testComplexExtendWithMultipleFields() {
     let position = Token.Position(line: 10, column: 5)
 
