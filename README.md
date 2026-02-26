@@ -6,6 +6,7 @@ A Swift library for parsing Protocol Buffers `.proto` files into AST and descrip
 [![Swift Package Index](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Ftruewebber%2Fswift-protoparser%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/truewebber/swift-protoparser)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg?style=flat)](LICENSE)
 [![Coverage](https://img.shields.io/badge/Test%20Coverage-95%25-green.svg?style=flat)](#testing)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/truewebber/swift-protoparser)
 
 ## Overview
 
