@@ -453,6 +453,7 @@ public final class Parser {
     }
 
     _ = state.expectSymbol("}")
+    if state.checkSymbol(";") { state.advance() }
 
     return MessageNode(
       name: messageName,
@@ -817,6 +818,7 @@ public final class Parser {
     }
 
     _ = state.expectSymbol("}")
+    if state.checkSymbol(";") { state.advance() }
 
     // Validate that enum has a zero value (required in proto3)
     if !values.contains(where: { $0.number == 0 }) {
@@ -937,6 +939,7 @@ public final class Parser {
 
     skipIgnorableTokens()
     _ = state.expectSymbol("}")
+    if state.checkSymbol(";") { state.advance() }
 
     return OneofNode(name: oneofName, fields: fields, options: options)
   }
@@ -1153,6 +1156,7 @@ public final class Parser {
     }
 
     _ = state.expectSymbol("}")
+    if state.checkSymbol(";") { state.advance() }
 
     return ServiceNode(name: serviceName, methods: methods, options: options)
   }
@@ -1287,6 +1291,7 @@ public final class Parser {
       }
 
       _ = state.expectSymbol("}")
+      if state.checkSymbol(";") { state.advance() }
     }
     else {
       _ = state.expectSymbol(";")
@@ -1404,6 +1409,7 @@ public final class Parser {
     }
 
     _ = state.expectSymbol("}")
+    if state.checkSymbol(";") { state.advance() }
 
     return ExtendNode(
       extendedType: extendedType,
