@@ -50,19 +50,29 @@ struct ServiceDescriptorBuilder {
   }
 
   /// Build fully qualified type name with package prefix.
+  ///
+  /// A type name that already contains dots (e.g. `google.protobuf.Empty`) references
+  /// a type in a foreign package. In that case only a leading dot is prepended — the
+  /// current file's package must not be inserted. A plain name without dots is a local
+  /// type and gets the file package prepended as usual.
   private static func buildFullyQualifiedTypeName(_ typeName: String, packageName: String?) -> String {
-    // If already starts with dot, it's already fully qualified
+    // Already fully qualified — return as-is
     if typeName.hasPrefix(".") {
       return typeName
     }
 
-    // Build fully qualified name
+    // Cross-package reference: type name contains dots, so it already carries its own
+    // package path. Only add the leading dot.
+    if typeName.contains(".") {
+      return ".\(typeName)"
+    }
+
+    // Local type: prepend the current file's package
     if let package = packageName, !package.isEmpty {
       return ".\(package).\(typeName)"
     }
-    else {
-      return ".\(typeName)"
-    }
+
+    return ".\(typeName)"
   }
 
   /// Build ServiceOptions from AST options.
