@@ -1,19 +1,16 @@
 # SwiftProtoParser
 
-A Swift library for parsing Protocol Buffers `.proto` files into `FileDescriptorSet` descriptors without `protoc`.
+A Swift library for parsing Protocol Buffers `.proto` files into AST and descriptors without `protoc`.
 
 [![Platform](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Ftruewebber%2Fswift-protoparser%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/truewebber/swift-protoparser)
 [![Swift Package Index](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Ftruewebber%2Fswift-protoparser%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/truewebber/swift-protoparser)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg?style=flat)](LICENSE)
+[![Coverage](https://img.shields.io/badge/Test%20Coverage-95%25-green.svg?style=flat)](#testing)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/truewebber/swift-protoparser)
 
 ## Overview
 
-SwiftProtoParser enables native parsing of Protocol Buffers schema files directly in Swift
-without requiring the `protoc` compiler. It returns standard `Google_Protobuf_FileDescriptorSet`
-objects compatible with [SwiftProtobuf](https://github.com/apple/swift-protobuf), making it a
-drop-in source of descriptor data for code generators, schema analyzers, and dynamic proto
-processing tools.
+SwiftProtoParser enables native parsing of Protocol Buffers schema files directly in Swift without requiring the `protoc` compiler. This is useful for building code generation tools, schema analyzers, API documentation generators, and other applications that need to process `.proto` files at runtime.
 
 ## Installation
 
@@ -21,175 +18,135 @@ Add to your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/truewebber/swift-protoparser.git", from: "0.7.0")
+    .package(url: "https://github.com/truewebber/swift-protoparser.git", from: "0.3.0")
 ]
 ```
 
-## Public API
-
-The entire public interface consists of two methods on `SwiftProtoParser`:
-
-```swift
-// Parse a single .proto file and all its transitive imports.
-static func parseFile(
-    _ filePath: String,
-    importPaths: [String] = []
-) -> Result<Google_Protobuf_FileDescriptorSet, ProtoParseError>
-
-// Parse all .proto files in a directory and their transitive imports.
-static func parseDirectory(
-    _ directoryPath: String,
-    recursive: Bool = false,
-    importPaths: [String] = []
-) -> Result<Google_Protobuf_FileDescriptorSet, ProtoParseError>
-```
-
-Both methods return a `Google_Protobuf_FileDescriptorSet` containing deduplicated descriptors
-in topological order (all dependencies first, then the parsed files).
-
 ## Basic Usage
 
-### Parse a single file
+### Parsing Proto Files
 
 ```swift
 import SwiftProtoParser
-import SwiftProtobuf
 
-let result = SwiftProtoParser.parseFile("user.proto")
+// Parse a single .proto file
+let result = SwiftProtoParser.parseProtoFile("user.proto")
 switch result {
-case .success(let descriptorSet):
-    for file in descriptorSet.file {
-        print("File:     \(file.name)")
-        print("Package:  \(file.package)")
-        print("Messages: \(file.messageType.map { $0.name })")
-        print("Services: \(file.service.map { $0.name })")
-    }
+case .success(let ast):
+    print("Package: \(ast.package ?? "none")")
+    print("Messages: \(ast.messages.map { $0.name })")
+    print("Services: \(ast.services.map { $0.name })")
 case .failure(let error):
     print("Parse error: \(error.localizedDescription)")
 }
+
+// Parse from string content
+let protoContent = """
+syntax = "proto3";
+package example;
+message Person {
+    string name = 1;
+    int32 age = 2;
+}
+"""
+let result = SwiftProtoParser.parseProtoString(protoContent)
 ```
 
-### Parse with import resolution
+### Working with Imports
 
 ```swift
-let result = SwiftProtoParser.parseFile(
-    "/path/to/api.proto",
+// Parse with import resolution
+let result = SwiftProtoParser.parseProtoFileWithImports(
+    "api.proto",
     importPaths: [
         "/path/to/proto/files",
         "/path/to/google/protobuf"
     ]
 )
-```
 
-### Parse a directory
-
-```swift
-// All .proto files in the directory, with recursive subdirectory scanning.
-let result = SwiftProtoParser.parseDirectory(
+// Parse entire directory
+let result = SwiftProtoParser.parseProtoDirectory(
     "/path/to/proto/files",
     recursive: true,
-    importPaths: ["/path/to/external/imports"]
+    importPaths: ["/path/to/imports"]
 )
+```
 
+### Generating Descriptors
+
+```swift
+// Convert to SwiftProtobuf descriptors
+let result = SwiftProtoParser.parseProtoToDescriptors("user.proto")
 switch result {
-case .success(let descriptorSet):
-    print("Parsed \(descriptorSet.file.count) files")
-    for file in descriptorSet.file {
-        print("  \(file.name): \(file.messageType.count) messages")
-    }
+case .success(let descriptor):
+    // Use Google_Protobuf_FileDescriptorProto
+    print("File: \(descriptor.name)")
+    print("Package: \(descriptor.package)")
 case .failure(let error):
     print("Error: \(error)")
 }
 ```
 
-### Inspect the descriptor set
+## Features
 
-```swift
-let result = SwiftProtoParser.parseFile("service.proto")
-guard case .success(let set) = result else { return }
-
-// All files are in topological order: dependencies first, requested file last.
-let mainFile = set.file.last!
-
-// Messages
-for message in mainFile.messageType {
-    print("message \(message.name):")
-    for field in message.field {
-        print("  \(field.name) = \(field.number)")
-    }
-}
-
-// Services
-for service in mainFile.service {
-    for method in service.method {
-        print("rpc \(method.name)(\(method.inputType)) returns (\(method.outputType))")
-    }
-}
-```
-
-## Error Handling
-
-```swift
-switch SwiftProtoParser.parseFile("api.proto", importPaths: ["./protos"]) {
-case .success(let set):
-    // use set.file
-case .failure(let error):
-    switch error {
-    case .fileNotFound(let path):
-        print("Missing file: \(path)")
-    case .dependencyResolutionError(let message, let importPath):
-        print("Import resolution failed at '\(importPath)': \(message)")
-    case .syntaxError(let message, let file, let line, let column):
-        print("\(file):\(line):\(column): \(message)")
-    case .descriptorError(let message):
-        print("Descriptor build error: \(message)")
-    default:
-        print(error.localizedDescription)
-    }
-}
-```
+- **Complete Proto3 Support**: All standard proto3 syntax and semantics
+- **AST Generation**: Parse files into structured Abstract Syntax Tree
+- **Descriptor Building**: Generate `Google_Protobuf_FileDescriptorProto` compatible with SwiftProtobuf
+- **Map Fields**: Full support for map types with automatic synthetic entry message generation (protoc-compatible)
+- **Dependency Resolution**: Handle `import` statements and multi-file dependencies
+- **Extend Statements**: Support for proto3 custom options (`extend google.protobuf.*`)
+- **Scope-Aware Enum Resolution**: Strict protobuf scoping rules enforcement (matches `protoc` behavior)
+- **Qualified Types**: Well-known types and nested message references
+- **Performance Caching**: Content-based caching with 85%+ hit rates
+- **Incremental Parsing**: Only re-parse changed files in large projects
+- **Streaming Support**: Memory-efficient parsing of large files (>50MB)
 
 ## Supported Proto3 Features
 
-### Core syntax
+The library supports the complete proto3 specification including:
 
+### Core Features
 ```protobuf
 syntax = "proto3";
 package example.v1;
 
 import "google/protobuf/timestamp.proto";
 
+// Messages with all field types
 message User {
   string name = 1;
   int32 age = 2;
   repeated string emails = 3;
   map<string, string> metadata = 4;
   google.protobuf.Timestamp created_at = 5;
-
+  
+  // Nested messages
   message Address {
     string street = 1;
     string city = 2;
   }
-
+  
+  // Oneof groups
   oneof contact {
     string email = 10;
     string phone = 11;
   }
 }
 
+// Enums
 enum Status {
   STATUS_UNSPECIFIED = 0;
   STATUS_ACTIVE = 1;
 }
 
+// Services with streaming
 service UserService {
   rpc GetUser(GetUserRequest) returns (User);
   rpc StreamUsers(stream GetUserRequest) returns (stream User);
 }
 ```
 
-### Custom options via `extend`
-
+### Custom Options (Extend)
 ```protobuf
 import "google/protobuf/descriptor.proto";
 
@@ -209,6 +166,39 @@ message ValidatedMessage {
 }
 ```
 
+## Performance Features
+
+### Caching
+```swift
+// Enable automatic caching
+let result = SwiftProtoParser.parseProtoFileWithCaching("user.proto")
+
+// Check cache statistics
+let stats = SwiftProtoParser.getCacheStatistics()
+print("Cache hit rate: \(stats.astHitRate * 100)%")
+print("Memory usage: \(stats.totalMemoryUsage / 1024 / 1024) MB")
+
+// Clear caches
+SwiftProtoParser.clearPerformanceCaches()
+```
+
+### Incremental Parsing
+```swift
+// Parse directory incrementally (only changed files)
+let result = SwiftProtoParser.parseProtoDirectoryIncremental(
+    "/path/to/proto/directory",
+    recursive: true
+)
+```
+
+### Benchmarking
+```swift
+// Benchmark parsing performance
+let benchmark = SwiftProtoParser.benchmarkPerformance("/path/to/proto")
+print("Average parse time: \(benchmark.averageDuration * 1000)ms")
+print("Success rate: \(benchmark.successRate * 100)%")
+```
+
 ## Requirements
 
 - Swift 5.10+
@@ -217,20 +207,46 @@ message ValidatedMessage {
 
 ## Dependencies
 
-- [SwiftProtobuf](https://github.com/apple/swift-protobuf) 1.29.0+
+- [SwiftProtobuf](https://github.com/apple/swift-protobuf) 1.29.0+ (for descriptor generation)
 
 ## Documentation
 
-- **[Architecture Guide](docs/ARCHITECTURE.md)**: Layer design and module responsibilities
-- **[Quick Reference](docs/QUICK_REFERENCE.md)**: API summary and patterns
-- **[Performance Guide](docs/PERFORMANCE_GUIDE.md)**: Internal caching and incremental parsing
+- **[Architecture Guide](docs/ARCHITECTURE.md)**: Technical implementation details and module design
+- **[Performance Guide](docs/PERFORMANCE_GUIDE.md)**: Caching, incremental parsing, and optimization
+- **[Quick Reference](docs/QUICK_REFERENCE.md)**: API summary and common patterns
+
+## Use Cases
+
+- Protocol Buffer code generators for Swift
+- Schema validation and linting tools
+- API documentation generators from `.proto` files
+- Proto file analysis and visualization tools
+- Dynamic proto file processing without `protoc`
+- Build systems requiring schema introspection
 
 ## Testing
 
+The library has comprehensive test coverage with 1120 tests covering all functionality:
+
 ```bash
-swift test          # run all tests
-make test           # run with coverage report
+# Run all tests
+swift test
+
+# Run with coverage
+make test
+make coverage
 ```
+
+Test coverage: **95.32%** (lines), **93.20%** (functions), **92.44%** (regions)
+
+## Contributing
+
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on:
+
+- Code style and formatting
+- Testing requirements (90%+ coverage for new code)
+- Pull request process
+- Development workflow
 
 ## License
 
