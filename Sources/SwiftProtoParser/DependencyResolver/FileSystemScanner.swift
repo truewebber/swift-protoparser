@@ -1,7 +1,7 @@
 import Foundation
 
 /// Handles scanning the file system for proto files.
-public struct FileSystemScanner {
+struct FileSystemScanner {
 
   // MARK: - Properties
 
@@ -15,7 +15,7 @@ public struct FileSystemScanner {
 
   /// Initialize the scanner with import paths.
   /// - Parameter importPaths: Array of directory paths to search for proto files.
-  public init(importPaths: [String] = []) {
+  init(importPaths: [String] = []) {
     self.importPaths = importPaths
     self.fileManager = FileManager.default
   }
@@ -26,7 +26,7 @@ public struct FileSystemScanner {
   /// - Parameter importPath: The import path (e.g., "google/protobuf/timestamp.proto")
   /// - Returns: Absolute path to the file if found.
   /// - Throws: ResolverError if file not found or access issues.
-  public func findProtoFile(_ importPath: String) throws -> String {
+  func findProtoFile(_ importPath: String) throws -> String {
     // Validate import path
     guard !importPath.isEmpty else {
       throw ResolverError.invalidImportPath(importPath)
@@ -58,7 +58,7 @@ public struct FileSystemScanner {
   /// - Parameter directoryPath: Path to the directory to scan.
   /// - Returns: Array of absolute paths to proto files.
   /// - Throws: ResolverError if directory access issues.
-  public func findAllProtoFiles(in directoryPath: String) throws -> [String] {
+  func findAllProtoFiles(in directoryPath: String) throws -> [String] {
     // Check if directory exists
     var isDirectory: ObjCBool = false
     guard fileManager.fileExists(atPath: directoryPath, isDirectory: &isDirectory),
@@ -89,7 +89,7 @@ public struct FileSystemScanner {
   /// - Parameter directoryPath: Path to the root directory to scan.
   /// - Returns: Array of absolute paths to proto files.
   /// - Throws: ResolverError if directory access issues.
-  public func findAllProtoFilesRecursively(in directoryPath: String) throws -> [String] {
+  func findAllProtoFilesRecursively(in directoryPath: String) throws -> [String] {
     var protoFiles: [String] = []
 
     // Use FileManager's directory enumerator for recursive search
@@ -112,7 +112,7 @@ public struct FileSystemScanner {
   /// Convert a relative path to absolute path.
   /// - Parameter path: The path to convert.
   /// - Returns: Absolute path.
-  public func absolutePath(for path: String) -> String {
+  func absolutePath(for path: String) -> String {
     if (path as NSString).isAbsolutePath {
       return path
     }
@@ -123,21 +123,21 @@ public struct FileSystemScanner {
   /// Check if a path is accessible.
   /// - Parameter path: The path to check.
   /// - Returns: True if the path exists and is accessible.
-  public func isAccessible(_ path: String) -> Bool {
+  func isAccessible(_ path: String) -> Bool {
     return fileManager.fileExists(atPath: path)
   }
 
   /// Check if a path is a directory.
   /// - Parameter path: The path to check.
   /// - Returns: True if the path is a directory.
-  public func isDirectory(_ path: String) -> Bool {
+  func isDirectory(_ path: String) -> Bool {
     var isDirectory: ObjCBool = false
     return fileManager.fileExists(atPath: path, isDirectory: &isDirectory) && isDirectory.boolValue
   }
 
   /// Validate that all import paths are accessible directories.
   /// - Throws: ResolverError if any import path is invalid.
-  public func validateImportPaths() throws {
+  func validateImportPaths() throws {
     for importPath in importPaths {
       guard isAccessible(importPath) else {
         throw ResolverError.directoryNotFound(importPath)
@@ -154,7 +154,7 @@ public struct FileSystemScanner {
   /// Check if an import path refers to a well-known type.
   /// - Parameter importPath: The import path to check.
   /// - Returns: True if this is a Google well-known type.
-  public static func isWellKnownType(_ importPath: String) -> Bool {
+  static func isWellKnownType(_ importPath: String) -> Bool {
     let wellKnownPrefixes = [
       "google/protobuf/",
       "google/type/",
@@ -166,7 +166,7 @@ public struct FileSystemScanner {
 
   /// Get the list of well-known type imports.
   /// - Returns: Array of well-known import paths.
-  public static func wellKnownTypes() -> [String] {
+  static func wellKnownTypes() -> [String] {
     return [
       "google/protobuf/any.proto",
       "google/protobuf/api.proto",
@@ -185,7 +185,7 @@ public struct FileSystemScanner {
 // MARK: - CustomStringConvertible
 
 extension FileSystemScanner: CustomStringConvertible {
-  public var description: String {
+  var description: String {
     return "FileSystemScanner(importPaths: \(importPaths))"
   }
 }

@@ -1,7 +1,7 @@
 import Foundation
 
 /// Represents the type of a protobuf field.
-public indirect enum FieldType: Equatable {
+indirect enum FieldType: Equatable {
   // Scalar types
   case double
   case float
@@ -26,7 +26,7 @@ public indirect enum FieldType: Equatable {
   case map(key: FieldType, value: FieldType)  // map<key_type, value_type>
 
   /// Returns true if this is a scalar type.
-  public var isScalar: Bool {
+  var isScalar: Bool {
     switch self {
     case .double, .float, .int32, .int64, .uint32, .uint64,
       .sint32, .sint64, .fixed32, .fixed64, .sfixed32, .sfixed64,
@@ -38,7 +38,7 @@ public indirect enum FieldType: Equatable {
   }
 
   /// Returns true if this is a numeric type.
-  public var isNumeric: Bool {
+  var isNumeric: Bool {
     switch self {
     case .double, .float, .int32, .int64, .uint32, .uint64,
       .sint32, .sint64, .fixed32, .fixed64, .sfixed32, .sfixed64:
@@ -49,7 +49,7 @@ public indirect enum FieldType: Equatable {
   }
 
   /// Returns the string representation of the type as it would appear in a .proto file.
-  public var protoTypeName: String {
+  var protoTypeName: String {
     switch self {
     case .double: return "double"
     case .float: return "float"
@@ -76,7 +76,7 @@ public indirect enum FieldType: Equatable {
 
 // MARK: - CustomStringConvertible
 extension FieldType: CustomStringConvertible {
-  public var description: String {
+  var description: String {
     return protoTypeName
   }
 }

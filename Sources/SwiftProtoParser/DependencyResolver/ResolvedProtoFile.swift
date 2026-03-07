@@ -1,51 +1,51 @@
 import Foundation
 
 /// Represents a proto file that has been resolved with its dependencies.
-public struct ResolvedProtoFile: Sendable {
+struct ResolvedProtoFile: Sendable {
 
   // MARK: - Properties
 
   /// The absolute path to the proto file.
-  public let filePath: String
+  let filePath: String
 
   /// The original import path (relative path used in import statements).
-  public let importPath: String
+  let importPath: String
 
   /// The content of the proto file.
-  public let content: String
+  let content: String
 
   /// List of import statements found in this file.
-  public let imports: [String]
+  let imports: [String]
 
   /// The syntax version declared in the file (e.g., "proto3").
-  public let syntax: String?
+  let syntax: String?
 
   /// Package name declared in the file.
-  public let packageName: String?
+  let packageName: String?
 
   /// File modification time for caching.
-  public let modificationTime: Date
+  let modificationTime: Date
 
   /// File size in bytes.
-  public let fileSize: Int64
+  let fileSize: Int64
 
   /// Whether this is the main file being parsed (not a dependency).
-  public let isMainFile: Bool
+  let isMainFile: Bool
 
   // MARK: - Computed Properties
 
   /// The directory containing this proto file.
-  public var directory: String {
+  var directory: String {
     return (filePath as NSString).deletingLastPathComponent
   }
 
   /// The filename without path.
-  public var fileName: String {
+  var fileName: String {
     return (filePath as NSString).lastPathComponent
   }
 
   /// The filename without extension.
-  public var baseName: String {
+  var baseName: String {
     let filename = fileName
     if filename.hasSuffix(".proto") {
       return String(filename.dropLast(6))
@@ -66,7 +66,7 @@ public struct ResolvedProtoFile: Sendable {
   ///   - modificationTime: File modification time.
   ///   - fileSize: File size in bytes.
   ///   - isMainFile: Whether this is the main file.
-  public init(
+  init(
     filePath: String,
     importPath: String,
     content: String,
@@ -96,7 +96,7 @@ public struct ResolvedProtoFile: Sendable {
   ///   - importPath: Import path (defaults to filename).
   ///   - isMainFile: Whether this is the main file.
   /// - Returns: ResolvedProtoFile or throws an error.
-  public static func from(
+  static func from(
     filePath: String,
     importPath: String? = nil,
     isMainFile: Bool = false
@@ -236,7 +236,7 @@ public struct ResolvedProtoFile: Sendable {
 // MARK: - Equatable
 
 extension ResolvedProtoFile: Equatable {
-  public static func == (lhs: ResolvedProtoFile, rhs: ResolvedProtoFile) -> Bool {
+  static func == (lhs: ResolvedProtoFile, rhs: ResolvedProtoFile) -> Bool {
     return lhs.filePath == rhs.filePath && lhs.importPath == rhs.importPath && lhs.content == rhs.content
   }
 }
@@ -244,7 +244,7 @@ extension ResolvedProtoFile: Equatable {
 // MARK: - Hashable
 
 extension ResolvedProtoFile: Hashable {
-  public func hash(into hasher: inout Hasher) {
+  func hash(into hasher: inout Hasher) {
     hasher.combine(filePath)
     hasher.combine(importPath)
   }
@@ -253,7 +253,7 @@ extension ResolvedProtoFile: Hashable {
 // MARK: - CustomStringConvertible
 
 extension ResolvedProtoFile: CustomStringConvertible {
-  public var description: String {
+  var description: String {
     var components = ["ResolvedProtoFile("]
     components.append("file: \(fileName)")
     components.append("import: \(importPath)")

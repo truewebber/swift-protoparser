@@ -7,7 +7,7 @@ import Foundation
 /// The lexer performs character-by-character analysis of proto3 source files,.
 /// converting the input string into a sequence of tokens while preserving.
 /// position information for error reporting.
-public final class Lexer {
+final class Lexer {
 
   // MARK: - Private Properties
 
@@ -36,7 +36,7 @@ public final class Lexer {
   /// - Parameters:.
   ///   - input: The proto3 source code to tokenize.
   ///   - fileName: Optional file name for error reporting.
-  public init(input: String, fileName: String? = nil) {
+  init(input: String, fileName: String? = nil) {
     self.input = input
     self.currentIndex = input.startIndex
     self.fileName = fileName
@@ -450,7 +450,7 @@ extension Lexer {
   /// Tokenizes input and converts errors to public API format.
   ///
   /// - Returns: A `Result` containing tokens or a public API error.
-  public func tokenizeForPublicAPI() -> Result<[Token], ProtoParseError> {
+  func tokenizeForPublicAPI() -> Result<[Token], ProtoParseError> {
     return tokenize().mapError { lexerError in
       lexerError.toProtoParseError(file: fileName ?? "<unknown>")
     }

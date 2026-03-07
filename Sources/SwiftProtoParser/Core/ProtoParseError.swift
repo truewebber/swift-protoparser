@@ -38,7 +38,7 @@ public enum ProtoParseError: Error {
   // MARK: - Descriptor Builder Errors
 
   /// Error occurred during AST to descriptor conversion.
-  case descriptorError(DescriptorError)
+  case descriptorError(String)
 
   /// Cache-related errors.
   case cacheError(message: String)
@@ -81,7 +81,7 @@ extension ProtoParseError: LocalizedError {
       return "Semantic error in \(context): \(message)"
 
     case .descriptorError(let descriptorError):
-      return "Descriptor building error: \(descriptorError.localizedDescription)"
+      return "Descriptor building error: \(descriptorError)"
 
     case .cacheError(let message):
       return "Cache error: \(message)"

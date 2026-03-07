@@ -1,7 +1,7 @@
 import Foundation
 
 /// Represents the label/cardinality of a protobuf field.
-public enum FieldLabel: String, CaseIterable, Equatable {
+enum FieldLabel: String, CaseIterable, Equatable {
   /// Field appears exactly once (default in proto3).
   case singular = "singular"
 
@@ -12,7 +12,7 @@ public enum FieldLabel: String, CaseIterable, Equatable {
   case optional = "optional"
 
   /// Returns true if this label allows multiple values.
-  public var allowsMultipleValues: Bool {
+  var allowsMultipleValues: Bool {
     switch self {
     case .repeated:
       return true
@@ -22,13 +22,13 @@ public enum FieldLabel: String, CaseIterable, Equatable {
   }
 
   /// Returns true if this field is required (always false in proto3).
-  public var isRequired: Bool {
+  var isRequired: Bool {
     // Proto3 doesn't have required fields
     return false
   }
 
   /// Returns the string representation as it would appear in a .proto file.
-  public var protoKeyword: String {
+  var protoKeyword: String {
     switch self {
     case .singular:
       return ""  // singular is implicit in proto3
@@ -42,7 +42,7 @@ public enum FieldLabel: String, CaseIterable, Equatable {
 
 // MARK: - CustomStringConvertible
 extension FieldLabel: CustomStringConvertible {
-  public var description: String {
+  var description: String {
     return protoKeyword
   }
 }

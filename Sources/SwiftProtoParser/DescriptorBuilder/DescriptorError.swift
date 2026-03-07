@@ -1,7 +1,7 @@
 import Foundation
 
 /// Errors that can occur during descriptor building.
-public enum DescriptorError: LocalizedError, Equatable {
+enum DescriptorError: LocalizedError, Equatable {
   /// Unable to convert AST node to descriptor.
   case conversionFailed(reason: String)
 
@@ -23,7 +23,7 @@ public enum DescriptorError: LocalizedError, Equatable {
   /// Internal error during descriptor building.
   case internalError(message: String)
 
-  public var errorDescription: String? {
+  var errorDescription: String? {
     switch self {
     case .conversionFailed(let reason):
       return "Descriptor conversion failed: \(reason)"
@@ -47,32 +47,32 @@ public enum DescriptorError: LocalizedError, Equatable {
 
 extension DescriptorError {
   /// Create a conversion failed error.
-  public static func conversionFailed(_ reason: String) -> DescriptorError {
+  static func conversionFailed(_ reason: String) -> DescriptorError {
     return .conversionFailed(reason: reason)
   }
 
   /// Create a missing required field error.
-  public static func missingField(_ field: String, in context: String) -> DescriptorError {
+  static func missingField(_ field: String, in context: String) -> DescriptorError {
     return .missingRequiredField(field: field, in: context)
   }
 
   /// Create an invalid field type error.
-  public static func invalidType(_ type: String, in context: String) -> DescriptorError {
+  static func invalidType(_ type: String, in context: String) -> DescriptorError {
     return .invalidFieldType(type: type, context: context)
   }
 
   /// Create a duplicate element error.
-  public static func duplicate(_ name: String, type: String) -> DescriptorError {
+  static func duplicate(_ name: String, type: String) -> DescriptorError {
     return .duplicateElement(name: name, type: type)
   }
 
   /// Create an unsupported feature error.
-  public static func unsupported(_ feature: String, in context: String) -> DescriptorError {
+  static func unsupported(_ feature: String, in context: String) -> DescriptorError {
     return .unsupportedFeature(feature: feature, context: context)
   }
 
   /// Create an internal error.
-  public static func internalError(_ message: String) -> DescriptorError {
+  static func internalError(_ message: String) -> DescriptorError {
     return .internalError(message: message)
   }
 }

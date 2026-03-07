@@ -1,10 +1,10 @@
 import Foundation
 
 /// Wrapper for multiple parser errors to conform to Error protocol.
-public struct ParserErrors: Error {
-  public let errors: [ParserError]
+struct ParserErrors: Error {
+  let errors: [ParserError]
 
-  public init(_ errors: [ParserError]) {
+  init(_ errors: [ParserError]) {
     self.errors = errors
   }
 }
@@ -13,7 +13,7 @@ public struct ParserErrors: Error {
 ///
 /// This parser takes a stream of tokens from the lexer and constructs.
 /// an Abstract Syntax Tree (AST) representing the structure of the .proto file.
-public final class Parser {
+final class Parser {
 
   // MARK: - Private Properties
 
@@ -25,7 +25,7 @@ public final class Parser {
   /// Creates a new parser with the given tokens.
   ///
   /// - Parameter tokens: The array of tokens to parse.
-  public init(tokens: [Token]) {
+  init(tokens: [Token]) {
     self.state = ParserState(tokens: tokens)
   }
 
@@ -34,7 +34,7 @@ public final class Parser {
   /// Parses the tokens into a Protocol Buffers AST.
   ///
   /// - Returns: A `Result` containing either the parsed AST or parser errors.
-  public func parse() -> Result<ProtoAST, ParserErrors> {
+  func parse() -> Result<ProtoAST, ParserErrors> {
     do {
       let ast = try parseProtoFile()
 
@@ -1487,7 +1487,7 @@ extension Parser {
   ///
   /// - Parameter tokens: The tokens to parse.
   /// - Returns: A `Result` containing either the parsed AST or parser errors.
-  public static func parse(tokens: [Token]) -> Result<ProtoAST, ParserErrors> {
+  static func parse(tokens: [Token]) -> Result<ProtoAST, ParserErrors> {
     let parser = Parser(tokens: tokens)
     return parser.parse()
   }

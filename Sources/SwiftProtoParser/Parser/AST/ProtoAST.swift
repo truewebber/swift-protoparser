@@ -1,32 +1,32 @@
 import Foundation
 
 /// Root AST node representing a complete .proto file.
-public struct ProtoAST {
+struct ProtoAST {
   /// Protocol Buffer syntax version (proto3 only supported).
-  public let syntax: ProtoVersion
+  let syntax: ProtoVersion
 
   /// Package declaration.
-  public let package: String?
+  let package: String?
 
   /// Import statements.
-  public let imports: [String]
+  let imports: [String]
 
   /// Top-level options.
-  public let options: [OptionNode]
+  let options: [OptionNode]
 
   /// Message definitions.
-  public let messages: [MessageNode]
+  let messages: [MessageNode]
 
   /// Enum definitions.
-  public let enums: [EnumNode]
+  let enums: [EnumNode]
 
   /// Service definitions.
-  public let services: [ServiceNode]
+  let services: [ServiceNode]
 
   /// Extend statements for custom options (proto3 only).
-  public let extends: [ExtendNode]
+  let extends: [ExtendNode]
 
-  public init(
+  init(
     syntax: ProtoVersion,
     package: String? = nil,
     imports: [String] = [],
@@ -49,7 +49,7 @@ public struct ProtoAST {
 
 // MARK: - Equatable
 extension ProtoAST: Equatable {
-  public static func == (lhs: ProtoAST, rhs: ProtoAST) -> Bool {
+  static func == (lhs: ProtoAST, rhs: ProtoAST) -> Bool {
     return lhs.syntax == rhs.syntax && lhs.package == rhs.package && lhs.imports == rhs.imports
       && lhs.options == rhs.options && lhs.messages == rhs.messages && lhs.enums == rhs.enums
       && lhs.services == rhs.services && lhs.extends == rhs.extends
@@ -58,7 +58,7 @@ extension ProtoAST: Equatable {
 
 // MARK: - CustomStringConvertible
 extension ProtoAST: CustomStringConvertible {
-  public var description: String {
+  var description: String {
     var components: [String] = []
 
     components.append("syntax = \"\(syntax)\";")

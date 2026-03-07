@@ -1,7 +1,7 @@
 import Foundation
 
 /// Errors that can occur during parsing of .proto files.
-public enum ParserError: Error, Equatable {
+enum ParserError: Error, Equatable {
   /// Unexpected token encountered.
   case unexpectedToken(Token, expected: String, line: Int, column: Int)
 
@@ -54,7 +54,7 @@ public enum ParserError: Error, Equatable {
   case internalError(String)
 
   /// The line number where the error occurred.
-  public var line: Int {
+  var line: Int {
     switch self {
     case .unexpectedToken(_, _, let line, _),
       .missingRequiredElement(_, let line, _),
@@ -78,7 +78,7 @@ public enum ParserError: Error, Equatable {
   }
 
   /// The column number where the error occurred.
-  public var column: Int {
+  var column: Int {
     switch self {
     case .unexpectedToken(_, _, _, let column),
       .missingRequiredElement(_, _, let column),
@@ -102,7 +102,7 @@ public enum ParserError: Error, Equatable {
   }
 
   /// A user-friendly description of the error.
-  public var description: String {
+  var description: String {
     switch self {
     case .unexpectedToken(let token, let expected, let line, let column):
       return "Unexpected token '\(token.description)' at line \(line), column \(column). Expected: \(expected)"
@@ -160,7 +160,7 @@ public enum ParserError: Error, Equatable {
 
 // MARK: - CustomStringConvertible
 extension ParserError: CustomStringConvertible {
-  public var localizedDescription: String {
+  var localizedDescription: String {
     return description
   }
 }
@@ -168,42 +168,42 @@ extension ParserError: CustomStringConvertible {
 // MARK: - Convenience constructors
 extension ParserError {
   /// Creates an unexpected token error with token position.
-  public static func unexpectedToken(_ token: Token, expected: String) -> ParserError {
+  static func unexpectedToken(_ token: Token, expected: String) -> ParserError {
     return .unexpectedToken(token, expected: expected, line: token.position.line, column: token.position.column)
   }
 
   /// Creates a missing required element error.
-  public static func missingElement(_ element: String, at position: Token.Position) -> ParserError {
+  static func missingElement(_ element: String, at position: Token.Position) -> ParserError {
     return .missingRequiredElement(element, line: position.line, column: position.column)
   }
 
   /// Creates a duplicate element error.
-  public static func duplicateElement(_ element: String, at position: Token.Position) -> ParserError {
+  static func duplicateElement(_ element: String, at position: Token.Position) -> ParserError {
     return .duplicateElement(element, line: position.line, column: position.column)
   }
 
   /// Creates an invalid field number error.
-  public static func invalidFieldNumber(_ number: Int32, at position: Token.Position) -> ParserError {
+  static func invalidFieldNumber(_ number: Int32, at position: Token.Position) -> ParserError {
     return .invalidFieldNumber(number, line: position.line, column: position.column)
   }
 
   /// Creates a reserved field number error.
-  public static func reservedFieldNumber(_ number: Int32, at position: Token.Position) -> ParserError {
+  static func reservedFieldNumber(_ number: Int32, at position: Token.Position) -> ParserError {
     return .reservedFieldNumber(number, line: position.line, column: position.column)
   }
 
   /// Creates a field number out of range error.
-  public static func fieldNumberOutOfRange(_ number: Int32, at position: Token.Position) -> ParserError {
+  static func fieldNumberOutOfRange(_ number: Int32, at position: Token.Position) -> ParserError {
     return .fieldNumberOutOfRange(number, line: position.line, column: position.column)
   }
 
   /// Creates a duplicate field number error.
-  public static func duplicateFieldNumber(_ number: Int32, at position: Token.Position) -> ParserError {
+  static func duplicateFieldNumber(_ number: Int32, at position: Token.Position) -> ParserError {
     return .duplicateFieldNumber(number, line: position.line, column: position.column)
   }
 
   /// Creates a missing enum zero value error.
-  public static func missingEnumZeroValue(_ enumName: String, at position: Token.Position) -> ParserError {
+  static func missingEnumZeroValue(_ enumName: String, at position: Token.Position) -> ParserError {
     return .missingEnumZeroValue(enumName, line: position.line, column: position.column)
   }
 }

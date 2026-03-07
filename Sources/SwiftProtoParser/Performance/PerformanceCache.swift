@@ -9,7 +9,7 @@ import SwiftProtobuf
 /// - Dependency resolution result caching
 /// - Memory-aware cache eviction policies
 /// - Performance metrics and monitoring
-public final class PerformanceCache {
+final class PerformanceCache {
 
   // MARK: - Cache Entry Types
 
@@ -47,27 +47,27 @@ public final class PerformanceCache {
   // MARK: - Configuration
 
   /// Cache configuration settings.
-  public struct Configuration: Sendable {
+  struct Configuration: Sendable {
     /// Maximum number of AST entries to cache.
-    public let maxASTEntries: Int
+    let maxASTEntries: Int
 
     /// Maximum number of descriptor entries to cache.
-    public let maxDescriptorEntries: Int
+    let maxDescriptorEntries: Int
 
     /// Maximum number of dependency resolution entries to cache.
-    public let maxDependencyEntries: Int
+    let maxDependencyEntries: Int
 
     /// Maximum memory usage in bytes (approximate).
-    public let maxMemoryUsage: Int64
+    let maxMemoryUsage: Int64
 
     /// Time-to-live for cache entries in seconds.
-    public let timeToLive: TimeInterval
+    let timeToLive: TimeInterval
 
     /// Enable performance monitoring.
-    public let enableMonitoring: Bool
+    let enableMonitoring: Bool
 
     /// Initialize cache configuration.
-    public init(
+    init(
       maxASTEntries: Int,
       maxDescriptorEntries: Int,
       maxDependencyEntries: Int,
@@ -84,7 +84,7 @@ public final class PerformanceCache {
     }
 
     /// Default configuration.
-    public static let `default` = Configuration(
+    static let `default` = Configuration(
       maxASTEntries: 1000,
       maxDescriptorEntries: 500,
       maxDependencyEntries: 200,
@@ -94,7 +94,7 @@ public final class PerformanceCache {
     )
 
     /// High-performance configuration for large projects.
-    public static let highPerformance = Configuration(
+    static let highPerformance = Configuration(
       maxASTEntries: 5000,
       maxDescriptorEntries: 2500,
       maxDependencyEntries: 1000,
@@ -104,7 +104,7 @@ public final class PerformanceCache {
     )
 
     /// Memory-constrained configuration.
-    public static let memoryConstrained = Configuration(
+    static let memoryConstrained = Configuration(
       maxASTEntries: 100,
       maxDescriptorEntries: 50,
       maxDependencyEntries: 25,
@@ -127,29 +127,29 @@ public final class PerformanceCache {
   // MARK: - Performance Metrics
 
   /// Cache performance statistics.
-  public struct Statistics: Sendable {
-    public let astCacheHits: Int
-    public let astCacheMisses: Int
-    public let descriptorCacheHits: Int
-    public let descriptorCacheMisses: Int
-    public let dependencyCacheHits: Int
-    public let dependencyCacheMisses: Int
-    public let totalMemoryUsage: Int64
-    public let evictionCount: Int
-    public let averageParseTime: TimeInterval
-    public let averageBuildTime: TimeInterval
+  struct Statistics: Sendable {
+    let astCacheHits: Int
+    let astCacheMisses: Int
+    let descriptorCacheHits: Int
+    let descriptorCacheMisses: Int
+    let dependencyCacheHits: Int
+    let dependencyCacheMisses: Int
+    let totalMemoryUsage: Int64
+    let evictionCount: Int
+    let averageParseTime: TimeInterval
+    let averageBuildTime: TimeInterval
 
-    public var astHitRate: Double {
+    var astHitRate: Double {
       let total = astCacheHits + astCacheMisses
       return total > 0 ? Double(astCacheHits) / Double(total) : 0.0
     }
 
-    public var descriptorHitRate: Double {
+    var descriptorHitRate: Double {
       let total = descriptorCacheHits + descriptorCacheMisses
       return total > 0 ? Double(descriptorCacheHits) / Double(total) : 0.0
     }
 
-    public var dependencyHitRate: Double {
+    var dependencyHitRate: Double {
       let total = dependencyCacheHits + dependencyCacheMisses
       return total > 0 ? Double(dependencyCacheHits) / Double(total) : 0.0
     }
@@ -172,7 +172,7 @@ public final class PerformanceCache {
 
   /// Initialize the performance cache with configuration.
   /// - Parameter configuration: Cache configuration settings.
-  public init(configuration: Configuration = .default) {
+  init(configuration: Configuration = .default) {
     self.configuration = configuration
 
     if configuration.enableMonitoring {
@@ -187,7 +187,7 @@ public final class PerformanceCache {
   ///   - filePath: Path to the proto file.
   ///   - contentHash: Hash of the file content.
   /// - Returns: Cached AST if available and valid.
-  public func getCachedAST(for filePath: String, contentHash: String) -> ProtoAST? {
+  func getCachedAST(for filePath: String, contentHash: String) -> ProtoAST? {
     return queue.sync {
       guard let entry = astCache[filePath],
         entry.contentHash == contentHash,
@@ -249,7 +249,7 @@ public final class PerformanceCache {
   ///   - contentHash: Hash of the file content.
   ///   - fileSize: Size of the file in bytes.
   ///   - parseTime: Time taken to parse the file.
-  public func cacheAST(
+  func cacheAST(
     _ ast: ProtoAST,
     for filePath: String,
     contentHash: String,
@@ -278,7 +278,7 @@ public final class PerformanceCache {
   ///   - filePath: Path to the proto file.
   ///   - contentHash: Hash of the file content.
   /// - Returns: Cached descriptor if available and valid.
-  public func getCachedDescriptor(for filePath: String, contentHash: String) -> Google_Protobuf_FileDescriptorProto? {
+  func getCachedDescriptor(for filePath: String, contentHash: String) -> Google_Protobuf_FileDescriptorProto? {
     guard let entry = descriptorCache[filePath],
       entry.contentHash == contentHash,
       !isExpired(entry.createdAt)
@@ -337,7 +337,7 @@ public final class PerformanceCache {
   ///   - contentHash: Hash of the file content.
   ///   - fileSize: Size of the file in bytes.
   ///   - buildTime: Time taken to build the descriptor.
-  public func cacheDescriptor(
+  func cacheDescriptor(
     _ descriptor: Google_Protobuf_FileDescriptorProto,
     for filePath: String,
     contentHash: String,
@@ -366,7 +366,7 @@ public final class PerformanceCache {
   ///   - filePath: Path to the main proto file.
   ///   - contentHash: Hash of the combined content.
   /// - Returns: Cached resolution result if available and valid.
-  public func getCachedDependencyResult(for filePath: String, contentHash: String) -> DependencyResolver
+  func getCachedDependencyResult(for filePath: String, contentHash: String) -> DependencyResolver
     .ResolutionResult?
   {
     guard let entry = dependencyCache[filePath],
@@ -423,7 +423,7 @@ public final class PerformanceCache {
   ///   - result: Resolution result to cache.
   ///   - filePath: Path to the main proto file.
   ///   - contentHash: Hash of the combined content.
-  public func cacheDependencyResult(
+  func cacheDependencyResult(
     _ result: DependencyResolver.ResolutionResult,
     for filePath: String,
     contentHash: String
@@ -443,7 +443,7 @@ public final class PerformanceCache {
   // MARK: - Cache Management
 
   /// Clear all caches.
-  public func clearAll() {
+  func clearAll() {
     astCache.removeAll()
     descriptorCache.removeAll()
     dependencyCache.removeAll()
@@ -451,7 +451,7 @@ public final class PerformanceCache {
   }
 
   /// Clear expired entries from all caches.
-  public func clearExpired() {
+  func clearExpired() {
     let now = Date()
 
     astCache = astCache.filter { !isExpired($0.value.createdAt, at: now) }
@@ -461,7 +461,7 @@ public final class PerformanceCache {
 
   /// Get current cache statistics.
   /// - Returns: Current performance statistics.
-  public func getStatistics() -> Statistics {
+  func getStatistics() -> Statistics {
     return stats
   }
 
@@ -613,7 +613,7 @@ extension PerformanceCache {
   /// Generate content hash for a file.
   /// - Parameter content: File content to hash.
   /// - Returns: SHA256 hash of the content.
-  public static func contentHash(for content: String) -> String {
+  static func contentHash(for content: String) -> String {
     let data = content.data(using: .utf8) ?? Data()
     return data.withUnsafeBytes { bytes in
       let buffer = bytes.bindMemory(to: UInt8.self)
@@ -624,7 +624,7 @@ extension PerformanceCache {
   /// Generate combined hash for dependency resolution.
   /// - Parameter files: Array of resolved proto files.
   /// - Returns: Combined hash of all file contents.
-  public static func combinedHash(for files: [ResolvedProtoFile]) -> String {
+  static func combinedHash(for files: [ResolvedProtoFile]) -> String {
     let combinedContent = files.map { "\($0.filePath):\($0.content)" }.joined(separator: "\n")
     return contentHash(for: combinedContent)
   }

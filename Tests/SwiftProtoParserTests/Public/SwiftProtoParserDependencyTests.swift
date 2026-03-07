@@ -38,6 +38,121 @@ final class SwiftProtoParserDependencyTests: XCTestCase {
     )
   }
 
+  // MARK: - parseFile Tests (Public API)
+
+  func testParseFile_SimpleFileNoImports_ReturnsSingleFileDescriptorSet() {
+    let simplePath = singleProtoFilesPath + "/simple.proto"
+
+    let result = SwiftProtoParser.parseFile(simplePath)
+
+    switch result {
+    case .success(let descriptorSet):
+      XCTAssertEqual(descriptorSet.file.count, 1)
+      XCTAssertEqual(descriptorSet.file[0].package, "simple")
+      XCTAssertEqual(descriptorSet.file[0].messageType.count, 1)
+      XCTAssertEqual(descriptorSet.file[0].messageType[0].name, "SimpleMessage")
+    case .failure(let error):
+      XCTFail("Expected success, got error: \(error)")
+    }
+  }
+
+  func testParseFile_WithDependencies_ReturnsAllDescriptors() {
+    let servicePath = dependencyTestCasesPath + "/service.proto"
+
+    let result = SwiftProtoParser.parseFile(servicePath, importPaths: [dependencyTestCasesPath])
+
+    switch result {
+    case .success(let descriptorSet):
+      // service.proto depends on user.proto which depends on base.proto → 3 total
+      XCTAssertEqual(descriptorSet.file.count, 3, "Expected 3 descriptors: base, user, service")
+      let packages = descriptorSet.file.map { $0.package }
+      XCTAssertTrue(packages.contains("test.base"))
+      XCTAssertTrue(packages.contains("test.user"))
+      XCTAssertTrue(packages.contains("test.service"))
+    case .failure(let error):
+      XCTFail("Expected success, got error: \(error)")
+    }
+  }
+
+  func testParseFile_MainFileIsLast_TopologicalOrder() {
+    let servicePath = dependencyTestCasesPath + "/service.proto"
+
+    let result = SwiftProtoParser.parseFile(servicePath, importPaths: [dependencyTestCasesPath])
+
+    switch result {
+    case .success(let descriptorSet):
+      XCTAssertEqual(descriptorSet.file.last?.package, "test.service")
+    case .failure(let error):
+      XCTFail("Expected success, got error: \(error)")
+    }
+  }
+
+  func testParseFile_MissingImportPath_ReturnsFailure() {
+    let userPath = dependencyTestCasesPath + "/user.proto"
+
+    let result = SwiftProtoParser.parseFile(userPath)
+
+    switch result {
+    case .success:
+      XCTFail("Expected failure due to missing import")
+    case .failure:
+      break
+    }
+  }
+
+  func testParseFile_FileNotFound_ReturnsFailure() {
+    let result = SwiftProtoParser.parseFile("/nonexistent/file.proto")
+
+    switch result {
+    case .success:
+      XCTFail("Expected failure for non-existent file")
+    case .failure:
+      break
+    }
+  }
+
+  // MARK: - parseDirectory Tests (Public API)
+
+  func testParseDirectory_MultipleFiles_ReturnsFileDescriptorSet() {
+    let result = SwiftProtoParser.parseDirectory(dependencyTestCasesPath)
+
+    switch result {
+    case .success(let descriptorSet):
+      // base.proto, user.proto, service.proto — plus their deps (which are each other)
+      // after deduplication should be exactly 3 unique descriptors
+      XCTAssertGreaterThanOrEqual(descriptorSet.file.count, 3)
+      let packages = descriptorSet.file.map { $0.package }
+      XCTAssertTrue(packages.contains("test.base"))
+      XCTAssertTrue(packages.contains("test.user"))
+      XCTAssertTrue(packages.contains("test.service"))
+    case .failure(let error):
+      XCTFail("Expected success, got error: \(error)")
+    }
+  }
+
+  func testParseDirectory_SingleFile_ReturnsSingleDescriptor() {
+    let result = SwiftProtoParser.parseDirectory(singleProtoFilesPath)
+
+    switch result {
+    case .success(let descriptorSet):
+      XCTAssertEqual(descriptorSet.file.count, 1)
+      XCTAssertEqual(descriptorSet.file[0].package, "simple")
+    case .failure(let error):
+      XCTFail("Expected success, got error: \(error)")
+    }
+  }
+
+  func testParseDirectory_NonExistentDirectory_ReturnsFailure() {
+    let result = SwiftProtoParser.parseDirectory("/nonexistent/directory")
+
+    switch result {
+    case .success:
+      XCTFail("Expected failure for non-existent directory")
+    case .failure:
+      break
+    }
+  }
+
   // MARK: - parseProtoFileWithImports Tests
 
   func testParseProtoFileWithImports_SimpleFile() {

@@ -18,13 +18,143 @@ public struct SwiftProtoParser {
 
 extension SwiftProtoParser {
 
+  /// Parse a .proto file and all its transitive dependencies.
+  ///
+  /// Returns a `FileDescriptorSet` containing descriptors for the main file and every
+  /// imported file, in topological order (dependencies first, main file last).
+  ///
+  /// - Parameters:
+  ///   - filePath: Path to the main .proto file.
+  ///   - importPaths: Directories to search when resolving `import` statements (default: empty).
+  /// - Returns: `Result` containing a `Google_Protobuf_FileDescriptorSet` on success,
+  ///            or a `ProtoParseError` on failure.
+  public static func parseFile(
+    _ filePath: String,
+    importPaths: [String] = []
+  ) -> Result<Google_Protobuf_FileDescriptorSet, ProtoParseError> {
+    let options = DependencyResolver.Options(
+      allowMissingImports: false,
+      recursive: true,
+      validateSyntax: true,
+      detectCircularDependencies: true,
+      maxDepth: 50
+    )
+    let resolver = DependencyResolver(importPaths: importPaths, options: options)
+
+    do {
+      let resolutionResult = try resolver.resolveDependencies(for: filePath)
+      return buildDescriptorSet(from: resolutionResult.allFiles)
+    }
+    catch let resolverError as ResolverError {
+      return .failure(
+        .dependencyResolutionError(message: resolverError.localizedDescription, importPath: filePath))
+    }
+    catch {
+      return .failure(.ioError(underlying: error))
+    }
+  }
+
+  /// Parse all .proto files in a directory and their transitive dependencies.
+  ///
+  /// Returns a `FileDescriptorSet` containing deduplicated descriptors for every file
+  /// found in the directory (and optionally subdirectories) plus all their imports.
+  ///
+  /// - Parameters:
+  ///   - directoryPath: Path to the directory containing `.proto` files.
+  ///   - recursive: Whether to scan subdirectories (default: `false`).
+  ///   - importPaths: Additional directories to search when resolving `import` statements.
+  ///                  The `directoryPath` itself is always included automatically.
+  /// - Returns: `Result` containing a `Google_Protobuf_FileDescriptorSet` on success,
+  ///            or a `ProtoParseError` on failure.
+  public static func parseDirectory(
+    _ directoryPath: String,
+    recursive: Bool = false,
+    importPaths: [String] = []
+  ) -> Result<Google_Protobuf_FileDescriptorSet, ProtoParseError> {
+    let allImportPaths = [directoryPath] + importPaths
+    let options = DependencyResolver.Options(
+      allowMissingImports: false,
+      recursive: true,
+      validateSyntax: true,
+      detectCircularDependencies: true,
+      maxDepth: 50
+    )
+    let resolver = DependencyResolver(importPaths: allImportPaths, options: options)
+
+    do {
+      let resolutionResults = try resolver.resolveDirectory(directoryPath, recursive: recursive)
+
+      // Collect all files across all resolutions, deduplicated by absolute path.
+      var seen: Set<String> = []
+      var allFiles: [ResolvedProtoFile] = []
+      for result in resolutionResults {
+        for file in result.allFiles where !seen.contains(file.filePath) {
+          seen.insert(file.filePath)
+          allFiles.append(file)
+        }
+      }
+
+      return buildDescriptorSet(from: allFiles)
+    }
+    catch let resolverError as ResolverError {
+      return .failure(
+        .dependencyResolutionError(
+          message: resolverError.localizedDescription, importPath: directoryPath))
+    }
+    catch {
+      return .failure(.ioError(underlying: error))
+    }
+  }
+
+  // MARK: - Private helpers
+
+  private static func buildDescriptorSet(
+    from files: [ResolvedProtoFile]
+  ) -> Result<Google_Protobuf_FileDescriptorSet, ProtoParseError> {
+    var fileDescriptors: [Google_Protobuf_FileDescriptorProto] = []
+
+    for resolvedFile in files {
+      let astResult = parseProtoString(resolvedFile.content, fileName: resolvedFile.fileName)
+
+      switch astResult {
+      case .success(let ast):
+        do {
+          let descriptor = try DescriptorBuilder.buildFileDescriptor(
+            from: ast, fileName: resolvedFile.fileName)
+          fileDescriptors.append(descriptor)
+        }
+        catch let descriptorError as DescriptorError {
+          return .failure(.descriptorError(descriptorError.localizedDescription))
+        }
+        catch {
+          return .failure(
+            .internalError(
+              message:
+                "DescriptorBuilder failed for \(resolvedFile.fileName): \(error.localizedDescription)"
+            ))
+        }
+      case .failure(let error):
+        return .failure(error)
+      }
+    }
+
+    var set = Google_Protobuf_FileDescriptorSet()
+    set.file = fileDescriptors
+    return .success(set)
+  }
+}
+
+// MARK: - Legacy API (internal)
+
+extension SwiftProtoParser {
+
   /// Parse a single .proto file from a file path.
   ///
   /// - Parameter filePath: Path to the .proto file
   /// - Returns: Result containing ProtoAST on success, or ProtoParseError on failure.
   ///
   /// Note: This MVP version doesn't resolve imports yet. Use for single-file .proto files.
-  public static func parseProtoFile(_ filePath: String) -> Result<ProtoAST, ProtoParseError> {
+  static func parseProtoFile(_ filePath: String) -> Result<ProtoAST, ProtoParseError> {
     do {
       // Read file content
       let content = try String(contentsOfFile: filePath, encoding: .utf8)
@@ -44,7 +174,7 @@ extension SwiftProtoParser {
   ///   - content: The .proto file content as a string
   ///   - fileName: Optional file name for error reporting (default: "string").
   /// - Returns: Result containing ProtoAST on success, or ProtoParseError on failure.
-  public static func parseProtoString(_ content: String, fileName: String = "string") -> Result<
+  static func parseProtoString(_ content: String, fileName: String = "string") -> Result<
     ProtoAST, ProtoParseError
   > {
     // Step 1: Tokenize
@@ -92,7 +222,7 @@ extension SwiftProtoParser {
   /// - Returns: Result containing Google_Protobuf_FileDescriptorProto on success, or ProtoParseError on failure.
   ///
   /// This method performs the complete pipeline: Lexer → Parser → AST → DescriptorBuilder → FileDescriptorProto
-  public static func parseProtoToDescriptors(_ filePath: String) -> Result<
+  static func parseProtoToDescriptors(_ filePath: String) -> Result<
     Google_Protobuf_FileDescriptorProto, ProtoParseError
   > {
     do {
@@ -119,7 +249,7 @@ extension SwiftProtoParser {
   /// - Returns: Result containing Google_Protobuf_FileDescriptorProto on success, or ProtoParseError on failure.
   ///
   /// This method performs the complete pipeline: Lexer → Parser → AST → DescriptorBuilder → FileDescriptorProto
-  public static func parseProtoStringToDescriptors(_ content: String, fileName: String = "string.proto") -> Result<
+  static func parseProtoStringToDescriptors(_ content: String, fileName: String = "string.proto") -> Result<
     Google_Protobuf_FileDescriptorProto, ProtoParseError
   > {
     // Step 1: Parse to AST
@@ -134,7 +264,7 @@ extension SwiftProtoParser {
       }
       catch let descriptorError as DescriptorError {
         // Convert DescriptorError to ProtoParseError
-        return .failure(.descriptorError(descriptorError))
+        return .failure(.descriptorError(descriptorError.localizedDescription))
       }
       catch {
         return .failure(.internalError(message: "DescriptorBuilder failed: \(error.localizedDescription)"))
@@ -154,7 +284,7 @@ extension SwiftProtoParser {
   ///
   /// - Parameter filePath: Path to the .proto file
   /// - Returns: Result containing ProtoVersion on success, or ProtoParseError on failure.
-  public static func getProtoVersion(_ filePath: String) -> Result<ProtoVersion, ProtoParseError> {
+  static func getProtoVersion(_ filePath: String) -> Result<ProtoVersion, ProtoParseError> {
     return parseProtoFile(filePath).map { ast in
       return ast.syntax
     }
@@ -164,7 +294,7 @@ extension SwiftProtoParser {
   ///
   /// - Parameter filePath: Path to the .proto file
   /// - Returns: Result containing optional package name on success, or ProtoParseError on failure.
-  public static func getPackageName(_ filePath: String) -> Result<String?, ProtoParseError> {
+  static func getPackageName(_ filePath: String) -> Result<String?, ProtoParseError> {
     return parseProtoFile(filePath).map { ast in
       return ast.package
     }
@@ -174,7 +304,7 @@ extension SwiftProtoParser {
   ///
   /// - Parameter filePath: Path to the .proto file
   /// - Returns: Result containing array of message names on success, or ProtoParseError on failure.
-  public static func getMessageNames(_ filePath: String) -> Result<[String], ProtoParseError> {
+  static func getMessageNames(_ filePath: String) -> Result<[String], ProtoParseError> {
     return parseProtoFile(filePath).map { ast in
       return ast.messages.map { $0.name }
     }
@@ -197,7 +327,7 @@ extension SwiftProtoParser {
   ///   - importPaths: Array of directory paths to search for imported files (default: empty)
   ///   - allowMissingImports: Whether to continue if some imports can't be found (default: false)
   /// - Returns: Result containing ProtoAST of the main file on success, or ProtoParseError on failure.
-  public static func parseProtoFileWithImports(
+  static func parseProtoFileWithImports(
     _ filePath: String,
     importPaths: [String] = [],
     allowMissingImports: Bool = false
@@ -240,7 +370,7 @@ extension SwiftProtoParser {
   ///   - importPaths: Additional import paths to search (default: includes the directory itself)
   ///   - allowMissingImports: Whether to continue if some imports can't be found (default: false)
   /// - Returns: Result containing array of ProtoAST on success, or ProtoParseError on failure.
-  public static func parseProtoDirectory(
+  static func parseProtoDirectory(
     _ directoryPath: String,
     recursive: Bool = false,
     importPaths: [String] = [],
@@ -305,7 +435,7 @@ extension SwiftProtoParser {
   ///   - importPaths: Array of directory paths to search for imported files (default: empty)
   ///   - allowMissingImports: Whether to continue if some imports can't be found (default: false)
   /// - Returns: Result containing Google_Protobuf_FileDescriptorProto on success, or ProtoParseError on failure.
-  public static func parseProtoFileWithImportsToDescriptors(
+  static func parseProtoFileWithImportsToDescriptors(
     _ filePath: String,
     importPaths: [String] = [],
     allowMissingImports: Bool = false
@@ -326,7 +456,7 @@ extension SwiftProtoParser {
         return .success(fileDescriptor)
       }
       catch let descriptorError as DescriptorError {
-        return .failure(.descriptorError(descriptorError))
+        return .failure(.descriptorError(descriptorError.localizedDescription))
       }
       catch {
         return .failure(.internalError(message: "DescriptorBuilder failed: \(error.localizedDescription)"))
@@ -349,7 +479,7 @@ extension SwiftProtoParser {
   ///   - allowMissingImports: Whether to continue if some imports can't be found (default: false)
   /// - Returns: Result containing array of Google_Protobuf_FileDescriptorProto on success,
   ///            where the last element is always the main file's descriptor.
-  public static func parseProtoFileWithImportsToAllDescriptors(
+  static func parseProtoFileWithImportsToAllDescriptors(
     _ filePath: String,
     importPaths: [String] = [],
     allowMissingImports: Bool = false
@@ -381,7 +511,7 @@ extension SwiftProtoParser {
           }
           catch let descriptorError as DescriptorError {
             if !allowMissingImports {
-              return .failure(.descriptorError(descriptorError))
+              return .failure(.descriptorError(descriptorError.localizedDescription))
             }
           }
           catch {
@@ -426,7 +556,7 @@ extension SwiftProtoParser {
   ///   - importPaths: Additional import paths to search (default: includes the directory itself)
   ///   - allowMissingImports: Whether to continue if some imports can't be found (default: false)
   /// - Returns: Result containing array of Google_Protobuf_FileDescriptorProto on success, or ProtoParseError on failure.
-  public static func parseProtoDirectoryToDescriptors(
+  static func parseProtoDirectoryToDescriptors(
     _ directoryPath: String,
     recursive: Bool = false,
     importPaths: [String] = [],
@@ -453,7 +583,7 @@ extension SwiftProtoParser {
           fileDescriptors.append(fileDescriptor)
         }
         catch let descriptorError as DescriptorError {
-          return .failure(.descriptorError(descriptorError))
+          return .failure(.descriptorError(descriptorError.localizedDescription))
         }
         catch {
           return .failure(.internalError(message: "DescriptorBuilder failed: \(error.localizedDescription)"))
@@ -473,10 +603,10 @@ extension SwiftProtoParser {
 extension SwiftProtoParser {
 
   /// Shared performance cache instance for optimized parsing.
-  public static let sharedCache = PerformanceCache(configuration: .default)
+  static let sharedCache = PerformanceCache(configuration: .default)
 
   /// Shared incremental parser instance for large projects.
-  public static let sharedIncrementalParser = IncrementalParser(
+  static let sharedIncrementalParser = IncrementalParser(
     configuration: .default,
     cache: sharedCache
   )
@@ -490,7 +620,7 @@ extension SwiftProtoParser {
   ///   - filePath: Path to the .proto file
   ///   - enableCaching: Whether to use performance caching (default: true)
   /// - Returns: Result containing ProtoAST on success, or ProtoParseError on failure.
-  public static func parseProtoFileWithCaching(
+  static func parseProtoFileWithCaching(
     _ filePath: String,
     enableCaching: Bool = true
   ) -> Result<ProtoAST, ProtoParseError> {
@@ -536,7 +666,7 @@ extension SwiftProtoParser {
   ///   - recursive: Whether to scan subdirectories (default: false)
   ///   - importPaths: Additional import paths to search (default: includes the directory itself)
   /// - Returns: Result containing array of ProtoAST for all files, or ProtoParseError on failure.
-  public static func parseProtoDirectoryIncremental(
+  static func parseProtoDirectoryIncremental(
     _ directoryPath: String,
     recursive: Bool = false,
     importPaths: [String] = []
@@ -588,7 +718,7 @@ extension SwiftProtoParser {
   ///   - filePath: Path to the large .proto file
   ///   - importPaths: Import paths for dependency resolution (default: empty)
   /// - Returns: Result containing ProtoAST on success, or ProtoParseError on failure.
-  public static func parseProtoFileStreaming(
+  static func parseProtoFileStreaming(
     _ filePath: String,
     importPaths: [String] = []
   ) -> Result<ProtoAST, ProtoParseError> {
@@ -604,21 +734,21 @@ extension SwiftProtoParser {
   /// Get performance statistics for the shared cache.
   ///
   /// - Returns: Current cache performance statistics.
-  public static func getCacheStatistics() -> PerformanceCache.Statistics {
+  static func getCacheStatistics() -> PerformanceCache.Statistics {
     return sharedCache.getStatistics()
   }
 
   /// Get incremental parsing statistics.
   ///
   /// - Returns: Current incremental parsing statistics.
-  public static func getIncrementalStatistics() -> IncrementalParser.Statistics {
+  static func getIncrementalStatistics() -> IncrementalParser.Statistics {
     return sharedIncrementalParser.getStatistics()
   }
 
   /// Clear all performance caches.
   ///
   /// Use this to free memory or reset performance tracking.
-  public static func clearPerformanceCaches() {
+  static func clearPerformanceCaches() {
     sharedCache.clearAll()
     sharedIncrementalParser.reset()
   }
@@ -632,7 +762,7 @@ extension SwiftProtoParser {
   ///   - path: Path to file or directory to benchmark
   ///   - configuration: Benchmark configuration (default: .default)
   /// - Returns: Benchmark results with detailed performance metrics.
-  public static func benchmarkPerformance(
+  static func benchmarkPerformance(
     _ path: String,
     configuration: PerformanceBenchmark.Configuration = .default
   ) -> PerformanceBenchmark.BenchmarkResult {

@@ -1,17 +1,17 @@
 import Foundation
 
 /// Represents a protobuf service definition.
-public struct ServiceNode: Equatable {
+struct ServiceNode: Equatable {
   /// The service name.
-  public let name: String
+  let name: String
 
   /// The RPC methods in this service.
-  public let methods: [RPCMethodNode]
+  let methods: [RPCMethodNode]
 
   /// Service-specific options.
-  public let options: [OptionNode]
+  let options: [OptionNode]
 
-  public init(
+  init(
     name: String,
     methods: [RPCMethodNode] = [],
     options: [OptionNode] = []
@@ -22,37 +22,37 @@ public struct ServiceNode: Equatable {
   }
 
   /// Returns the RPC method with the given name, if it exists.
-  public func method(named name: String) -> RPCMethodNode? {
+  func method(named name: String) -> RPCMethodNode? {
     return methods.first { $0.name == name }
   }
 
   /// Returns all method names used in this service.
-  public var usedMethodNames: Set<String> {
+  var usedMethodNames: Set<String> {
     return Set(methods.map { $0.name })
   }
 }
 
 /// Represents an RPC method within a protobuf service.
-public struct RPCMethodNode: Equatable {
+struct RPCMethodNode: Equatable {
   /// The method name.
-  public let name: String
+  let name: String
 
   /// The input (request) message type.
-  public let inputType: String
+  let inputType: String
 
   /// The output (response) message type.
-  public let outputType: String
+  let outputType: String
 
   /// Whether the input is streamed.
-  public let inputStreaming: Bool
+  let inputStreaming: Bool
 
   /// Whether the output is streamed.
-  public let outputStreaming: Bool
+  let outputStreaming: Bool
 
   /// Method-specific options.
-  public let options: [OptionNode]
+  let options: [OptionNode]
 
-  public init(
+  init(
     name: String,
     inputType: String,
     outputType: String,
@@ -69,7 +69,7 @@ public struct RPCMethodNode: Equatable {
   }
 
   /// Returns the streaming type of this RPC method.
-  public var streamingType: RPCStreamingType {
+  var streamingType: RPCStreamingType {
     switch (inputStreaming, outputStreaming) {
     case (false, false):
       return .unary
@@ -84,14 +84,14 @@ public struct RPCMethodNode: Equatable {
 }
 
 /// Represents the streaming type of an RPC method.
-public enum RPCStreamingType: String, CaseIterable {
+enum RPCStreamingType: String, CaseIterable {
   case unary = "unary"
   case serverStreaming = "server_streaming"
   case clientStreaming = "client_streaming"
   case bidirectionalStreaming = "bidirectional_streaming"
 
   /// Returns a human-readable description of the streaming type.
-  public var description: String {
+  var description: String {
     switch self {
     case .unary:
       return "Unary"
@@ -107,7 +107,7 @@ public enum RPCStreamingType: String, CaseIterable {
 
 // MARK: - CustomStringConvertible
 extension ServiceNode: CustomStringConvertible {
-  public var description: String {
+  var description: String {
     var lines: [String] = []
 
     lines.append("service \(name) {")
@@ -133,7 +133,7 @@ extension ServiceNode: CustomStringConvertible {
 
 // MARK: - CustomStringConvertible
 extension RPCMethodNode: CustomStringConvertible {
-  public var description: String {
+  var description: String {
     var components: [String] = []
 
     components.append("rpc \(name)(")

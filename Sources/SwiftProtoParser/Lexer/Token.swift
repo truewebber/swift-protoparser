@@ -5,24 +5,24 @@ import Foundation
 /// Represents a token in Protocol Buffers source code.
 ///
 /// This struct contains the token type and position information for error reporting.
-public struct Token: Sendable {
+struct Token: Sendable {
   /// The type of the token.
-  public let type: TokenType
+  let type: TokenType
 
   /// The position of this token in the source file.
-  public let position: Position
+  let position: Position
 
-  public init(type: TokenType, position: Position) {
+  init(type: TokenType, position: Position) {
     self.type = type
     self.position = position
   }
 
   /// Position information for a token.
-  public struct Position: Equatable, Sendable {
-    public let line: Int
-    public let column: Int
+  struct Position: Equatable, Sendable {
+    let line: Int
+    let column: Int
 
-    public init(line: Int, column: Int) {
+    init(line: Int, column: Int) {
       self.line = line
       self.column = column
     }
@@ -30,7 +30,7 @@ public struct Token: Sendable {
 }
 
 /// Token types that can appear in a proto3 file.
-public enum TokenType: Sendable {
+enum TokenType: Sendable {
 
   // MARK: - Language Elements
 
@@ -79,7 +79,7 @@ public enum TokenType: Sendable {
 // MARK: - ProtoKeyword
 
 /// Protocol Buffers keywords for proto3 syntax.
-public enum ProtoKeyword: String, CaseIterable, Sendable {
+enum ProtoKeyword: String, CaseIterable, Sendable {
 
   // MARK: - Core Keywords
 
@@ -159,7 +159,7 @@ public enum ProtoKeyword: String, CaseIterable, Sendable {
 
 extension Token: Equatable {
 
-  public static func == (lhs: Token, rhs: Token) -> Bool {
+  static func == (lhs: Token, rhs: Token) -> Bool {
     #if DEBUG
       // In debug mode (tests), ignore position for easier testing
       return lhs.type == rhs.type
@@ -174,7 +174,7 @@ extension Token: Equatable {
 
 extension TokenType: Equatable {
 
-  public static func == (lhs: TokenType, rhs: TokenType) -> Bool {
+  static func == (lhs: TokenType, rhs: TokenType) -> Bool {
     switch (lhs, rhs) {
     case (.keyword(let lhsKeyword), .keyword(let rhsKeyword)):
       return lhsKeyword == rhsKeyword
@@ -215,7 +215,7 @@ extension TokenType: Equatable {
 
 extension Token: CustomStringConvertible {
 
-  public var description: String {
+  var description: String {
     return type.description
   }
 }
@@ -224,7 +224,7 @@ extension Token: CustomStringConvertible {
 
 extension TokenType: CustomStringConvertible {
 
-  public var description: String {
+  var description: String {
     switch self {
     case .keyword(let keyword):
       return "keyword(\(keyword.rawValue))"
@@ -267,32 +267,32 @@ extension TokenType: CustomStringConvertible {
 extension Token {
 
   /// Returns true if this token represents whitespace or comments.
-  public var isIgnorable: Bool {
+  var isIgnorable: Bool {
     return type.isIgnorable
   }
 
   /// Returns true if this token is a literal value.
-  public var isLiteral: Bool {
+  var isLiteral: Bool {
     return type.isLiteral
   }
 
   /// Returns true if this token is a specific keyword.
-  public func isKeyword(_ keyword: ProtoKeyword) -> Bool {
+  func isKeyword(_ keyword: ProtoKeyword) -> Bool {
     return type.isKeyword(keyword)
   }
 
   /// Returns true if this token is a specific symbol.
-  public func isSymbol(_ symbol: Character) -> Bool {
+  func isSymbol(_ symbol: Character) -> Bool {
     return type.isSymbol(symbol)
   }
 
   /// Compares only the token type, ignoring position (useful for testing).
-  public func hasSameType(as other: Token) -> Bool {
+  func hasSameType(as other: Token) -> Bool {
     return self.type == other.type
   }
 
   /// Compares token type with a given TokenType.
-  public func hasType(_ tokenType: TokenType) -> Bool {
+  func hasType(_ tokenType: TokenType) -> Bool {
     return self.type == tokenType
   }
 }
@@ -302,7 +302,7 @@ extension Token {
 extension TokenType {
 
   /// Returns true if this token represents whitespace or comments.
-  public var isIgnorable: Bool {
+  var isIgnorable: Bool {
     switch self {
     case .whitespace, .comment, .newline:
       return true
@@ -312,7 +312,7 @@ extension TokenType {
   }
 
   /// Returns true if this token is a literal value.
-  public var isLiteral: Bool {
+  var isLiteral: Bool {
     switch self {
     case .stringLiteral, .integerLiteral, .floatLiteral, .boolLiteral:
       return true
@@ -322,7 +322,7 @@ extension TokenType {
   }
 
   /// Returns true if this token is a specific keyword.
-  public func isKeyword(_ keyword: ProtoKeyword) -> Bool {
+  func isKeyword(_ keyword: ProtoKeyword) -> Bool {
     if case .keyword(let tokenKeyword) = self {
       return tokenKeyword == keyword
     }
@@ -330,7 +330,7 @@ extension TokenType {
   }
 
   /// Returns true if this token is a specific symbol.
-  public func isSymbol(_ symbol: Character) -> Bool {
+  func isSymbol(_ symbol: Character) -> Bool {
     if case .symbol(let tokenSymbol) = self {
       return tokenSymbol == symbol
     }
@@ -343,57 +343,57 @@ extension TokenType {
 #if DEBUG
   extension Token {
     /// Creates a token with default position for testing.
-    public static func keyword(_ keyword: ProtoKeyword) -> Token {
+    static func keyword(_ keyword: ProtoKeyword) -> Token {
       return Token(type: .keyword(keyword), position: Position(line: 1, column: 1))
     }
 
     /// Creates a token with default position for testing.
-    public static func identifier(_ name: String) -> Token {
+    static func identifier(_ name: String) -> Token {
       return Token(type: .identifier(name), position: Position(line: 1, column: 1))
     }
 
     /// Creates a token with default position for testing.
-    public static func stringLiteral(_ value: String) -> Token {
+    static func stringLiteral(_ value: String) -> Token {
       return Token(type: .stringLiteral(value), position: Position(line: 1, column: 1))
     }
 
     /// Creates a token with default position for testing.
-    public static func integerLiteral(_ value: Int64) -> Token {
+    static func integerLiteral(_ value: Int64) -> Token {
       return Token(type: .integerLiteral(value), position: Position(line: 1, column: 1))
     }
 
     /// Creates a token with default position for testing.
-    public static func floatLiteral(_ value: Double) -> Token {
+    static func floatLiteral(_ value: Double) -> Token {
       return Token(type: .floatLiteral(value), position: Position(line: 1, column: 1))
     }
 
     /// Creates a token with default position for testing.
-    public static func boolLiteral(_ value: Bool) -> Token {
+    static func boolLiteral(_ value: Bool) -> Token {
       return Token(type: .boolLiteral(value), position: Position(line: 1, column: 1))
     }
 
     /// Creates a token with default position for testing.
-    public static func symbol(_ char: Character) -> Token {
+    static func symbol(_ char: Character) -> Token {
       return Token(type: .symbol(char), position: Position(line: 1, column: 1))
     }
 
     /// Creates a token with default position for testing.
-    public static func comment(_ value: String) -> Token {
+    static func comment(_ value: String) -> Token {
       return Token(type: .comment(value), position: Position(line: 1, column: 1))
     }
 
     /// Creates a token with default position for testing.
-    public static var whitespace: Token {
+    static var whitespace: Token {
       return Token(type: .whitespace, position: Position(line: 1, column: 1))
     }
 
     /// Creates a token with default position for testing.
-    public static var newline: Token {
+    static var newline: Token {
       return Token(type: .newline, position: Position(line: 1, column: 1))
     }
 
     /// Creates a token with default position for testing.
-    public static var eof: Token {
+    static var eof: Token {
       return Token(type: .eof, position: Position(line: 1, column: 1))
     }
   }

@@ -2,10 +2,10 @@ import Foundation
 import SwiftProtobuf
 
 /// Main descriptor builder that converts ProtoAST to swift-protobuf FileDescriptorProto.
-public struct DescriptorBuilder {
+struct DescriptorBuilder {
 
   /// Convert ProtoAST to FileDescriptorProto.
-  public static func buildFileDescriptor(from ast: ProtoAST, fileName: String) throws
+  static func buildFileDescriptor(from ast: ProtoAST, fileName: String) throws
     -> Google_Protobuf_FileDescriptorProto
   {
     var fileProto = Google_Protobuf_FileDescriptorProto()

@@ -1,29 +1,29 @@
 import Foundation
 
 /// Main dependency resolver that coordinates the resolution of proto file dependencies.
-public class DependencyResolver {
+class DependencyResolver {
 
   // MARK: - Types
 
   /// Configuration options for dependency resolution.
-  public struct Options: Sendable {
+  struct Options: Sendable {
     /// Whether to allow missing imports (skip them instead of failing).
-    public let allowMissingImports: Bool
+    let allowMissingImports: Bool
 
     /// Whether to resolve dependencies recursively.
-    public let recursive: Bool
+    let recursive: Bool
 
     /// Whether to validate syntax of all resolved files.
-    public let validateSyntax: Bool
+    let validateSyntax: Bool
 
     /// Whether to detect and report circular dependencies.
-    public let detectCircularDependencies: Bool
+    let detectCircularDependencies: Bool
 
     /// Maximum depth for recursive resolution (prevents infinite loops).
-    public let maxDepth: Int
+    let maxDepth: Int
 
     /// Default options.
-    public static let `default` = Options(
+    static let `default` = Options(
       allowMissingImports: false,
       recursive: true,
       validateSyntax: true,
@@ -32,7 +32,7 @@ public class DependencyResolver {
     )
 
     /// Initialize options.
-    public init(
+    init(
       allowMissingImports: Bool = false,
       recursive: Bool = true,
       validateSyntax: Bool = true,
@@ -48,42 +48,42 @@ public class DependencyResolver {
   }
 
   /// Result of dependency resolution.
-  public struct ResolutionResult: Sendable {
+  struct ResolutionResult: Sendable {
     /// The main file that was resolved.
-    public let mainFile: ResolvedProtoFile
+    let mainFile: ResolvedProtoFile
 
     /// All resolved dependencies.
-    public let dependencies: [ResolvedProtoFile]
+    let dependencies: [ResolvedProtoFile]
 
     /// All files (main + dependencies) in topological order.
-    public let allFiles: [ResolvedProtoFile]
+    let allFiles: [ResolvedProtoFile]
 
     /// Any warnings encountered during resolution.
-    public let warnings: [String]
+    let warnings: [String]
 
     /// Resolution statistics.
-    public let stats: ResolutionStats
+    let stats: ResolutionStats
   }
 
   /// Statistics about the resolution process.
-  public struct ResolutionStats: Sendable {
+  struct ResolutionStats: Sendable {
     /// Total number of files resolved.
-    public let totalFiles: Int
+    let totalFiles: Int
 
     /// Number of direct dependencies.
-    public let directDependencies: Int
+    let directDependencies: Int
 
     /// Number of transitive dependencies.
-    public let transitiveDependencies: Int
+    let transitiveDependencies: Int
 
     /// Number of well-known types referenced.
-    public let wellKnownTypes: Int
+    let wellKnownTypes: Int
 
     /// Resolution time in seconds.
-    public let resolutionTime: TimeInterval
+    let resolutionTime: TimeInterval
 
     /// Cache hit rate.
-    public let cacheHitRate: Double
+    let cacheHitRate: Double
   }
 
   // MARK: - Properties
@@ -106,7 +106,7 @@ public class DependencyResolver {
   /// - Parameters:.
   ///   - importPaths: Array of directory paths to search for proto files.
   ///   - options: Resolution options.
-  public init(importPaths: [String] = [], options: Options = .default) {
+  init(importPaths: [String] = [], options: Options = .default) {
     self.importPaths = importPaths
     self.options = options
     self.scanner = FileSystemScanner(importPaths: importPaths)
@@ -119,7 +119,7 @@ public class DependencyResolver {
   /// - Parameter filePath: Path to the main proto file.
   /// - Returns: Resolution result containing all resolved files.
   /// - Throws: ResolverError if resolution fails.
-  public func resolveDependencies(for filePath: String) throws -> ResolutionResult {
+  func resolveDependencies(for filePath: String) throws -> ResolutionResult {
     let startTime = Date()
 
     // Validate import paths
@@ -224,7 +224,7 @@ public class DependencyResolver {
   /// - Parameter filePaths: Array of paths to proto files.
   /// - Returns: Array of resolution results.
   /// - Throws: ResolverError if any resolution fails.
-  public func resolveDependencies(for filePaths: [String]) throws -> [ResolutionResult] {
+  func resolveDependencies(for filePaths: [String]) throws -> [ResolutionResult] {
     var results: [ResolutionResult] = []
 
     for filePath in filePaths {
@@ -241,7 +241,7 @@ public class DependencyResolver {
   ///   - recursive: Whether to search subdirectories.
   /// - Returns: Array of resolution results for all proto files.
   /// - Throws: ResolverError if directory access fails.
-  public func resolveDirectory(
+  func resolveDirectory(
     _ directoryPath: String,
     recursive: Bool = false
   ) throws -> [ResolutionResult] {
@@ -361,19 +361,19 @@ public class DependencyResolver {
   // MARK: - Utility Methods
 
   /// Clear all internal caches.
-  public func clearCaches() {
+  func clearCaches() {
     importResolver.clearCache()
   }
 
   /// Get resolver statistics.
-  public var stats: (cacheHits: Int, cacheSize: Int) {
+  var stats: (cacheHits: Int, cacheSize: Int) {
     let cacheStats = importResolver.cacheStats
     return (cacheHits: cacheStats.hits, cacheSize: cacheStats.size)
   }
 
   /// Validate that all import paths are accessible.
   /// - Throws: ResolverError if any path is invalid.
-  public func validateImportPaths() throws {
+  func validateImportPaths() throws {
     try scanner.validateImportPaths()
   }
 }
@@ -385,14 +385,14 @@ extension DependencyResolver {
   /// Create a resolver with default settings.
   /// - Parameter importPaths: Import paths to search.
   /// - Returns: Configured dependency resolver.
-  public static func standard(importPaths: [String]) -> DependencyResolver {
+  static func standard(importPaths: [String]) -> DependencyResolver {
     return DependencyResolver(importPaths: importPaths, options: .default)
   }
 
   /// Create a resolver that allows missing imports.
   /// - Parameter importPaths: Import paths to search.
   /// - Returns: Configured dependency resolver.
-  public static func lenient(importPaths: [String]) -> DependencyResolver {
+  static func lenient(importPaths: [String]) -> DependencyResolver {
     let options = Options(
       allowMissingImports: true,
       recursive: true,
@@ -406,7 +406,7 @@ extension DependencyResolver {
   /// Create a resolver with strict validation.
   /// - Parameter importPaths: Import paths to search.
   /// - Returns: Configured dependency resolver.
-  public static func strict(importPaths: [String]) -> DependencyResolver {
+  static func strict(importPaths: [String]) -> DependencyResolver {
     let options = Options(
       allowMissingImports: false,
       recursive: true,
@@ -421,13 +421,13 @@ extension DependencyResolver {
 // MARK: - CustomStringConvertible
 
 extension DependencyResolver: CustomStringConvertible {
-  public var description: String {
+  var description: String {
     return "DependencyResolver(importPaths: \(importPaths.count), options: \(options))"
   }
 }
 
 extension DependencyResolver.Options: CustomStringConvertible {
-  public var description: String {
+  var description: String {
     return "Options(allowMissing: \(allowMissingImports), recursive: \(recursive), validate: \(validateSyntax))"
   }
 }

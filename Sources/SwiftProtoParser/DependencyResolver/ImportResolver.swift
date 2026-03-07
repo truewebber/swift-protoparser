@@ -1,7 +1,7 @@
 import Foundation
 
 /// Resolves import statements from proto files.
-public struct ImportResolver {
+struct ImportResolver {
 
   // MARK: - Properties
 
@@ -18,13 +18,13 @@ public struct ImportResolver {
 
   /// Initialize the import resolver.
   /// - Parameter scanner: File system scanner to use for finding files.
-  public init(scanner: FileSystemScanner) {
+  init(scanner: FileSystemScanner) {
     self.scanner = scanner
   }
 
   /// Initialize with import paths.
   /// - Parameter importPaths: Array of directory paths to search for proto files.
-  public init(importPaths: [String]) {
+  init(importPaths: [String]) {
     self.scanner = FileSystemScanner(importPaths: importPaths)
   }
 
@@ -36,7 +36,7 @@ public struct ImportResolver {
   ///   - fromFile: The file that contains this import (for relative resolution).
   /// - Returns: Absolute path to the imported file.
   /// - Throws: ResolverError if import cannot be resolved.
-  public mutating func resolveImport(
+  mutating func resolveImport(
     _ importPath: String,
     fromFile: String
   ) throws -> String {
@@ -78,7 +78,7 @@ public struct ImportResolver {
   /// - Parameter file: The resolved proto file containing imports.
   /// - Returns: Array of resolved import paths.
   /// - Throws: ResolverError if any import cannot be resolved.
-  public mutating func resolveImports(from file: ResolvedProtoFile) throws -> [String] {
+  mutating func resolveImports(from file: ResolvedProtoFile) throws -> [String] {
     var resolvedImports: [String] = []
 
     for importPath in file.imports {
@@ -93,7 +93,7 @@ public struct ImportResolver {
   /// - Parameter file: The resolved proto file to start from.
   /// - Returns: Array of all resolved import paths (including transitive dependencies).
   /// - Throws: ResolverError if any import cannot be resolved.
-  public mutating func resolveImportsRecursively(from file: ResolvedProtoFile) throws -> [String] {
+  mutating func resolveImportsRecursively(from file: ResolvedProtoFile) throws -> [String] {
     var allImports: Set<String> = []
     var toProcess: [String] = []
 
@@ -137,7 +137,7 @@ public struct ImportResolver {
   /// Validate that all imports in a file can be resolved.
   /// - Parameter file: The proto file to validate.
   /// - Returns: Array of validation errors (empty if all valid).
-  public mutating func validateImports(in file: ResolvedProtoFile) -> [ResolverError] {
+  mutating func validateImports(in file: ResolvedProtoFile) -> [ResolverError] {
     var errors: [ResolverError] = []
 
     for importPath in file.imports {
@@ -158,7 +158,7 @@ public struct ImportResolver {
   /// Check for circular dependencies in a set of files.
   /// - Parameter files: Array of proto files to check.
   /// - Returns: Array of detected circular dependency chains.
-  public func detectCircularDependencies(in files: [ResolvedProtoFile]) -> [[String]] {
+  func detectCircularDependencies(in files: [ResolvedProtoFile]) -> [[String]] {
     var cycles: [[String]] = []
     var visited: Set<String> = []
     var recursionStack: Set<String> = []
@@ -227,13 +227,13 @@ public struct ImportResolver {
   // MARK: - Cache Management
 
   /// Clear the resolution cache.
-  public mutating func clearCache() {
+  mutating func clearCache() {
     resolvedCache.removeAll()
   }
 
   /// Get cache statistics.
   /// - Returns: Tuple of (cache hits, cache size).
-  public var cacheStats: (hits: Int, size: Int) {
+  var cacheStats: (hits: Int, size: Int) {
     return (hits: resolvedCache.count, size: resolvedCache.count)
   }
 
@@ -242,14 +242,14 @@ public struct ImportResolver {
   /// Check if an import is a well-known type that should be skipped.
   /// - Parameter importPath: The import path to check.
   /// - Returns: True if this is a well-known type.
-  public static func isWellKnownType(_ importPath: String) -> Bool {
+  static func isWellKnownType(_ importPath: String) -> Bool {
     return FileSystemScanner.isWellKnownType(importPath)
   }
 
   /// Get information about a well-known type.
   /// - Parameter importPath: The well-known type import path.
   /// - Returns: Description of the well-known type, or nil if not well-known.
-  public static func wellKnownTypeInfo(_ importPath: String) -> String? {
+  static func wellKnownTypeInfo(_ importPath: String) -> String? {
     let wellKnownTypes = [
       "google/protobuf/any.proto": "Protocol buffer Any type",
       "google/protobuf/api.proto": "Protocol buffer API definitions",
@@ -270,7 +270,7 @@ public struct ImportResolver {
 // MARK: - CustomStringConvertible
 
 extension ImportResolver: CustomStringConvertible {
-  public var description: String {
+  var description: String {
     return "ImportResolver(cache: \(resolvedCache.count) entries, scanner: \(scanner))"
   }
 }

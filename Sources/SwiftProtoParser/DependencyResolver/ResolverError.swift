@@ -1,7 +1,7 @@
 import Foundation
 
 /// Errors that can occur during dependency resolution.
-public enum ResolverError: Error, Equatable, LocalizedError {
+enum ResolverError: Error, Equatable, LocalizedError {
 
   // MARK: - File System Errors
 
@@ -46,7 +46,7 @@ public enum ResolverError: Error, Equatable, LocalizedError {
 
   // MARK: - LocalizedError Implementation
 
-  public var errorDescription: String? {
+  var errorDescription: String? {
     switch self {
     case .fileNotFound(let path):
       return "Proto file not found: \(path)"
@@ -83,7 +83,7 @@ public enum ResolverError: Error, Equatable, LocalizedError {
     }
   }
 
-  public var failureReason: String? {
+  var failureReason: String? {
     switch self {
     case .circularDependency:
       return "Proto files cannot import each other in a circular manner"
@@ -96,7 +96,7 @@ public enum ResolverError: Error, Equatable, LocalizedError {
     }
   }
 
-  public var recoverySuggestion: String? {
+  var recoverySuggestion: String? {
     switch self {
     case .importNotFound(_, let searchPaths):
       if searchPaths.isEmpty {

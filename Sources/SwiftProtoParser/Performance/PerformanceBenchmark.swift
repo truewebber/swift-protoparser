@@ -9,29 +9,29 @@ import Foundation
 /// - Parsing speed analysis
 /// - Regression detection
 /// - Performance reporting
-public final class PerformanceBenchmark {
+final class PerformanceBenchmark {
 
   // MARK: - Configuration
 
   /// Benchmark configuration settings.
-  public struct Configuration {
+  struct Configuration {
     /// Number of iterations for each benchmark.
-    public let iterations: Int
+    let iterations: Int
 
     /// Warmup iterations before measuring.
-    public let warmupIterations: Int
+    let warmupIterations: Int
 
     /// Enable memory tracking.
-    public let trackMemory: Bool
+    let trackMemory: Bool
 
     /// Maximum acceptable parsing time per file (seconds).
-    public let maxParsingTime: TimeInterval
+    let maxParsingTime: TimeInterval
 
     /// Maximum acceptable memory usage (bytes).
-    public let maxMemoryUsage: Int64
+    let maxMemoryUsage: Int64
 
     /// Default configuration.
-    public static let `default` = Configuration(
+    static let `default` = Configuration(
       iterations: 10,
       warmupIterations: 3,
       trackMemory: true,
@@ -40,7 +40,7 @@ public final class PerformanceBenchmark {
     )
 
     /// Quick benchmark configuration.
-    public static let quick = Configuration(
+    static let quick = Configuration(
       iterations: 3,
       warmupIterations: 1,
       trackMemory: false,
@@ -49,7 +49,7 @@ public final class PerformanceBenchmark {
     )
 
     /// Comprehensive benchmark configuration.
-    public static let comprehensive = Configuration(
+    static let comprehensive = Configuration(
       iterations: 50,
       warmupIterations: 10,
       trackMemory: true,
@@ -61,33 +61,33 @@ public final class PerformanceBenchmark {
   // MARK: - Results
 
   /// Individual benchmark measurement.
-  public struct Measurement {
-    public let operation: String
-    public let duration: TimeInterval
-    public let memoryUsage: Int64
-    public let success: Bool
-    public let error: ProtoParseError?
-    public let timestamp: Date
+  struct Measurement {
+    let operation: String
+    let duration: TimeInterval
+    let memoryUsage: Int64
+    let success: Bool
+    let error: ProtoParseError?
+    let timestamp: Date
 
-    public var isWithinLimits: Bool {
+    var isWithinLimits: Bool {
       return success && duration <= 1.0 && memoryUsage <= 100 * 1024 * 1024
     }
   }
 
   /// Benchmark results for a specific operation.
-  public struct BenchmarkResult {
-    public let operation: String
-    public let measurements: [Measurement]
-    public let configuration: Configuration
+  struct BenchmarkResult {
+    let operation: String
+    let measurements: [Measurement]
+    let configuration: Configuration
 
     // Statistical analysis
-    public var averageDuration: TimeInterval {
+    var averageDuration: TimeInterval {
       let successfulMeasurements = measurements.filter { $0.success }
       guard !successfulMeasurements.isEmpty else { return 0 }
       return successfulMeasurements.reduce(0) { $0 + $1.duration } / Double(successfulMeasurements.count)
     }
 
-    public var medianDuration: TimeInterval {
+    var medianDuration: TimeInterval {
       let successfulDurations = measurements.filter { $0.success }.map { $0.duration }.sorted()
       guard !successfulDurations.isEmpty else { return 0 }
       let count = successfulDurations.count
@@ -95,15 +95,15 @@ public final class PerformanceBenchmark {
         ? (successfulDurations[count / 2 - 1] + successfulDurations[count / 2]) / 2 : successfulDurations[count / 2]
     }
 
-    public var minDuration: TimeInterval {
+    var minDuration: TimeInterval {
       return measurements.filter { $0.success }.map { $0.duration }.min() ?? 0
     }
 
-    public var maxDuration: TimeInterval {
+    var maxDuration: TimeInterval {
       return measurements.filter { $0.success }.map { $0.duration }.max() ?? 0
     }
 
-    public var standardDeviation: TimeInterval {
+    var standardDeviation: TimeInterval {
       let successfulDurations = measurements.filter { $0.success }.map { $0.duration }
       guard successfulDurations.count > 1 else { return 0 }
 
@@ -117,44 +117,44 @@ public final class PerformanceBenchmark {
       return sqrt(variance)
     }
 
-    public var averageMemoryUsage: Int64 {
+    var averageMemoryUsage: Int64 {
       let successfulMeasurements = measurements.filter { $0.success }
       guard !successfulMeasurements.isEmpty else { return 0 }
       return successfulMeasurements.reduce(0) { $0 + $1.memoryUsage } / Int64(successfulMeasurements.count)
     }
 
-    public var successRate: Double {
+    var successRate: Double {
       guard !measurements.isEmpty else { return 0 }
       let successCount = measurements.filter { $0.success }.count
       return Double(successCount) / Double(measurements.count)
     }
 
-    public var isAcceptable: Bool {
+    var isAcceptable: Bool {
       return successRate >= 0.95  // 95% success rate
         && averageDuration <= configuration.maxParsingTime && averageMemoryUsage <= configuration.maxMemoryUsage
     }
   }
 
   /// Complete benchmark suite results.
-  public struct BenchmarkSuite {
-    public let name: String
-    public let results: [BenchmarkResult]
-    public let startTime: Date
-    public let endTime: Date
-    public let configuration: Configuration
+  struct BenchmarkSuite {
+    let name: String
+    let results: [BenchmarkResult]
+    let startTime: Date
+    let endTime: Date
+    let configuration: Configuration
 
-    public var totalDuration: TimeInterval {
+    var totalDuration: TimeInterval {
       return endTime.timeIntervalSince(startTime)
     }
 
-    public var overallSuccessRate: Double {
+    var overallSuccessRate: Double {
       let totalMeasurements = results.flatMap { $0.measurements }
       guard !totalMeasurements.isEmpty else { return 0 }
       let successCount = totalMeasurements.filter { $0.success }.count
       return Double(successCount) / Double(totalMeasurements.count)
     }
 
-    public var allBenchmarksAcceptable: Bool {
+    var allBenchmarksAcceptable: Bool {
       return results.allSatisfy { $0.isAcceptable }
     }
   }
@@ -172,7 +172,7 @@ public final class PerformanceBenchmark {
   ///   - configuration: Benchmark configuration.
   ///   - cache: Optional performance cache for testing.
   ///   - incrementalParser: Optional incremental parser for testing.
-  public init(
+  init(
     configuration: Configuration = .default,
     cache: PerformanceCache? = nil,
     incrementalParser: IncrementalParser? = nil
@@ -187,7 +187,7 @@ public final class PerformanceBenchmark {
   /// Benchmark parsing a single proto file.
   /// - Parameter filePath: Path to the proto file.
   /// - Returns: Benchmark result.
-  public func benchmarkSingleFile(_ filePath: String) -> BenchmarkResult {
+  func benchmarkSingleFile(_ filePath: String) -> BenchmarkResult {
     let operation = "parseProtoFile(\(URL(fileURLWithPath: filePath).lastPathComponent))"
     var measurements: [Measurement] = []
 
@@ -227,7 +227,7 @@ public final class PerformanceBenchmark {
   ///   - content: Proto file content.
   ///   - name: Name for the benchmark.
   /// - Returns: Benchmark result.
-  public func benchmarkStringParsing(_ content: String, name: String = "parseProtoString") -> BenchmarkResult {
+  func benchmarkStringParsing(_ content: String, name: String = "parseProtoString") -> BenchmarkResult {
     let operation = "\(name)(\(content.count) chars)"
     var measurements: [Measurement] = []
 
@@ -269,7 +269,7 @@ public final class PerformanceBenchmark {
   ///   - filePath: Main proto file path.
   ///   - importPaths: Import paths for dependencies.
   /// - Returns: Benchmark result.
-  public func benchmarkWithDependencies(_ filePath: String, importPaths: [String] = []) -> BenchmarkResult {
+  func benchmarkWithDependencies(_ filePath: String, importPaths: [String] = []) -> BenchmarkResult {
     let operation = "parseProtoFileWithImports(\(URL(fileURLWithPath: filePath).lastPathComponent))"
     var measurements: [Measurement] = []
 
@@ -309,7 +309,7 @@ public final class PerformanceBenchmark {
   ///   - directoryPath: Directory containing proto files.
   ///   - recursive: Whether to scan subdirectories.
   /// - Returns: Benchmark result.
-  public func benchmarkDirectory(_ directoryPath: String, recursive: Bool = false) -> BenchmarkResult {
+  func benchmarkDirectory(_ directoryPath: String, recursive: Bool = false) -> BenchmarkResult {
     let operation = "parseProtoDirectory(\(URL(fileURLWithPath: directoryPath).lastPathComponent))"
     var measurements: [Measurement] = []
 
@@ -349,7 +349,7 @@ public final class PerformanceBenchmark {
   /// Benchmark AST to descriptor conversion.
   /// - Parameter filePath: Path to the proto file.
   /// - Returns: Benchmark result.
-  public func benchmarkDescriptorGeneration(_ filePath: String) -> BenchmarkResult {
+  func benchmarkDescriptorGeneration(_ filePath: String) -> BenchmarkResult {
     let operation = "parseProtoToDescriptors(\(URL(fileURLWithPath: filePath).lastPathComponent))"
     var measurements: [Measurement] = []
 
@@ -389,7 +389,7 @@ public final class PerformanceBenchmark {
   /// Benchmark cache effectiveness.
   /// - Parameter filePath: Path to the proto file.
   /// - Returns: Benchmark result comparing cached vs non-cached performance.
-  public func benchmarkCacheEffectiveness(_ filePath: String) -> BenchmarkResult {
+  func benchmarkCacheEffectiveness(_ filePath: String) -> BenchmarkResult {
     guard let cache = self.cache else {
       return BenchmarkResult(
         operation: "benchmarkCacheEffectiveness (no cache)",
@@ -444,7 +444,7 @@ public final class PerformanceBenchmark {
   /// Run comprehensive benchmark suite on test files.
   /// - Parameter testFilesDirectory: Directory containing test proto files.
   /// - Returns: Complete benchmark suite results.
-  public func runComprehensiveSuite(_ testFilesDirectory: String) -> BenchmarkSuite {
+  func runComprehensiveSuite(_ testFilesDirectory: String) -> BenchmarkSuite {
     let startTime = Date()
     var results: [BenchmarkResult] = []
 
@@ -507,7 +507,7 @@ public final class PerformanceBenchmark {
   ///   - current: Current benchmark results.
   ///   - baseline: Baseline benchmark results.
   /// - Returns: Performance comparison analysis.
-  public func compareWithBaseline(_ current: BenchmarkSuite, baseline: BenchmarkSuite) -> PerformanceComparison {
+  func compareWithBaseline(_ current: BenchmarkSuite, baseline: BenchmarkSuite) -> PerformanceComparison {
     var regressions: [String] = []
     var improvements: [String] = []
 
@@ -629,21 +629,21 @@ public final class PerformanceBenchmark {
 // MARK: - Performance Comparison
 
 /// Performance comparison between current and baseline results.
-public struct PerformanceComparison {
-  public let current: PerformanceBenchmark.BenchmarkSuite
-  public let baseline: PerformanceBenchmark.BenchmarkSuite
-  public let regressions: [String]
-  public let improvements: [String]
+struct PerformanceComparison {
+  let current: PerformanceBenchmark.BenchmarkSuite
+  let baseline: PerformanceBenchmark.BenchmarkSuite
+  let regressions: [String]
+  let improvements: [String]
 
-  public var hasRegressions: Bool {
+  var hasRegressions: Bool {
     return !regressions.isEmpty
   }
 
-  public var hasImprovements: Bool {
+  var hasImprovements: Bool {
     return !improvements.isEmpty
   }
 
-  public var overallPerformanceRatio: Double {
+  var overallPerformanceRatio: Double {
     let currentAverage = current.results.reduce(0) { $0 + $1.averageDuration } / Double(current.results.count)
     let baselineAverage = baseline.results.reduce(0) { $0 + $1.averageDuration } / Double(baseline.results.count)
 

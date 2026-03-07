@@ -1,17 +1,17 @@
 import Foundation
 
 /// Represents a protobuf option declaration.
-public struct OptionNode: Equatable {
+struct OptionNode: Equatable {
   /// The option name (e.g., "java_package", "deprecated").
-  public let name: String
+  let name: String
 
   /// The option value.
-  public let value: OptionValue
+  let value: OptionValue
 
   /// Whether this is a custom option (starts with parentheses).
-  public let isCustom: Bool
+  let isCustom: Bool
 
-  public init(name: String, value: OptionValue, isCustom: Bool = false) {
+  init(name: String, value: OptionValue, isCustom: Bool = false) {
     self.name = name
     self.value = value
     self.isCustom = isCustom
@@ -19,14 +19,14 @@ public struct OptionNode: Equatable {
 }
 
 /// Represents the value of a protobuf option.
-public enum OptionValue: Equatable {
+enum OptionValue: Equatable {
   case string(String)
   case number(Double)
   case boolean(Bool)
   case identifier(String)
 
   /// Returns the string representation of the value as it would appear in a .proto file.
-  public var protoRepresentation: String {
+  var protoRepresentation: String {
     switch self {
     case .string(let str):
       return "\"\(str)\""
@@ -47,7 +47,7 @@ public enum OptionValue: Equatable {
 
 // MARK: - CustomStringConvertible
 extension OptionNode: CustomStringConvertible {
-  public var description: String {
+  var description: String {
     let optionName = isCustom ? "(\(name))" : name
     return "option \(optionName) = \(value.protoRepresentation);"
   }
@@ -55,7 +55,7 @@ extension OptionNode: CustomStringConvertible {
 
 // MARK: - CustomStringConvertible
 extension OptionValue: CustomStringConvertible {
-  public var description: String {
+  var description: String {
     return protoRepresentation
   }
 }

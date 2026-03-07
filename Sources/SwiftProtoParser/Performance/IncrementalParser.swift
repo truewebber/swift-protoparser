@@ -8,7 +8,7 @@ import Foundation
 /// - Dependency graph management
 /// - Batch processing optimization
 /// - Memory-efficient streaming for large files
-public final class IncrementalParser {
+final class IncrementalParser {
 
   // MARK: - File Change Tracking
 
@@ -23,26 +23,26 @@ public final class IncrementalParser {
   }
 
   /// Change detection result.
-  public struct ChangeSet: Sendable {
+  struct ChangeSet: Sendable {
     /// Files that have been modified.
-    public let modifiedFiles: Set<String>
+    let modifiedFiles: Set<String>
 
     /// Files that need re-parsing due to dependency changes.
-    public let affectedFiles: Set<String>
+    let affectedFiles: Set<String>
 
     /// Files that were added.
-    public let addedFiles: Set<String>
+    let addedFiles: Set<String>
 
     /// Files that were removed.
-    public let removedFiles: Set<String>
+    let removedFiles: Set<String>
 
     /// Total number of files affected.
-    public var totalAffected: Int {
+    var totalAffected: Int {
       return modifiedFiles.count + affectedFiles.count + addedFiles.count
     }
 
     /// Whether any changes were detected.
-    public var hasChanges: Bool {
+    var hasChanges: Bool {
       return !modifiedFiles.isEmpty || !affectedFiles.isEmpty || !addedFiles.isEmpty || !removedFiles.isEmpty
     }
   }
@@ -50,24 +50,24 @@ public final class IncrementalParser {
   // MARK: - Configuration
 
   /// Configuration for incremental parsing.
-  public struct Configuration: Sendable {
+  struct Configuration: Sendable {
     /// Maximum file size for in-memory processing (bytes).
-    public let maxInMemorySize: Int64
+    let maxInMemorySize: Int64
 
     /// Chunk size for streaming large files (bytes).
-    public let streamingChunkSize: Int
+    let streamingChunkSize: Int
 
     /// Maximum number of files to process in parallel.
-    public let maxParallelFiles: Int
+    let maxParallelFiles: Int
 
     /// Enable change detection optimization.
-    public let enableChangeDetection: Bool
+    let enableChangeDetection: Bool
 
     /// Cache parsed results for incremental updates.
-    public let enableResultCaching: Bool
+    let enableResultCaching: Bool
 
     /// Initialize incremental parser configuration.
-    public init(
+    init(
       maxInMemorySize: Int64,
       streamingChunkSize: Int,
       maxParallelFiles: Int,
@@ -82,7 +82,7 @@ public final class IncrementalParser {
     }
 
     /// Default configuration.
-    public static let `default` = Configuration(
+    static let `default` = Configuration(
       maxInMemorySize: 50 * 1024 * 1024,  // 50MB
       streamingChunkSize: 64 * 1024,  // 64KB
       maxParallelFiles: 4,
@@ -91,7 +91,7 @@ public final class IncrementalParser {
     )
 
     /// High-performance configuration for large projects.
-    public static let highPerformance = Configuration(
+    static let highPerformance = Configuration(
       maxInMemorySize: 200 * 1024 * 1024,  // 200MB
       streamingChunkSize: 256 * 1024,  // 256KB
       maxParallelFiles: 8,
@@ -100,7 +100,7 @@ public final class IncrementalParser {
     )
 
     /// Memory-constrained configuration.
-    public static let memoryConstrained = Configuration(
+    static let memoryConstrained = Configuration(
       maxInMemorySize: 10 * 1024 * 1024,  // 10MB
       streamingChunkSize: 16 * 1024,  // 16KB
       maxParallelFiles: 2,
@@ -120,15 +120,15 @@ public final class IncrementalParser {
   // MARK: - Statistics
 
   /// Incremental parsing statistics.
-  public struct Statistics: Sendable {
-    public let totalFilesTracked: Int
-    public let filesProcessedIncrementally: Int
-    public let filesProcessedFromScratch: Int
-    public let totalParsingTime: TimeInterval
-    public let incrementalSavings: TimeInterval
-    public let memoryPeakUsage: Int64
+  struct Statistics: Sendable {
+    let totalFilesTracked: Int
+    let filesProcessedIncrementally: Int
+    let filesProcessedFromScratch: Int
+    let totalParsingTime: TimeInterval
+    let incrementalSavings: TimeInterval
+    let memoryPeakUsage: Int64
 
-    public var incrementalEfficiency: Double {
+    var incrementalEfficiency: Double {
       let total = filesProcessedIncrementally + filesProcessedFromScratch
       return total > 0 ? Double(filesProcessedIncrementally) / Double(total) : 0.0
     }
@@ -149,7 +149,7 @@ public final class IncrementalParser {
   /// - Parameters:
   ///   - configuration: Incremental parsing configuration.
   ///   - cache: Performance cache for result caching.
-  public init(configuration: Configuration = .default, cache: PerformanceCache) {
+  init(configuration: Configuration = .default, cache: PerformanceCache) {
     self.configuration = configuration
     self.cache = cache
   }
@@ -162,7 +162,7 @@ public final class IncrementalParser {
   ///   - recursive: Whether to scan subdirectories.
   /// - Returns: Change set describing what files have changed.
   /// - Throws: ProtoParseError if directory scanning fails.
-  public func detectChanges(in directoryPath: String, recursive: Bool = false) throws -> ChangeSet {
+  func detectChanges(in directoryPath: String, recursive: Bool = false) throws -> ChangeSet {
     let startTime = Date()
 
     // Scan directory for current proto files
@@ -219,7 +219,7 @@ public final class IncrementalParser {
   ///   - importPaths: Import paths for dependency resolution.
   /// - Returns: Results for all affected files.
   /// - Throws: ProtoParseError if parsing fails.
-  public func parseIncremental(
+  func parseIncremental(
     changeSet: ChangeSet,
     importPaths: [String] = []
   ) throws -> [String: Result<ProtoAST, ProtoParseError>] {
@@ -274,7 +274,7 @@ public final class IncrementalParser {
   ///   - importPaths: Import paths for dependency resolution.
   /// - Returns: Parsed AST result.
   /// - Throws: ProtoParseError if parsing fails.
-  public func parseStreamingFile(
+  func parseStreamingFile(
     _ filePath: String,
     importPaths: [String] = []
   ) throws -> Result<ProtoAST, ProtoParseError> {
@@ -294,12 +294,12 @@ public final class IncrementalParser {
 
   /// Get current incremental parsing statistics.
   /// - Returns: Current statistics.
-  public func getStatistics() -> Statistics {
+  func getStatistics() -> Statistics {
     return queue.sync { stats }
   }
 
   /// Clear all tracking metadata and statistics.
-  public func reset() {
+  func reset() {
     queue.async(flags: .barrier) {
       self.fileMetadata.removeAll()
       self.resetStatistics()
