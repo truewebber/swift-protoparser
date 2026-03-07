@@ -194,14 +194,14 @@ final class PerformanceBenchmark {
     // Warmup
     for _ in 0..<configuration.warmupIterations {
       _ = measureOperation {
-        SwiftProtoParser.parseProtoFile(filePath)
+        ProtoParsingPipeline.parseFile(at: filePath)
       }
     }
 
     // Actual measurements
     for _ in 0..<configuration.iterations {
       let measurement = measureOperation {
-        SwiftProtoParser.parseProtoFile(filePath)
+        ProtoParsingPipeline.parseFile(at: filePath)
       }
       measurements.append(
         Measurement(
@@ -234,14 +234,14 @@ final class PerformanceBenchmark {
     // Warmup iterations
     for _ in 0..<configuration.warmupIterations {
       _ = measureOperation {
-        SwiftProtoParser.parseProtoString(content)
+        ProtoParsingPipeline.parse(content: content, fileName: name)
       }
     }
 
     // Actual measurements
     for _ in 0..<configuration.iterations {
       let measurement = measureOperation {
-        SwiftProtoParser.parseProtoString(content)
+        ProtoParsingPipeline.parse(content: content, fileName: name)
       }
       measurements.append(
         Measurement(
@@ -276,14 +276,14 @@ final class PerformanceBenchmark {
     // Warmup iterations
     for _ in 0..<configuration.warmupIterations {
       _ = measureOperation {
-        SwiftProtoParser.parseProtoFileWithImports(filePath, importPaths: importPaths)
+        ProtoParsingPipeline.parseFileWithImports(filePath, importPaths: importPaths)
       }
     }
 
     // Actual measurements
     for _ in 0..<configuration.iterations {
       let measurement = measureOperation {
-        SwiftProtoParser.parseProtoFileWithImports(filePath, importPaths: importPaths)
+        ProtoParsingPipeline.parseFileWithImports(filePath, importPaths: importPaths)
       }
       measurements.append(
         Measurement(
@@ -316,14 +316,14 @@ final class PerformanceBenchmark {
     // Warmup iterations
     for _ in 0..<configuration.warmupIterations {
       _ = measureOperation {
-        SwiftProtoParser.parseProtoDirectory(directoryPath, recursive: recursive)
+        ProtoParsingPipeline.parseDirectory(directoryPath, recursive: recursive)
       }
     }
 
     // Actual measurements
     for _ in 0..<configuration.iterations {
       let measurement = measureOperation {
-        SwiftProtoParser.parseProtoDirectory(directoryPath, recursive: recursive)
+        ProtoParsingPipeline.parseDirectory(directoryPath, recursive: recursive)
       }
       measurements.append(
         Measurement(
@@ -353,18 +353,33 @@ final class PerformanceBenchmark {
     let operation = "parseProtoToDescriptors(\(URL(fileURLWithPath: filePath).lastPathComponent))"
     var measurements: [Measurement] = []
 
+    let parseAndBuild: () -> Result<Bool, ProtoParseError> = {
+      switch ProtoParsingPipeline.parseFile(at: filePath) {
+      case .success(let ast):
+        let fileName = URL(fileURLWithPath: filePath).lastPathComponent
+        do {
+          _ = try DescriptorBuilder.buildFileDescriptor(from: ast, fileName: fileName)
+          return .success(true)
+        }
+        catch let descriptorError as DescriptorError {
+          return .failure(.descriptorError(descriptorError.localizedDescription))
+        }
+        catch {
+          return .failure(.internalError(message: error.localizedDescription))
+        }
+      case .failure(let error):
+        return .failure(error)
+      }
+    }
+
     // Warmup iterations
     for _ in 0..<configuration.warmupIterations {
-      _ = measureOperation {
-        SwiftProtoParser.parseProtoToDescriptors(filePath)
-      }
+      _ = measureOperation(parseAndBuild)
     }
 
     // Actual measurements
     for _ in 0..<configuration.iterations {
-      let measurement = measureOperation {
-        SwiftProtoParser.parseProtoToDescriptors(filePath)
-      }
+      let measurement = measureOperation(parseAndBuild)
       measurements.append(
         Measurement(
           operation: operation,
@@ -404,20 +419,12 @@ final class PerformanceBenchmark {
     // Clear cache first
     cache.clearAll()
 
-    for iteration in 0..<configuration.iterations {
+    for _ in 0..<configuration.iterations {
       let measurement: (duration: TimeInterval, memoryUsage: Int64, success: Bool, error: ProtoParseError?)
 
-      if iteration == 0 {
-        // First iteration - cache miss expected
-        measurement = measureOperation {
-          SwiftProtoParser.parseProtoFile(filePath)
-        }
-      }
-      else {
-        // Subsequent iterations - cache hit expected
-        measurement = measureOperation {
-          SwiftProtoParser.parseProtoFile(filePath)
-        }
+      // First iteration is a cache miss, subsequent iterations may be cache hits
+      measurement = measureOperation {
+        ProtoParsingPipeline.parseFile(at: filePath)
       }
 
       measurements.append(

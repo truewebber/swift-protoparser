@@ -649,4 +649,69 @@ final class SwiftProtoParserTests: XCTestCase {
       XCTFail("Expected success, got error: \(error)")
     }
   }
+
+  // MARK: - Internal Helper Error Paths
+
+  func test_parseProtoToDescriptors_fileNotFound_returnsIOError() {
+    let result = SwiftProtoParser.parseProtoToDescriptors("/nonexistent/path/to/file.proto")
+
+    switch result {
+    case .success:
+      XCTFail("Expected failure for non-existent file")
+    case .failure(let error):
+      XCTAssertTrue(
+        error.description.contains("Error") || error.description.contains("error"),
+        "Expected an error description: \(error)"
+      )
+    }
+  }
+
+  func test_parseProtoFileWithImportsToDescriptors_fileNotFound_returnsError() {
+    let result = SwiftProtoParser.parseProtoFileWithImportsToDescriptors(
+      "/nonexistent/path/to/file.proto"
+    )
+
+    switch result {
+    case .success:
+      XCTFail("Expected failure for non-existent file")
+    case .failure:
+      XCTAssertTrue(true, "Non-existent file correctly returns error")
+    }
+  }
+
+  func test_parseProtoStringToDescriptors_invalidSyntax_returnsParseError() {
+    let invalidProto = "this is not valid proto content at all"
+
+    let result = SwiftProtoParser.parseProtoStringToDescriptors(invalidProto)
+
+    switch result {
+    case .success:
+      XCTFail("Expected failure for invalid proto content")
+    case .failure:
+      XCTAssertTrue(true, "Invalid proto content correctly returns error")
+    }
+  }
+
+  func test_parseProtoStringToDescriptors_validProto_returnsDescriptor() {
+    let validProto = """
+      syntax = "proto3";
+      package test.helpers;
+      message SimpleRequest {
+        string query = 1;
+        int32 limit = 2;
+      }
+      """
+
+    let result = SwiftProtoParser.parseProtoStringToDescriptors(validProto, fileName: "simple.proto")
+
+    switch result {
+    case .success(let descriptor):
+      XCTAssertEqual(descriptor.name, "simple.proto")
+      XCTAssertEqual(descriptor.package, "test.helpers")
+      XCTAssertEqual(descriptor.messageType.count, 1)
+      XCTAssertEqual(descriptor.messageType[0].name, "SimpleRequest")
+    case .failure(let error):
+      XCTFail("Expected success, got error: \(error)")
+    }
+  }
 }

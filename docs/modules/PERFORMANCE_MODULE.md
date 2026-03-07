@@ -57,18 +57,19 @@ public final class PerformanceCache {
 **Dependencies**:
 - PerformanceCache (for result caching)
 - Core (for error types)
-- Public API (for parsing methods)
+- ProtoParsingPipeline (Layer 2, for actual parsing — **not** the public SwiftProtoParser facade)
+- DependencyResolver (Layer 4, for multi-file resolution)
 
-**Public API**:
+**API**:
 ```swift
-public final class IncrementalParser {
-    public struct Configuration
-    public struct Statistics
-    public struct ChangeSet
+final class IncrementalParser {
+    struct Configuration
+    struct Statistics
+    struct ChangeSet
     
-    public func detectChanges(in: String, recursive: Bool) throws -> ChangeSet
-    public func parseIncremental(changeSet: ChangeSet, importPaths: [String]) throws -> [String: Result<ProtoAST, ProtoParseError>]
-    public func parseStreamingFile(_ filePath: String, importPaths: [String]) throws -> Result<ProtoAST, ProtoParseError>
+    func detectChanges(in: String, recursive: Bool) throws -> ChangeSet
+    func parseIncremental(changeSet: ChangeSet, importPaths: [String]) throws -> [String: Result<ProtoAST, ProtoParseError>]
+    func parseStreamingFile(_ filePath: String, importPaths: [String]) throws -> Result<ProtoAST, ProtoParseError>
 }
 ```
 
@@ -84,20 +85,21 @@ public final class IncrementalParser {
 - Configurable benchmarks
 
 **Dependencies**:
-- PerformanceCache (for cache testing)
-- IncrementalParser (for incremental testing)
-- Public API (for method benchmarking)
+- PerformanceCache (for cache benchmarking)
+- ProtoParsingPipeline (Layer 2, for file/string parsing — **not** the public SwiftProtoParser facade)
+- DescriptorBuilder (Layer 3, for descriptor generation benchmarks)
+- DependencyResolver (Layer 4, for multi-file benchmarks)
 
-**Public API**:
+**API**:
 ```swift
-public final class PerformanceBenchmark {
-    public struct Configuration
-    public struct BenchmarkResult
-    public struct Measurement
+final class PerformanceBenchmark {
+    struct Configuration
+    struct BenchmarkResult
+    struct Measurement
     
-    public func benchmarkSingleFile(_ filePath: String) -> BenchmarkResult
-    public func benchmarkDirectory(_ directoryPath: String) -> BenchmarkResult
-    public func runComprehensiveSuite(_ testFilesDirectory: String) -> BenchmarkSuite
+    func benchmarkSingleFile(_ filePath: String) -> BenchmarkResult
+    func benchmarkDirectory(_ directoryPath: String) -> BenchmarkResult
+    func runComprehensiveSuite(_ testFilesDirectory: String) -> BenchmarkSuite
 }
 ```
 
@@ -201,11 +203,14 @@ Warmup Iterations → Measured Iterations → Statistical Analysis → Result Re
 
 ### Internal Dependencies
 ```
-Performance → Core (errors, types)
-Performance → Parser (AST types)  
-Performance → DependencyResolver (resolution results)
-Performance → Public (API integration)
+PerformanceCache      → Core (error types), Parser (AST types)
+IncrementalParser     → PerformanceCache, ProtoParsingPipeline (Layer 2), DependencyResolver (Layer 4)
+PerformanceBenchmark  → PerformanceCache, ProtoParsingPipeline (Layer 2), DescriptorBuilder (Layer 3), DependencyResolver (Layer 4)
 ```
+
+**Critical constraint**: No component in the Performance module calls `SwiftProtoParser` (the
+public facade, Layer 6). All parsing is performed via `ProtoParsingPipeline` directly.
+This ensures proper layer separation and avoids circular logical dependencies.
 
 ### External Dependencies
 ```

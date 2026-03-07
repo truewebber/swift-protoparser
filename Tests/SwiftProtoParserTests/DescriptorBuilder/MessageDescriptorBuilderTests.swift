@@ -268,4 +268,81 @@ class MessageDescriptorBuilderTests: XCTestCase {
     XCTAssertEqual(descriptor.reservedRange[4].start, 100)
     XCTAssertEqual(descriptor.reservedRange[4].end, 101)
   }
+
+  func testBuildMessageWithMessageSetWireFormatOption() throws {
+    let option = OptionNode(name: "message_set_wire_format", value: .boolean(true))
+    let message = MessageNode(name: "Foo", fields: [], options: [option])
+
+    let descriptor = try MessageDescriptorBuilder.build(from: message)
+
+    XCTAssertTrue(descriptor.options.messageSetWireFormat)
+  }
+
+  func testBuildMessageWithNoStandardDescriptorAccessorOption() throws {
+    let option = OptionNode(name: "no_standard_descriptor_accessor", value: .boolean(true))
+    let message = MessageNode(name: "Foo", fields: [], options: [option])
+
+    let descriptor = try MessageDescriptorBuilder.build(from: message)
+
+    XCTAssertTrue(descriptor.options.noStandardDescriptorAccessor)
+  }
+
+  func testBuildMessageWithCustomOptionNumberValue() throws {
+    let option = OptionNode(name: "custom_num", value: .number(42))
+    let message = MessageNode(name: "Foo", fields: [], options: [option])
+
+    let descriptor = try MessageDescriptorBuilder.build(from: message)
+
+    XCTAssertEqual(descriptor.options.uninterpretedOption.count, 1)
+    XCTAssertEqual(descriptor.options.uninterpretedOption[0].positiveIntValue, 42)
+  }
+
+  func testBuildMessageWithCustomOptionBooleanValue() throws {
+    let option = OptionNode(name: "custom_bool", value: .boolean(true))
+    let message = MessageNode(name: "Foo", fields: [], options: [option])
+
+    let descriptor = try MessageDescriptorBuilder.build(from: message)
+
+    XCTAssertEqual(descriptor.options.uninterpretedOption.count, 1)
+    XCTAssertEqual(descriptor.options.uninterpretedOption[0].identifierValue, "true")
+  }
+
+  func testBuildMessageWithCustomOptionIdentifierValue() throws {
+    let option = OptionNode(name: "custom_id", value: .identifier("MY_ENUM_VALUE"))
+    let message = MessageNode(name: "Foo", fields: [], options: [option])
+
+    let descriptor = try MessageDescriptorBuilder.build(from: message)
+
+    XCTAssertEqual(descriptor.options.uninterpretedOption.count, 1)
+    XCTAssertEqual(descriptor.options.uninterpretedOption[0].identifierValue, "MY_ENUM_VALUE")
+  }
+
+  func testBuildMessageWithOneofCustomOptions() throws {
+    let numOption = OptionNode(name: "custom_num", value: .number(99))
+    let boolOption = OptionNode(name: "custom_bool", value: .boolean(false))
+    let idOption = OptionNode(name: "custom_id", value: .identifier("SOME_ID"))
+    let oneof = OneofNode(
+      name: "test_oneof",
+      fields: [FieldNode(name: "value", type: .int32, number: 1)],
+      options: [numOption, boolOption, idOption]
+    )
+    let message = MessageNode(name: "Foo", fields: [], oneofGroups: [oneof])
+
+    let descriptor = try MessageDescriptorBuilder.build(from: message)
+
+    XCTAssertEqual(descriptor.oneofDecl.count, 1)
+    XCTAssertEqual(descriptor.oneofDecl[0].options.uninterpretedOption.count, 3)
+    XCTAssertEqual(descriptor.oneofDecl[0].options.uninterpretedOption[0].positiveIntValue, 99)
+    XCTAssertEqual(descriptor.oneofDecl[0].options.uninterpretedOption[1].identifierValue, "false")
+    XCTAssertEqual(descriptor.oneofDecl[0].options.uninterpretedOption[2].identifierValue, "SOME_ID")
+  }
+
+  func testBuildFieldWithAlreadyQualifiedTypeName() throws {
+    let field = FieldNode(name: "ref", type: .message(".foo.Bar"), number: 1)
+    let message = MessageNode(name: "Msg", fields: [field])
+
+    let descriptor = try MessageDescriptorBuilder.build(from: message, packageName: "test")
+
+    XCTAssertEqual(descriptor.field[0].typeName, ".foo.Bar")
+  }
 }

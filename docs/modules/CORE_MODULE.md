@@ -7,26 +7,33 @@
 
 ```swift
 public enum ProtoParseError: Error, LocalizedError {
+    // File system
     case fileNotFound(String)
-    case dependencyResolutionError(ResolverError, importPath: String)
-    case circularDependency([String])
-    case lexicalError(LexerError, file: String, line: Int, column: Int)
-    case syntaxError(ParserError, file: String, line: Int, column: Int)  
-    case semanticError(BuilderError, context: String)
     case ioError(underlying: Error)
-    
-    // ✅ Full error localization implemented
-    public var errorDescription: String? {
-        switch self {
-        case .fileNotFound(let path):
-            return "Proto file not found: \(path)"
-        case .syntaxError(let error, let file, let line, let column):
-            return "Syntax error in \(file) at line \(line), column \(column): \(error)"
-        // ... detailed messages for all cases
-        }
-    }
+
+    // Dependency resolution
+    case dependencyResolutionError(message: String, importPath: String)
+    case circularDependency([String])
+
+    // Parsing
+    case lexicalError(message: String, file: String, line: Int, column: Int)
+    case syntaxError(message: String, file: String, line: Int, column: Int)
+    case semanticError(message: String, context: String)
+
+    // Descriptor building
+    case descriptorError(String)
+
+    // Performance
+    case performanceLimitExceeded(message: String, limit: String)
+
+    // Internal
+    case internalError(message: String)
 }
 ```
+
+All associated values are plain `String` or `Error` — internal error types (`LexerError`,
+`ParserError`, `DescriptorError`, `ResolverError`) are converted to string messages before
+being wrapped, keeping the public type free of internal dependencies.
 
 ### ProtoVersion.swift  
 **Purpose**: Version handling (Proto3 only)

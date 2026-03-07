@@ -268,7 +268,7 @@ final class IncrementalParser {
 
     if fileSize <= configuration.maxInMemorySize {
       // Use regular in-memory parsing
-      return SwiftProtoParser.parseProtoFile(filePath)
+      return ProtoParsingPipeline.parseFile(at: filePath)
     }
 
     // Use streaming approach for large files
@@ -396,7 +396,7 @@ final class IncrementalParser {
 
       // Parse file
       let startTime = Date()
-      let result = SwiftProtoParser.parseProtoFileWithImports(filePath, importPaths: importPaths)
+      let result = ProtoParsingPipeline.parseFileWithImports(filePath, importPaths: importPaths)
       let parseTime = Date().timeIntervalSince(startTime)
 
       // Update metadata and cache result
@@ -456,7 +456,8 @@ final class IncrementalParser {
     }
 
     // Parse the complete content
-    return SwiftProtoParser.parseProtoString(content, fileName: filePath)
+    let fileName = URL(fileURLWithPath: filePath).lastPathComponent
+    return ProtoParsingPipeline.parse(content: content, fileName: fileName)
   }
 
   private func updateFileMetadata(_ filePath: String, content: String, contentHash: String) {

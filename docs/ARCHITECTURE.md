@@ -1,481 +1,277 @@
-# Swift ProtoParser - Architecture Document
+# SwiftProtoParser — Architecture
 
-## 1. Architecture Overview
+## 1. Goal
 
-### Goal
-Native Swift library for parsing Protocol Buffers (.proto) files into ProtoDescriptors without external dependencies on protoc.
+Native Swift library for parsing Protocol Buffers `.proto` files into
+`Google_Protobuf_FileDescriptorSet` descriptors without `protoc`.
 
-### Architecture Principles
-- **Modularity**: Clear separation of responsibilities between components
-- **Readability**: Priority of code understanding over micro-optimizations  
-- **Reusability**: Maximum use of swift-protobuf components
-- **Stability**: Minimization of breaking changes in public API
-- **Testability**: Test-oriented architecture
+## 2. Architecture Principles
 
-## 2. Overall Architecture
+- **Strict layer hierarchy**: dependencies flow downward only; no lower layer references a
+  higher one.
+- **Separation of concerns**: each module has a single clearly defined responsibility.
+- **Testability**: every module is independently unit-testable; public API is injectable via
+  the `Result` type.
+- **Minimal public surface**: two static methods expose the full capability of the library.
 
-```
-┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
-│ .proto Files│───▶│ Dependency  │───▶│    Lexer    │───▶│   Parser    │───▶│ Descriptor  │
-│   + Deps    │    │  Resolver   │    │   Module    │    │   Module    │    │   Builder   │
-└─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
-                          │                   │                   │                   │
-                          ▼                   ▼                   ▼                   ▼
-                   ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
-                   │  Resolved   │    │   Tokens    │    │     AST     │    │ Proto       │
-                   │   Files     │    │             │    │   Nodes     │    │ Descriptors │
-                   └─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
-```
-
-### Data Flow
-1. **Input**: .proto file + dependency folders
-2. **DependencyResolver**: Import resolution → [ResolvedProtoFile]
-3. **Lexer**: Tokenization of each file → [Token]
-4. **Parser**: AST construction → [ProtoAST]  
-5. **Builder**: Descriptor creation with dependencies → ProtoDescriptor
-6. **Output**: Ready swift-protobuf descriptors
-
-## 3. Modular Structure
-
-### 3.1 Main Modules
+## 3. Layer Diagram
 
 ```
-SwiftProtoParser/
-├── Core/                     # Basic types and utilities
-│   ├── ProtoParseError.swift
-│   ├── ProtoVersion.swift
-│   └── Extensions/
-├── DependencyResolver/       # Import resolution
-│   ├── DependencyResolver.swift
-│   ├── ImportResolver.swift
-│   ├── FileSystemScanner.swift
-│   ├── ResolvedProtoFile.swift
-│   └── ResolverError.swift
-├── Lexer/                    # Tokenization
-│   ├── Token.swift
-│   ├── Lexer.swift
-│   ├── KeywordRecognizer.swift
-│   └── LexerError.swift
-├── Parser/                   # AST construction  
-│   ├── AST/
-│   │   ├── ProtoAST.swift
-│   │   ├── MessageNode.swift
-│   │   ├── FieldNode.swift
-│   │   ├── ServiceNode.swift
-│   │   ├── ExtendNode.swift
-│   │   └── OptionNode.swift
-│   ├── Parser.swift
-│   ├── ParserState.swift
-│   └── ParserError.swift
-├── DescriptorBuilder/        # Conversion to Descriptors
-│   ├── DescriptorBuilder.swift
-│   ├── MessageDescriptorBuilder.swift
-│   ├── FieldDescriptorBuilder.swift
-│   └── BuilderError.swift
-└── Public/                   # Public API
-    ├── SwiftProtoParser.swift
-    └── Extensions/
+┌──────────────────────────────────────────────────────┐
+│  Layer 6 — Public API                                │
+│  SwiftProtoParser  (parseFile / parseDirectory)      │
+└────────────────────┬─────────────────────────────────┘
+                     │ depends on all lower layers
+┌────────────────────▼─────────────────────────────────┐
+│  Layer 5 — Performance                               │
+│  PerformanceCache · IncrementalParser                │
+│  PerformanceBenchmark                                │
+└──────────┬──────────────┬────────────────────────────┘
+           │              │
+┌──────────▼──┐  ┌────────▼──────────────────────────┐
+│  Layer 4    │  │  Layer 3 — DescriptorBuilder       │
+│  Dependency │  │  DescriptorBuilder                 │
+│  Resolver   │  │  MessageDescriptorBuilder          │
+│             │  │  FieldDescriptorBuilder            │
+│             │  │  EnumDescriptorBuilder             │
+│             │  │  ServiceDescriptorBuilder          │
+└──────────┬──┘  └────────────────────────────────────┘
+           │                         ▲
+┌──────────▼──────────────────────────────────────────┐
+│  Layer 2 — Parser                                   │
+│  ProtoParsingPipeline  (Lexer→Parser utility)       │
+│  Parser · ParserState · ParserError                 │
+│  AST: ProtoAST · MessageNode · FieldNode            │
+│       ServiceNode · EnumNode · ExtendNode           │
+│       OptionNode · FieldType · FieldLabel           │
+└──────────┬──────────────────────────────────────────┘
+           │
+┌──────────▼──────────────────────────────────────────┐
+│  Layer 1 — Lexer                                    │
+│  Lexer · Token · KeywordRecognizer · LexerError     │
+└──────────┬──────────────────────────────────────────┘
+           │
+┌──────────▼──────────────────────────────────────────┐
+│  Layer 0 — Core                                     │
+│  ProtoParseError · ProtoVersion                     │
+└─────────────────────────────────────────────────────┘
 ```
 
-### 3.2 Module Details
+## 4. Module Descriptions
 
-#### Core Module
-**Responsibility**: Common types, utilities, errors
-- `ProtoParseError` - main error enum for public API
-- `ProtoVersion` - Proto3 only support
-- Extensions for standard types
+### Layer 0 — Core
 
-#### DependencyResolver Module
-**Responsibility**: Import and dependency resolution
-- `DependencyResolver` - main class for dependency resolution
-- `ImportResolver` - handling `import` directives in .proto files
-- `FileSystemScanner` - searching .proto files in filesystem
-- `ResolvedProtoFile` - resolved file model with metadata
-- Circular dependency handling and caching
+**Files**: `Core/ProtoParseError.swift`, `Core/ProtoVersion.swift`
 
-#### Lexer Module  
-**Responsibility**: .proto file tokenization
-- `Token` - all token types (keywords, identifiers, literals)
-- `Lexer` - main tokenization class
-- `KeywordRecognizer` - proto3 keyword recognition (including `extend`)
-- Comment, whitespace, string literal handling
+**Responsibility**: Common types with zero dependencies.
 
-#### Parser Module
-**Responsibility**: AST construction from tokens
-- **AST submodule** - all syntax tree nodes
-  - `ExtendNode` - AST node for extend statements (proto3 custom options)
-  - `OptionNode` - AST representation of options
-- `Parser` - recursive parser with predictive analysis
-- `ParserState` - parser state for error recovery
-- Proto3 syntax validation
-- **Extend Support**: Full support for `extend google.protobuf.*` syntax
+- `ProtoParseError` — public enum; the only error type visible to library consumers.
+- `ProtoVersion` — `proto3` sentinel (proto2 is not supported).
 
-#### DescriptorBuilder Module
-**Responsibility**: AST to swift-protobuf descriptor conversion
-- `DescriptorBuilder` - main builder
-- Specialized builders for each descriptor type
-- Integration with `Google.Protobuf.*` types
-- Semantic validation
-- **Extend Processing**: Processing extend statements into descriptors
-- **Map Field Support**: Automatic generation of synthetic entry messages for map fields (protoc-compatible)
+### Layer 1 — Lexer
 
-#### Public Module
-**Responsibility**: Public API
-- `SwiftProtoParser` - main class with `parseProtoFile` function
-- Convenient extensions and utilities
+**Files**: `Lexer/Lexer.swift`, `Lexer/Token.swift`, `Lexer/KeywordRecognizer.swift`,
+`Lexer/LexerError.swift`
 
-## 3.3 Extend Support Architecture
+**Responsibility**: Convert raw `.proto` text into a flat list of typed tokens.
 
-### 3.3.1 Extend Support Overview
-SwiftProtoParser supports full `extend` syntax for proto3 custom options:
+- `Lexer` — main tokenizer; produces `[Token]` or `ProtoParseError` on failure.
+- `Token` — discriminated union covering all proto3 terminal symbols.
+- `KeywordRecognizer` — maps identifier strings to `Keyword` enum cases.
 
-```proto
-syntax = "proto3";
+### Layer 2 — Parser
 
-import "google/protobuf/descriptor.proto";
+**Files**: `Parser/Parser.swift`, `Parser/ParserState.swift`, `Parser/ParserError.swift`,
+`Parser/EnumFieldTypeResolver.swift`, `Parser/ProtoParsingPipeline.swift`,
+`Parser/AST/*.swift`
 
-extend google.protobuf.FileOptions {
-  optional string my_file_option = 50001;
-}
+**Responsibility**: Transform a token stream into a typed Abstract Syntax Tree.
 
-extend google.protobuf.MessageOptions {
-  optional bool is_critical = 50002;
-}
+- `ProtoParsingPipeline` — internal utility that executes the full Lexer → Parser pipeline
+  from either a `String` or a file path. Used by the public API, `IncrementalParser`, and
+  `PerformanceBenchmark` — the single canonical parsing entry point within the module.
+- `Parser` — recursive-descent parser; produces `ProtoAST` or `ParserErrors`.
+- `ParserState` — mutable state and error-recovery helpers.
+- `EnumFieldTypeResolver` — post-parse pass that reclassifies `.message` field types to
+  `.enumType` where appropriate (scope-aware).
+- AST nodes: `ProtoAST`, `MessageNode`, `FieldNode`, `ServiceNode`, `EnumNode`,
+  `ExtendNode`, `OptionNode`, `FieldType`, `FieldLabel`.
+
+### Layer 3 — DescriptorBuilder
+
+**Files**: `DescriptorBuilder/DescriptorBuilder.swift`,
+`DescriptorBuilder/MessageDescriptorBuilder.swift`,
+`DescriptorBuilder/FieldDescriptorBuilder.swift`,
+`DescriptorBuilder/EnumDescriptorBuilder.swift`,
+`DescriptorBuilder/ServiceDescriptorBuilder.swift`,
+`DescriptorBuilder/DescriptorError.swift`
+
+**Responsibility**: Convert `ProtoAST` into SwiftProtobuf descriptor types.
+
+- `DescriptorBuilder.buildFileDescriptor(from:fileName:)` — top-level entry point; delegates
+  to specialized builders.
+- Generates synthetic entry messages for `map<K, V>` fields (protoc-compatible).
+- Produces fully qualified type names (`.package.Type`) for all message/enum references.
+
+### Layer 4 — DependencyResolver
+
+**Files**: `DependencyResolver/DependencyResolver.swift`,
+`DependencyResolver/ImportResolver.swift`,
+`DependencyResolver/FileSystemScanner.swift`,
+`DependencyResolver/ResolvedProtoFile.swift`,
+`DependencyResolver/ResolverError.swift`
+
+**Responsibility**: Resolve `import` statements and produce a topologically-ordered list of
+`ResolvedProtoFile` objects (file path + raw content).
+
+- Handles relative paths, configurable import search directories.
+- Detects circular dependencies.
+- `resolveDependencies(for:)` — resolves a single entry file and all its transitive imports.
+- `resolveDirectory(_:recursive:)` — resolves all `.proto` files in a directory.
+
+### Layer 5 — Performance
+
+**Files**: `Performance/PerformanceCache.swift`,
+`Performance/IncrementalParser.swift`,
+`Performance/PerformanceBenchmark.swift`
+
+**Responsibility**: Caching, incremental re-parsing, and benchmarking. All three components
+are **internal**; they are not part of the public API.
+
+Dependencies within the module:
+
+```
+PerformanceCache      → Layer 2 (AST types)
+IncrementalParser     → Layer 2 ProtoParsingPipeline, Layer 4, PerformanceCache
+PerformanceBenchmark  → Layer 2 ProtoParsingPipeline, Layer 3, Layer 4, PerformanceCache
 ```
 
-### 3.3.2 Extend Support Components
+**No component in Layer 5 calls `SwiftProtoParser` (Layer 6).** Parsing is performed
+directly via `ProtoParsingPipeline` and `DependencyResolver`.
 
-#### ExtendNode AST
+- `PerformanceCache` — content-hash-based LRU cache for `ProtoAST` objects; thread-safe.
+- `IncrementalParser` — detects changed files, re-parses only affected files and their
+  dependents.
+- `PerformanceBenchmark` — statistical measurement of parsing throughput and latency.
+
+### Layer 6 — Public API
+
+**Files**: `Public/SwiftProtoParser.swift`
+
+**Responsibility**: Expose a minimal, stable, version-safe public interface.
+
 ```swift
-public struct ExtendNode {
-    public let extendedType: String        // "google.protobuf.FileOptions"
-    public let fields: [FieldNode]         // Extension fields
-    public let isValidProto3ExtendTarget: Bool  // Proto3 validation
+public struct SwiftProtoParser {
+    public static func parseFile(
+        _ filePath: String,
+        importPaths: [String] = []
+    ) -> Result<Google_Protobuf_FileDescriptorSet, ProtoParseError>
+
+    public static func parseDirectory(
+        _ directoryPath: String,
+        recursive: Bool = false,
+        importPaths: [String] = []
+    ) -> Result<Google_Protobuf_FileDescriptorSet, ProtoParseError>
 }
 ```
 
-#### Parser Integration
-- **Keyword Recognition**: `extend` recognized as keyword
-- **Syntax Parsing**: Full parsing of `extend Type { fields }` syntax
-- **Proto3 Validation**: Only `google.protobuf.*` types allowed in proto3
-- **Error Handling**: Detailed errors for invalid extend targets
+The facade delegates to `DependencyResolver` (Layer 4), `ProtoParsingPipeline` (Layer 2),
+and `DescriptorBuilder` (Layer 3). It contains no parsing logic of its own.
 
-#### DescriptorBuilder Integration
-- **Extend Processing**: ExtendNode conversion to appropriate protobuf extensions
-- **Custom Options**: Support for all google.protobuf option types (File, Message, Field, Service, Method, Enum, EnumValue)
-- **Validation**: Semantic validation of extend targets and field numbers
+## 5. Data Flow
 
-### 3.3.3 Supported Extend Targets
-- `google.protobuf.FileOptions`
-- `google.protobuf.MessageOptions`  
-- `google.protobuf.FieldOptions`
-- `google.protobuf.ServiceOptions`
-- `google.protobuf.MethodOptions`
-- `google.protobuf.EnumOptions`
-- `google.protobuf.EnumValueOptions`
+```
+User calls parseFile("api.proto", importPaths: ["./protos"])
+  │
+  ▼ Layer 4
+DependencyResolver.resolveDependencies(for: "api.proto")
+  → reads file system, resolves all imports recursively
+  → returns [ResolvedProtoFile] in topological order
+  │
+  ▼ Layer 2 (per file)
+ProtoParsingPipeline.parse(content:fileName:)
+  → Lexer → [Token]
+  → Parser → ProtoAST
+  │
+  ▼ Layer 3 (per file)
+DescriptorBuilder.buildFileDescriptor(from:fileName:)
+  → ProtoAST → Google_Protobuf_FileDescriptorProto
+  │
+  ▼ Layer 6
+SwiftProtoParser.buildDescriptorSet(from: [ResolvedProtoFile])
+  → Google_Protobuf_FileDescriptorSet
+  │
+  ▼
+Result<Google_Protobuf_FileDescriptorSet, ProtoParseError>
+```
 
-## 3.4 Map Fields Support Architecture
+## 6. Error Model
 
-### 3.4.1 Map Fields Overview
-SwiftProtoParser provides full support for Protocol Buffers map types with automatic generation of synthetic entry messages, matching `protoc` behavior exactly.
+`ProtoParseError` (public) is the single error type visible to consumers. Internal errors
+(`LexerError`, `ParserError`, `DescriptorError`, `ResolverError`) are wrapped before crossing
+layer boundaries.
 
-```protobuf
-syntax = "proto3";
-
-message DataRequest {
-  map<string, string> metadata = 4;
-  map<string, UserInfo> users = 5;
+```swift
+public enum ProtoParseError: Error {
+    case fileNotFound(String)
+    case ioError(underlying: Error)
+    case dependencyResolutionError(message: String, importPath: String)
+    case circularDependency([String])
+    case lexicalError(message: String, file: String, line: Int, column: Int)
+    case syntaxError(message: String, file: String, line: Int, column: Int)
+    case semanticError(message: String, context: String)
+    case descriptorError(String)
+    case performanceLimitExceeded(message: String, limit: String)
+    case internalError(message: String)
 }
 ```
 
-### 3.4.2 Map Field Implementation
+## 7. Extend Support
 
-According to the Protocol Buffers specification, `map<K, V>` fields are syntactic sugar for a repeated nested message:
+Proto3 `extend` statements for custom options are fully supported:
 
-```protobuf
-// This proto syntax:
-message DataRequest {
-  map<string, string> metadata = 4;
+**Supported targets**: `google.protobuf.FileOptions`, `MessageOptions`, `FieldOptions`,
+`ServiceOptions`, `MethodOptions`, `EnumOptions`, `EnumValueOptions`.
+
+The `ExtendNode` AST node is parsed by `Parser`, validated to only extend
+`google.protobuf.*` types in proto3, and the extension fields are included in the generated
+descriptor.
+
+## 8. Map Field Implementation
+
+`map<K, V>` fields are syntactic sugar for a repeated nested message. The library generates
+synthetic entry messages matching `protoc` output exactly:
+
+```
+// Input (proto syntax)
+message Request {
+  map<string, string> metadata = 1;
 }
 
-// Is equivalent to:
-message DataRequest {
+// Output (descriptor equivalent)
+message Request {
   message MetadataEntry {
     option map_entry = true;
     string key = 1;
     string value = 2;
   }
-  repeated MetadataEntry metadata = 4;
+  repeated MetadataEntry metadata = 1;
 }
 ```
 
-### 3.4.3 Descriptor Generation
+`MessageDescriptorBuilder` handles this transformation automatically.
 
-**MessageDescriptorBuilder** automatically generates synthetic entry messages for map fields:
+## 9. Technology Stack
 
-1. **Detection**: Scans all fields in a message for `.map(key, value)` type
-2. **Entry Generation**: Creates a nested message named `{FieldName}Entry`:
-   - Sets `options.map_entry = true`
-   - Adds `key` field (number 1, label .optional)
-   - Adds `value` field (number 2, label .optional)
-3. **Type Conversion**: Converts AST field types to protobuf types for key/value
-4. **Integration**: Adds entry message to parent's `nestedType` array
+- **Swift 5.10+**
+- **swift-protobuf 1.29.0+** — for `Google_Protobuf_*` descriptor types
+- **Swift Package Manager** — dependency management
+- **XCTest** — testing
+- **swift-format** — code style enforcement
 
-### 3.4.4 Supported Map Key Types
-Per Protocol Buffers specification:
-- All integer types: `int32`, `int64`, `uint32`, `uint64`, `sint32`, `sint64`, `fixed32`, `fixed64`, `sfixed32`, `sfixed64`
-- `bool`
-- `string`
+## 10. Testing Strategy
 
-### 3.4.5 Supported Map Value Types
-- All scalar types (int32, int64, uint32, uint64, sint32, sint64, fixed32, fixed64, sfixed32, sfixed64, float, double, bool, string, bytes)
-- Message types
-- Enum types
-- Qualified types (e.g., `google.protobuf.Timestamp`)
-
-**Note**: Maps with map values (`map<K, map<K2, V>>`) are invalid in proto3 and will throw `DescriptorError.invalidMapType`.
-
-### 3.4.6 Compatibility
-- **protoc Compatible**: Generated descriptors match `protoc --descriptor_set_out` output exactly
-- **SwiftProtobuf Compatible**: Works seamlessly with SwiftProtobuf descriptor types
-- **Type Resolution**: Fully qualified type names for message/enum values in packages
-
-## 4. API Design
-
-### 4.1 Public API
-
-```swift
-public struct SwiftProtoParser {
-    /// Main .proto file parsing function
-    public static func parseProtoFile(_ filePath: String) -> Result<ProtoDescriptor, ProtoParseError>
-    
-    /// Parse from string (for testing/in-memory)
-    public static func parseProtoString(_ content: String) -> Result<ProtoDescriptor, ProtoParseError>
-    
-    /// Parse with dependency support from folders
-    public static func parseProtoFile(
-        _ mainFilePath: String,
-        importPaths: [String] = [],
-        options: ParseOptions = .default
-    ) -> Result<ProtoDescriptor, ProtoParseError>
-    
-    /// Parse directory with .proto files (all files as dependencies)
-    public static func parseProtoDirectory(
-        _ directoryPath: String,
-        mainFile: String? = nil,
-        options: ParseOptions = .default
-    ) -> Result<[ProtoDescriptor], ProtoParseError>
-}
-
-public struct ParseOptions {
-    public static let `default` = ParseOptions()
-    public let validateSemantics: Bool = true
-    public let strictMode: Bool = false
-    public let resolveDependencies: Bool = true
-    public let allowMissingImports: Bool = false
-}
-```
-
-### 4.2 Error Handling
-
-```swift
-public enum ProtoParseError: Error, LocalizedError {
-    case fileNotFound(String)
-    case dependencyResolutionError(ResolverError, importPath: String)
-    case circularDependency([String])
-    case lexicalError(LexerError, file: String, line: Int, column: Int)
-    case syntaxError(ParserError, file: String, line: Int, column: Int)  
-    case semanticError(BuilderError, context: String)
-    case ioError(underlying: Error)
-    
-    public var errorDescription: String? {
-        // Detailed messages with error localization
-    }
-}
-```
-
-### 4.3 Inter-Module Interfaces
-
-```swift
-// DependencyResolver → Lexer
-internal func resolveDependencies(
-    mainFile: String, 
-    importPaths: [String]
-) -> Result<[ResolvedProtoFile], ResolverError>
-
-// Lexer → Parser
-internal func tokenize(_ file: ResolvedProtoFile) -> Result<[Token], LexerError>
-
-// Parser → DescriptorBuilder  
-internal func parse(_ tokens: [Token]) -> Result<ProtoAST, ParserError>
-
-// DescriptorBuilder → Public
-internal func buildDescriptor(
-    mainAST: ProtoAST, 
-    dependencies: [ProtoAST]
-) -> Result<ProtoDescriptor, BuilderError>
-```
-
-## 5. Technology Stack
-
-### 5.1 Core Technologies
-- **Swift 5.9+** - minimum version
-- **swift-protobuf 1.29.0+** - for ProtoDescriptor types
-- **Swift Package Manager** - dependency management
-
-### 5.2 Supported Platforms
-- **macOS 12.0+**
-- **iOS 15.0+** 
-- **Linux** (all Swift-supported distributions)
-
-### 5.3 Development Tools
-- **swift-format** - code formatting
-- **XCTest** - testing framework
-- **swift test** - test execution
-- **Makefile** - build automation
-
-## 6. Performance and Optimization
-
-### 6.1 Target Metrics
-- **Performance**: Within 20% of protoc
-- **Memory Usage**: Profiling with Instruments
-- **Throughput**: Benchmark tests on large .proto files
-
-### 6.2 Optimization Strategies
-1. **Lazy initialization** of AST nodes
-2. **String interning** for repeated identifiers  
-3. **Optimized collections** for tokens
-4. **Copy-on-Write** semantics for large structures
-
-### 6.3 Profiling
-- Benchmark tests in `Tests/BenchmarkTests/`
-- Memory profiling with XCTest
-- Performance regression detection
-
-## 7. Testing Strategy
-
-### 7.1 Coverage
-- **Minimum 95%** code coverage
-- **Unit tests** for each module
-- **Integration tests** for full pipeline
-- **Performance tests** against protoc
-
-### 7.2 Test Structure
-```
-Tests/
-├── SwiftProtoParserTests/
-│   ├── DependencyResolverTests/
-│   ├── LexerTests/
-│   ├── ParserTests/ 
-│   ├── DescriptorBuilderTests/
-│   └── IntegrationTests/
-├── BenchmarkTests/
-└── TestResources/
-    ├── SingleProtoFiles/
-    └── DependencyTestCases/
-        ├── SimpleImports/
-        ├── CircularDeps/
-        └── MissingDeps/
-```
-
-### 7.3 Test Data
-- **Simple .proto files** for unit tests
-- **Complex real-world files** for integration tests
-- **Edge cases** for boundary conditions
-- **Error cases** for error handling testing
-
-## 8. Development Principles
-
-### 8.1 Codebase
-- **Explicit types** preferred over implicit
-- **Small functions** with single responsibility
-- **Immutable structures** where possible
-- **Protocol-oriented design** for extensibility
-
-### 8.2 Error Handling
-- **Fail-fast** approach for critical errors
-- **Detailed messages** with file position
-- **Error recovery** for continued parsing after errors
-- **Structured logging** for diagnostics
-
-### 8.3 Documentation
-- **DocC comments** for all public APIs
-- **Usage examples** in documentation
-- **Architecture Decision Records** for important decisions
-- **Contributing guide** for contributors
-
-## 9. Dependency Management
-
-### 9.1 Import Types
-```swift
-// Standard Google imports
-import "google/protobuf/timestamp.proto";
-import "google/protobuf/duration.proto";
-
-// Custom imports  
-import "user/profile.proto";
-import "common/types.proto";
-```
-
-### 9.2 Search Strategies
-1. **Relative paths**: from current .proto file
-2. **Import paths**: from specified directories  
-3. **Standard locations**: well-known types from Google
-4. **Caching**: reuse of already resolved files
-
-### 9.3 Conflict Resolution
-- **Duplicate imports**: ignoring repeated imports
-- **Version conflicts**: error with detailed description
-- **Circular dependencies**: detection and error
-- **Missing imports**: optional error or warning
-
-### 9.4 API Usage Examples
-
-```swift
-// Simple case - single file
-let result = SwiftProtoParser.parseProtoFile("user.proto")
-
-// With dependencies in folders
-let result = SwiftProtoParser.parseProtoFile(
-    "main.proto",
-    importPaths: ["./protos", "./vendor/protos"]
-)
-
-// Parse entire directory
-let results = SwiftProtoParser.parseProtoDirectory(
-    "./protos",
-    mainFile: "api.proto"
-)
-```
-
-## 10. swift-protobuf Integration
-
-### 10.1 Used Types
-```swift
-import SwiftProtobuf
-
-// Main descriptors
-- Google.Protobuf.FileDescriptorProto
-- Google.Protobuf.DescriptorProto  
-- Google.Protobuf.FieldDescriptorProto
-- Google.Protobuf.ServiceDescriptorProto
-```
-
-### 10.2 Integration Strategy
-- **Maximum reuse** of existing types
-- **AST → Protobuf types conversion** in DescriptorBuilder
-- **Validation** of compliance with official specification
-- **Backward compatibility** with existing projects
-
-## 11. Deployment and Releases
-
-### 11.1 Versioning
-- **Semantic Versioning 2.0** (major.minor.patch)
-- **API stability** guarantees for major versions
-- **Deprecation warnings** one major version ahead
-
-### 11.2 Distribution
-- **GitHub Releases** with changelog
-- **Swift Package Index** registration
-- **Swift Package Manager** primary installation method
-- **MIT License** for maximum compatibility
+- **Unit tests per module** — each layer tested in isolation with mocks/stubs where needed.
+- **Integration tests** — full pipeline from `.proto` string to `FileDescriptorSet`.
+- **Error path tests** — explicit coverage of every `ProtoParseError` case.
+- **Target**: ≥ 92% region coverage, 95% line coverage.
