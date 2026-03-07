@@ -66,23 +66,6 @@ final class PerformanceCache {
     /// Enable performance monitoring.
     let enableMonitoring: Bool
 
-    /// Initialize cache configuration.
-    init(
-      maxASTEntries: Int,
-      maxDescriptorEntries: Int,
-      maxDependencyEntries: Int,
-      maxMemoryUsage: Int64,
-      timeToLive: TimeInterval,
-      enableMonitoring: Bool
-    ) {
-      self.maxASTEntries = maxASTEntries
-      self.maxDescriptorEntries = maxDescriptorEntries
-      self.maxDependencyEntries = maxDependencyEntries
-      self.maxMemoryUsage = maxMemoryUsage
-      self.timeToLive = timeToLive
-      self.enableMonitoring = enableMonitoring
-    }
-
     /// Default configuration.
     static let `default` = Configuration(
       maxASTEntries: 1000,

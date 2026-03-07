@@ -47,7 +47,8 @@ extension SwiftProtoParser {
     }
     catch let resolverError as ResolverError {
       return .failure(
-        .dependencyResolutionError(message: resolverError.localizedDescription, importPath: filePath))
+        .dependencyResolutionError(message: resolverError.localizedDescription, importPath: filePath)
+      )
     }
     catch {
       return .failure(.ioError(underlying: error))
@@ -99,7 +100,10 @@ extension SwiftProtoParser {
     catch let resolverError as ResolverError {
       return .failure(
         .dependencyResolutionError(
-          message: resolverError.localizedDescription, importPath: directoryPath))
+          message: resolverError.localizedDescription,
+          importPath: directoryPath
+        )
+      )
     }
     catch {
       return .failure(.ioError(underlying: error))
@@ -120,7 +124,9 @@ extension SwiftProtoParser {
       case .success(let ast):
         do {
           let descriptor = try DescriptorBuilder.buildFileDescriptor(
-            from: ast, fileName: resolvedFile.fileName)
+            from: ast,
+            fileName: resolvedFile.fileName
+          )
           fileDescriptors.append(descriptor)
         }
         catch let descriptorError as DescriptorError {
@@ -131,7 +137,8 @@ extension SwiftProtoParser {
             .internalError(
               message:
                 "DescriptorBuilder failed for \(resolvedFile.fileName): \(error.localizedDescription)"
-            ))
+            )
+          )
         }
       case .failure(let error):
         return .failure(error)

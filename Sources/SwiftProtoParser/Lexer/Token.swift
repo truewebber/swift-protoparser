@@ -12,20 +12,10 @@ struct Token: Sendable {
   /// The position of this token in the source file.
   let position: Position
 
-  init(type: TokenType, position: Position) {
-    self.type = type
-    self.position = position
-  }
-
   /// Position information for a token.
   struct Position: Equatable, Sendable {
     let line: Int
     let column: Int
-
-    init(line: Int, column: Int) {
-      self.line = line
-      self.column = column
-    }
   }
 }
 

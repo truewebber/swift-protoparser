@@ -66,21 +66,6 @@ final class IncrementalParser {
     /// Cache parsed results for incremental updates.
     let enableResultCaching: Bool
 
-    /// Initialize incremental parser configuration.
-    init(
-      maxInMemorySize: Int64,
-      streamingChunkSize: Int,
-      maxParallelFiles: Int,
-      enableChangeDetection: Bool,
-      enableResultCaching: Bool
-    ) {
-      self.maxInMemorySize = maxInMemorySize
-      self.streamingChunkSize = streamingChunkSize
-      self.maxParallelFiles = maxParallelFiles
-      self.enableChangeDetection = enableChangeDetection
-      self.enableResultCaching = enableResultCaching
-    }
-
     /// Default configuration.
     static let `default` = Configuration(
       maxInMemorySize: 50 * 1024 * 1024,  // 50MB
