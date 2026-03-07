@@ -390,7 +390,8 @@ extension SwiftProtoParser {
                 .internalError(
                   message:
                     "DescriptorBuilder failed for \(resolvedFile.fileName): \(error.localizedDescription)"
-                ))
+                )
+              )
             }
           }
 
@@ -406,7 +407,8 @@ extension SwiftProtoParser {
     }
     catch let resolverError as ResolverError {
       return .failure(
-        .dependencyResolutionError(message: resolverError.localizedDescription, importPath: filePath))
+        .dependencyResolutionError(message: resolverError.localizedDescription, importPath: filePath)
+      )
     }
     catch {
       return .failure(.ioError(underlying: error))
