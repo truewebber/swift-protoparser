@@ -5,7 +5,7 @@ A Swift library for parsing Protocol Buffers `.proto` files into AST and descrip
 [![Platform](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Ftruewebber%2Fswift-protoparser%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/truewebber/swift-protoparser)
 [![Swift Package Index](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Ftruewebber%2Fswift-protoparser%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/truewebber/swift-protoparser)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg?style=flat)](LICENSE)
-[![Coverage](https://img.shields.io/badge/Test%20Coverage-95%25-green.svg?style=flat)](#testing)
+[![Coverage](https://img.shields.io/badge/Test%20Coverage-93%25-green.svg?style=flat)](#testing)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/truewebber/swift-protoparser)
 
 ## Overview
@@ -18,7 +18,7 @@ Add to your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/truewebber/swift-protoparser.git", from: "0.3.0")
+    .package(url: "https://github.com/truewebber/swift-protoparser.git", from: "0.6.0")
 ]
 ```
 
@@ -30,33 +30,23 @@ dependencies: [
 import SwiftProtoParser
 
 // Parse a single .proto file
-let result = SwiftProtoParser.parseProtoFile("user.proto")
+let result = SwiftProtoParser.parseFile("user.proto")
 switch result {
-case .success(let ast):
-    print("Package: \(ast.package ?? "none")")
-    print("Messages: \(ast.messages.map { $0.name })")
-    print("Services: \(ast.services.map { $0.name })")
+case .success(let descriptorSet):
+    let file = descriptorSet.file.last!
+    print("Package: \(file.package)")
+    print("Messages: \(file.messageType.map { $0.name })")
+    print("Services: \(file.service.map { $0.name })")
 case .failure(let error):
     print("Parse error: \(error.localizedDescription)")
 }
-
-// Parse from string content
-let protoContent = """
-syntax = "proto3";
-package example;
-message Person {
-    string name = 1;
-    int32 age = 2;
-}
-"""
-let result = SwiftProtoParser.parseProtoString(protoContent)
 ```
 
 ### Working with Imports
 
 ```swift
 // Parse with import resolution
-let result = SwiftProtoParser.parseProtoFileWithImports(
+let result = SwiftProtoParser.parseFile(
     "api.proto",
     importPaths: [
         "/path/to/proto/files",
@@ -65,23 +55,28 @@ let result = SwiftProtoParser.parseProtoFileWithImports(
 )
 
 // Parse entire directory
-let result = SwiftProtoParser.parseProtoDirectory(
+let result = SwiftProtoParser.parseDirectory(
     "/path/to/proto/files",
     recursive: true,
     importPaths: ["/path/to/imports"]
 )
 ```
 
-### Generating Descriptors
+### Working with Descriptors
 
 ```swift
-// Convert to SwiftProtobuf descriptors
-let result = SwiftProtoParser.parseProtoToDescriptors("user.proto")
+// parseFile returns a FileDescriptorSet — all files in topological order
+let result = SwiftProtoParser.parseFile("user.proto")
 switch result {
-case .success(let descriptor):
-    // Use Google_Protobuf_FileDescriptorProto
-    print("File: \(descriptor.name)")
-    print("Package: \(descriptor.package)")
+case .success(let descriptorSet):
+    // Iterate over all resolved files (dependencies first, requested file last)
+    for file in descriptorSet.file {
+        print("File: \(file.name)")
+        print("Package: \(file.package)")
+        for message in file.messageType {
+            print("  message \(message.name): \(message.field.count) fields")
+        }
+    }
 case .failure(let error):
     print("Error: \(error)")
 }
@@ -169,35 +164,23 @@ message ValidatedMessage {
 ## Performance Features
 
 ### Caching
-```swift
-// Enable automatic caching
-let result = SwiftProtoParser.parseProtoFileWithCaching("user.proto")
 
-// Check cache statistics
-let stats = SwiftProtoParser.getCacheStatistics()
-print("Cache hit rate: \(stats.astHitRate * 100)%")
-print("Memory usage: \(stats.totalMemoryUsage / 1024 / 1024) MB")
-
-// Clear caches
-SwiftProtoParser.clearPerformanceCaches()
-```
+Content-based AST caching is built into the library. Repeated parsing of the same file content
+returns a cached result without re-running the Lexer and Parser, achieving 85%+ hit rates in
+typical workflows. Cache management is automatic and requires no configuration.
 
 ### Incremental Parsing
-```swift
-// Parse directory incrementally (only changed files)
-let result = SwiftProtoParser.parseProtoDirectoryIncremental(
-    "/path/to/proto/directory",
-    recursive: true
-)
-```
+
+An incremental parsing engine tracks file modification timestamps and content hashes across
+multiple calls. Only files that have actually changed — and their direct dependents — are
+re-parsed. This reduces parsing time by 60–80% for large proto directories with infrequent
+changes.
 
 ### Benchmarking
-```swift
-// Benchmark parsing performance
-let benchmark = SwiftProtoParser.benchmarkPerformance("/path/to/proto")
-print("Average parse time: \(benchmark.averageDuration * 1000)ms")
-print("Success rate: \(benchmark.successRate * 100)%")
-```
+
+An internal benchmarking system measures single-file, string, directory, and descriptor
+generation throughput with statistical analysis (mean, median, standard deviation). It is used
+for regression detection in the development workflow.
 
 ## Requirements
 
@@ -226,7 +209,7 @@ print("Success rate: \(benchmark.successRate * 100)%")
 
 ## Testing
 
-The library has comprehensive test coverage with 1120 tests covering all functionality:
+The library has comprehensive test coverage with 1263 tests covering all functionality:
 
 ```bash
 # Run all tests
@@ -237,7 +220,7 @@ make test
 make coverage
 ```
 
-Test coverage: **95.32%** (lines), **93.20%** (functions), **92.44%** (regions)
+Test coverage: **92.59%** (lines), **92.23%** (functions), **95.04%** (regions)
 
 ## Contributing
 
