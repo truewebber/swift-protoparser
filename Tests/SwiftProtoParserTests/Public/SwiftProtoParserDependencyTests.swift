@@ -322,6 +322,84 @@ final class SwiftProtoParserDependencyTests: XCTestCase {
     }
   }
 
+  // MARK: - parseProtoFileWithImportsToAllDescriptors Tests
+
+  func testParseProtoFileWithImportsToAllDescriptors_ReturnsMainAndDependencies() {
+    let servicePath = dependencyTestCasesPath + "/service.proto"
+
+    let result = SwiftProtoParser.parseProtoFileWithImportsToAllDescriptors(
+      servicePath,
+      importPaths: [dependencyTestCasesPath]
+    )
+
+    switch result {
+    case .success(let fileDescriptors):
+      // service.proto depends on user.proto which depends on base.proto → 3 total
+      XCTAssertEqual(fileDescriptors.count, 3, "Expected 3 descriptors: base, user, service")
+
+      let packages = fileDescriptors.map { $0.package }
+      XCTAssertTrue(packages.contains("test.base"), "Missing base dependency descriptor")
+      XCTAssertTrue(packages.contains("test.user"), "Missing user dependency descriptor")
+      XCTAssertTrue(packages.contains("test.service"), "Missing main file descriptor")
+
+    case .failure(let error):
+      XCTFail("Expected success, got error: \(error)")
+    }
+  }
+
+  func testParseProtoFileWithImportsToAllDescriptors_MainFileIsLast() {
+    let servicePath = dependencyTestCasesPath + "/service.proto"
+
+    let result = SwiftProtoParser.parseProtoFileWithImportsToAllDescriptors(
+      servicePath,
+      importPaths: [dependencyTestCasesPath]
+    )
+
+    switch result {
+    case .success(let fileDescriptors):
+      // Main file (service.proto) must be the last element (topological order)
+      XCTAssertEqual(fileDescriptors.last?.package, "test.service")
+
+    case .failure(let error):
+      XCTFail("Expected success, got error: \(error)")
+    }
+  }
+
+  func testParseProtoFileWithImportsToAllDescriptors_SimpleFileNoImports_ReturnsSingleDescriptor() {
+    let simplePath = singleProtoFilesPath + "/simple.proto"
+
+    let result = SwiftProtoParser.parseProtoFileWithImportsToAllDescriptors(
+      simplePath,
+      importPaths: [singleProtoFilesPath]
+    )
+
+    switch result {
+    case .success(let fileDescriptors):
+      XCTAssertEqual(fileDescriptors.count, 1)
+      XCTAssertEqual(fileDescriptors[0].package, "simple")
+      XCTAssertEqual(fileDescriptors[0].messageType.count, 1)
+      XCTAssertEqual(fileDescriptors[0].messageType[0].name, "SimpleMessage")
+
+    case .failure(let error):
+      XCTFail("Expected success, got error: \(error)")
+    }
+  }
+
+  func testParseProtoFileWithImportsToAllDescriptors_MissingImport_ReturnsFailure() {
+    let userPath = dependencyTestCasesPath + "/user.proto"
+
+    // Don't provide import paths, so base.proto can't be found
+    let result = SwiftProtoParser.parseProtoFileWithImportsToAllDescriptors(userPath)
+
+    switch result {
+    case .success(_):
+      XCTFail("Expected failure due to missing import")
+    case .failure(_):
+      // Expected
+      break
+    }
+  }
+
   // MARK: - parseProtoDirectoryToDescriptors Tests
 
   func testParseProtoDirectoryToDescriptors_MultipleFiles() {

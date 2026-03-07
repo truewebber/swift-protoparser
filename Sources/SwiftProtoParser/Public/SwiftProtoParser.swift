@@ -337,6 +337,82 @@ extension SwiftProtoParser {
     }
   }
 
+  /// Parse a .proto file with import resolution and return Google Protocol Buffers descriptors
+  /// for ALL files: the main file and all transitive dependencies.
+  ///
+  /// Returns descriptors in topological order: dependencies first, main file last.
+  /// This is useful when message types from imported files need to be resolved.
+  ///
+  /// - Parameters:
+  ///   - filePath: Path to the main .proto file
+  ///   - importPaths: Array of directory paths to search for imported files (default: empty)
+  ///   - allowMissingImports: Whether to continue if some imports can't be found (default: false)
+  /// - Returns: Result containing array of Google_Protobuf_FileDescriptorProto on success,
+  ///            where the last element is always the main file's descriptor.
+  public static func parseProtoFileWithImportsToAllDescriptors(
+    _ filePath: String,
+    importPaths: [String] = [],
+    allowMissingImports: Bool = false
+  ) -> Result<[Google_Protobuf_FileDescriptorProto], ProtoParseError> {
+    do {
+      let options = DependencyResolver.Options(
+        allowMissingImports: allowMissingImports,
+        recursive: true,
+        validateSyntax: true,
+        detectCircularDependencies: true,
+        maxDepth: 50
+      )
+      let resolver = DependencyResolver(importPaths: importPaths, options: options)
+      let resolutionResult = try resolver.resolveDependencies(for: filePath)
+
+      var fileDescriptors: [Google_Protobuf_FileDescriptorProto] = []
+
+      for resolvedFile in resolutionResult.allFiles {
+        let astResult = parseProtoString(resolvedFile.content, fileName: resolvedFile.fileName)
+
+        switch astResult {
+        case .success(let ast):
+          do {
+            let descriptor = try DescriptorBuilder.buildFileDescriptor(
+              from: ast,
+              fileName: resolvedFile.fileName
+            )
+            fileDescriptors.append(descriptor)
+          }
+          catch let descriptorError as DescriptorError {
+            if !allowMissingImports {
+              return .failure(.descriptorError(descriptorError))
+            }
+          }
+          catch {
+            if !allowMissingImports {
+              return .failure(
+                .internalError(
+                  message:
+                    "DescriptorBuilder failed for \(resolvedFile.fileName): \(error.localizedDescription)"
+                ))
+            }
+          }
+
+        case .failure(let error):
+          if !allowMissingImports {
+            return .failure(error)
+          }
+        }
+      }
+
+      return .success(fileDescriptors)
+
+    }
+    catch let resolverError as ResolverError {
+      return .failure(
+        .dependencyResolutionError(message: resolverError.localizedDescription, importPath: filePath))
+    }
+    catch {
+      return .failure(.ioError(underlying: error))
+    }
+  }
+
   /// Parse multiple .proto files in a directory and return Google Protocol Buffers descriptors.
   ///
   /// This method finds all .proto files in the specified directory, parses each one with full
