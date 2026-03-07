@@ -5,298 +5,271 @@ import XCTest
 
 final class SwiftProtoParserExtensionTests: XCTestCase {
 
+  // MARK: - Helpers
+
+  private func writeTempProto(_ content: String, name: String = "test.proto") -> URL {
+    let dir = FileManager.default.temporaryDirectory
+      .appendingPathComponent("spe_\(UUID().uuidString)", isDirectory: true)
+    try! FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+    let url = dir.appendingPathComponent(name)
+    try! content.write(to: url, atomically: true, encoding: .utf8)
+    return url
+  }
+
+  private func removeTempDir(for url: URL) {
+    try? FileManager.default.removeItem(at: url.deletingLastPathComponent())
+  }
+
   // MARK: - File IO Tests
 
   func testParseProtoFileSuccess() {
-    // Create a temporary .proto file
-    let tempDir = FileManager.default.temporaryDirectory
-    let tempFile = tempDir.appendingPathComponent("test.proto")
-
-    let protoContent = """
+    let tempFile = writeTempProto(
+      """
       syntax = "proto3";
-
       message TestMessage {
           string name = 1;
       }
       """
+    )
+    defer { removeTempDir(for: tempFile) }
 
-    do {
-      try protoContent.write(to: tempFile, atomically: true, encoding: .utf8)
+    let result = SwiftProtoParser.parseFile(tempFile.path)
 
-      let result = SwiftProtoParser.parseProtoFile(tempFile.path)
-
-      XCTAssertTrue(result.isSuccess)
-      if case .success(let ast) = result {
-        XCTAssertEqual(ast.syntax, .proto3)
-        XCTAssertEqual(ast.messages.count, 1)
-        XCTAssertEqual(ast.messages.first?.name, "TestMessage")
-      }
-
-      // Cleanup
-      try FileManager.default.removeItem(at: tempFile)
-    }
-    catch {
-      XCTFail("Failed to create or cleanup temp file: \(error)")
+    switch result {
+    case .success(let set):
+      XCTAssertEqual(set.file[0].syntax, "proto3")
+      XCTAssertEqual(set.file[0].messageType.count, 1)
+      XCTAssertEqual(set.file[0].messageType[0].name, "TestMessage")
+    case .failure(let error):
+      XCTFail("Expected success, got error: \(error)")
     }
   }
 
   func testParseProtoFileNotFound() {
-    let nonExistentPath = "/nonexistent/path/to/file.proto"
-    let result = SwiftProtoParser.parseProtoFile(nonExistentPath)
+    let result = SwiftProtoParser.parseFile("/nonexistent/path/to/file.proto")
 
-    XCTAssertTrue(result.isFailure)
-    if case .failure(let error) = result {
-      if case .ioError(let underlying) = error {
-        XCTAssertNotNil(underlying)
-      }
-      else {
-        XCTFail("Expected ioError, got \(error)")
+    switch result {
+    case .success:
+      XCTFail("Expected failure")
+    case .failure(let error):
+      switch error {
+      case .ioError, .dependencyResolutionError:
+        break
+      default:
+        XCTFail("Expected ioError or dependencyResolutionError, got \(error)")
       }
     }
   }
 
   func testParseProtoFileInvalidPath() {
-    let invalidPath = ""
-    let result = SwiftProtoParser.parseProtoFile(invalidPath)
+    let result = SwiftProtoParser.parseFile("")
 
-    XCTAssertTrue(result.isFailure)
-    if case .failure(let error) = result {
-      if case .ioError = error {
-        // Expected IO error for invalid path
-      }
-      else {
-        XCTFail("Expected ioError, got \(error)")
+    switch result {
+    case .success:
+      XCTFail("Expected failure for empty path")
+    case .failure(let error):
+      switch error {
+      case .ioError, .dependencyResolutionError:
+        break
+      default:
+        XCTFail("Expected ioError or dependencyResolutionError, got \(error)")
       }
     }
   }
 
-  // MARK: - parseProtoString with fileName Tests
+  // MARK: - parseFile with custom content Tests
 
   func testParseProtoStringWithCustomFileName() {
-    let protoContent = """
+    let tempFile = writeTempProto(
+      """
       syntax = "proto3";
-
       message User {
           string name = 1;
       }
-      """
+      """,
+      name: "custom_user.proto"
+    )
+    defer { removeTempDir(for: tempFile) }
 
-    let customFileName = "custom_user.proto"
-    let result = SwiftProtoParser.parseProtoString(protoContent, fileName: customFileName)
+    let result = SwiftProtoParser.parseFile(tempFile.path)
 
-    XCTAssertTrue(result.isSuccess)
-    if case .success(let ast) = result {
-      XCTAssertEqual(ast.syntax, .proto3)
-      XCTAssertEqual(ast.messages.count, 1)
-      XCTAssertEqual(ast.messages.first?.name, "User")
+    switch result {
+    case .success(let set):
+      XCTAssertEqual(set.file[0].syntax, "proto3")
+      XCTAssertEqual(set.file[0].messageType.count, 1)
+      XCTAssertEqual(set.file[0].messageType[0].name, "User")
+    case .failure(let error):
+      XCTFail("Expected success, got error: \(error)")
     }
   }
 
   func testParseProtoStringWithErrorFileName() {
-    let invalidContent = """
-      syntax = "proto3";
-
-      message InvalidMessage {
-          // Missing field number and semicolon
-          string name = 
+    let tempFile = writeTempProto(
       """
+      syntax = "proto3";
+      message InvalidMessage {
+          string name =
+      """,
+      name: "error_test.proto"
+    )
+    defer { removeTempDir(for: tempFile) }
 
-    let fileName = "error_test.proto"
-    let result = SwiftProtoParser.parseProtoString(invalidContent, fileName: fileName)
+    let result = SwiftProtoParser.parseFile(tempFile.path)
 
-    XCTAssertTrue(result.isFailure)
-    if case .failure(let error) = result {
+    switch result {
+    case .success:
+      XCTFail("Expected failure for invalid proto")
+    case .failure(let error):
       if case .syntaxError(let message, let file, let line, let column) = error {
-        XCTAssertEqual(file, fileName)
+        XCTAssertEqual(file, "error_test.proto")
         XCTAssertFalse(message.isEmpty)
         XCTAssertGreaterThan(line, 0)
         XCTAssertGreaterThan(column, 0)
       }
       else {
-        XCTFail("Expected syntax error with file name, got \(error)")
+        XCTFail("Expected syntaxError with file name, got \(error)")
       }
     }
   }
 
-  // MARK: - Convenience Methods Full Tests
+  // MARK: - getProtoVersion (now via parseFile)
 
   func testGetProtoVersionFromFile() {
-    let tempDir = FileManager.default.temporaryDirectory
-    let tempFile = tempDir.appendingPathComponent("version_test.proto")
-
-    let protoContent = """
-      syntax = "proto3";
-
-      message VersionTest {}
+    let tempFile = writeTempProto(
       """
+      syntax = "proto3";
+      message VersionTest {}
+      """,
+      name: "version_test.proto"
+    )
+    defer { removeTempDir(for: tempFile) }
 
-    do {
-      try protoContent.write(to: tempFile, atomically: true, encoding: .utf8)
+    let result = SwiftProtoParser.parseFile(tempFile.path)
 
-      let result = SwiftProtoParser.getProtoVersion(tempFile.path)
-
-      XCTAssertTrue(result.isSuccess)
-      if case .success(let version) = result {
-        XCTAssertEqual(version, .proto3)
-      }
-
-      // Cleanup
-      try FileManager.default.removeItem(at: tempFile)
-    }
-    catch {
-      XCTFail("Failed to create or cleanup temp file: \(error)")
+    switch result {
+    case .success(let set):
+      XCTAssertEqual(set.file[0].syntax, "proto3")
+    case .failure(let error):
+      XCTFail("Expected success, got error: \(error)")
     }
   }
 
   func testGetProtoVersionFileNotFound() {
-    let result = SwiftProtoParser.getProtoVersion("/nonexistent/file.proto")
+    let result = SwiftProtoParser.parseFile("/nonexistent/file.proto")
 
-    XCTAssertTrue(result.isFailure)
-    if case .failure(let error) = result {
-      if case .ioError = error {
-        // Expected IO error
-      }
-      else {
-        XCTFail("Expected ioError, got \(error)")
+    switch result {
+    case .success:
+      XCTFail("Expected failure")
+    case .failure(let error):
+      switch error {
+      case .ioError, .dependencyResolutionError:
+        break
+      default:
+        XCTFail("Expected ioError or dependencyResolutionError, got \(error)")
       }
     }
   }
 
+  // MARK: - getPackageName (now via parseFile)
+
   func testGetPackageNameFromFile() {
-    let tempDir = FileManager.default.temporaryDirectory
-    let tempFile = tempDir.appendingPathComponent("package_test.proto")
-
-    let protoContent = """
-      syntax = "proto3";
-
-      package com.example.test;
-
-      message PackageTest {}
+    let tempFile = writeTempProto(
       """
+      syntax = "proto3";
+      package com.example.test;
+      message PackageTest {}
+      """,
+      name: "package_test.proto"
+    )
+    defer { removeTempDir(for: tempFile) }
 
-    do {
-      try protoContent.write(to: tempFile, atomically: true, encoding: .utf8)
+    let result = SwiftProtoParser.parseFile(tempFile.path)
 
-      let result = SwiftProtoParser.getPackageName(tempFile.path)
-
-      XCTAssertTrue(result.isSuccess)
-      if case .success(let packageName) = result {
-        XCTAssertEqual(packageName, "com.example.test")
-      }
-
-      // Cleanup
-      try FileManager.default.removeItem(at: tempFile)
-    }
-    catch {
-      XCTFail("Failed to create or cleanup temp file: \(error)")
+    switch result {
+    case .success(let set):
+      XCTAssertEqual(set.file[0].package, "com.example.test")
+    case .failure(let error):
+      XCTFail("Expected success, got error: \(error)")
     }
   }
 
   func testGetPackageNameNoPackage() {
-    let tempDir = FileManager.default.temporaryDirectory
-    let tempFile = tempDir.appendingPathComponent("no_package_test.proto")
-
-    let protoContent = """
-      syntax = "proto3";
-
-      message NoPackageTest {}
+    let tempFile = writeTempProto(
       """
+      syntax = "proto3";
+      message NoPackageTest {}
+      """,
+      name: "no_package_test.proto"
+    )
+    defer { removeTempDir(for: tempFile) }
 
-    do {
-      try protoContent.write(to: tempFile, atomically: true, encoding: .utf8)
+    let result = SwiftProtoParser.parseFile(tempFile.path)
 
-      let result = SwiftProtoParser.getPackageName(tempFile.path)
-
-      XCTAssertTrue(result.isSuccess)
-      if case .success(let packageName) = result {
-        XCTAssertNil(packageName)
-      }
-
-      // Cleanup
-      try FileManager.default.removeItem(at: tempFile)
-    }
-    catch {
-      XCTFail("Failed to create or cleanup temp file: \(error)")
+    switch result {
+    case .success(let set):
+      XCTAssertEqual(set.file[0].package, "")
+    case .failure(let error):
+      XCTFail("Expected success, got error: \(error)")
     }
   }
 
+  // MARK: - getMessageNames (now via parseFile)
+
   func testGetMessageNamesFromFile() {
-    let tempDir = FileManager.default.temporaryDirectory
-    let tempFile = tempDir.appendingPathComponent("messages_test.proto")
-
-    let protoContent = """
-      syntax = "proto3";
-
-      message FirstMessage {
-          string field1 = 1;
-      }
-
-      message SecondMessage {
-          int32 field2 = 1;
-      }
-
-      message ThirdMessage {
-          bool field3 = 1;
-      }
+    let tempFile = writeTempProto(
       """
+      syntax = "proto3";
+      message FirstMessage { string field1 = 1; }
+      message SecondMessage { int32 field2 = 1; }
+      message ThirdMessage { bool field3 = 1; }
+      """,
+      name: "messages_test.proto"
+    )
+    defer { removeTempDir(for: tempFile) }
 
-    do {
-      try protoContent.write(to: tempFile, atomically: true, encoding: .utf8)
+    let result = SwiftProtoParser.parseFile(tempFile.path)
 
-      let result = SwiftProtoParser.getMessageNames(tempFile.path)
-
-      XCTAssertTrue(result.isSuccess)
-      if case .success(let messageNames) = result {
-        XCTAssertEqual(messageNames, ["FirstMessage", "SecondMessage", "ThirdMessage"])
-      }
-
-      // Cleanup
-      try FileManager.default.removeItem(at: tempFile)
-    }
-    catch {
-      XCTFail("Failed to create or cleanup temp file: \(error)")
+    switch result {
+    case .success(let set):
+      let names = set.file[0].messageType.map { $0.name }
+      XCTAssertEqual(names, ["FirstMessage", "SecondMessage", "ThirdMessage"])
+    case .failure(let error):
+      XCTFail("Expected success, got error: \(error)")
     }
   }
 
   func testGetMessageNamesNoMessages() {
-    let tempDir = FileManager.default.temporaryDirectory
-    let tempFile = tempDir.appendingPathComponent("no_messages_test.proto")
-
-    let protoContent = """
+    let tempFile = writeTempProto(
+      """
       syntax = "proto3";
-
-      // No messages, only enum
       enum Status {
           UNKNOWN = 0;
           ACTIVE = 1;
       }
-      """
+      """,
+      name: "no_messages_test.proto"
+    )
+    defer { removeTempDir(for: tempFile) }
 
-    do {
-      try protoContent.write(to: tempFile, atomically: true, encoding: .utf8)
+    let result = SwiftProtoParser.parseFile(tempFile.path)
 
-      let result = SwiftProtoParser.getMessageNames(tempFile.path)
-
-      XCTAssertTrue(result.isSuccess)
-      if case .success(let messageNames) = result {
-        XCTAssertTrue(messageNames.isEmpty)
-      }
-
-      // Cleanup
-      try FileManager.default.removeItem(at: tempFile)
-    }
-    catch {
-      XCTFail("Failed to create or cleanup temp file: \(error)")
+    switch result {
+    case .success(let set):
+      XCTAssertTrue(set.file[0].messageType.isEmpty)
+    case .failure(let error):
+      XCTFail("Expected success, got error: \(error)")
     }
   }
 
-  // MARK: - Future API Extended Tests
+  // MARK: - parseFile / parseDirectory with invalid paths
 
   func testParseProtoFileWithImportsWithPaths() {
-    let result = SwiftProtoParser.parseProtoFileWithImports("test.proto", importPaths: ["/path1", "/path2"])
+    let result = SwiftProtoParser.parseFile("test.proto", importPaths: ["/path1", "/path2"])
 
-    XCTAssertTrue(result.isFailure)
-    if case .failure(let error) = result {
+    switch result {
+    case .success:
+      XCTFail("Expected failure for non-existent file")
+    case .failure(let error):
       XCTAssertTrue(
         error.description.contains("Dependency resolution failed") || error.description.contains("I/O error")
       )
@@ -304,10 +277,16 @@ final class SwiftProtoParserExtensionTests: XCTestCase {
   }
 
   func testParseProtoDirectoryWithOptions() {
-    let result = SwiftProtoParser.parseProtoDirectory("/some/directory", recursive: true, importPaths: ["/path1"])
+    let result = SwiftProtoParser.parseDirectory(
+      "/some/directory",
+      recursive: true,
+      importPaths: ["/path1"]
+    )
 
-    XCTAssertTrue(result.isFailure)
-    if case .failure(let error) = result {
+    switch result {
+    case .success:
+      XCTFail("Expected failure for non-existent directory")
+    case .failure(let error):
       XCTAssertTrue(
         error.description.contains("Dependency resolution failed") || error.description.contains("I/O error")
       )
@@ -317,18 +296,23 @@ final class SwiftProtoParserExtensionTests: XCTestCase {
   // MARK: - Error Conversion Tests
 
   func testParserErrorConversion() {
-    let invalidContent = """
-      syntax = "proto3";
-
-      message Test {
-          string field1 = 0; // Invalid field number
-      }
+    let tempFile = writeTempProto(
       """
+      syntax = "proto3";
+      message Test {
+          string field1 = 0;
+      }
+      """,
+      name: "test_error.proto"
+    )
+    defer { removeTempDir(for: tempFile) }
 
-    let result = SwiftProtoParser.parseProtoString(invalidContent, fileName: "test_error.proto")
+    let result = SwiftProtoParser.parseFile(tempFile.path)
 
-    XCTAssertTrue(result.isFailure)
-    if case .failure(let error) = result {
+    switch result {
+    case .success:
+      XCTFail("Expected failure for field number 0")
+    case .failure(let error):
       if case .syntaxError(let message, let fileName, let line, let column) = error {
         XCTAssertEqual(fileName, "test_error.proto")
         XCTAssertGreaterThan(line, 0)
@@ -336,86 +320,111 @@ final class SwiftProtoParserExtensionTests: XCTestCase {
         XCTAssertFalse(message.isEmpty)
       }
       else {
-        XCTFail("Expected syntax error, got \(error)")
+        XCTFail("Expected syntaxError, got \(error)")
       }
     }
   }
 
   func testEmptyParserErrors() {
-    // This is an edge case - testing when parser returns no errors but still fails
-    // This tests the internal error fallback
-    let content = """
-      syntax = "proto3";
-      """
+    let tempFile = writeTempProto("syntax = \"proto3\";")
+    defer { removeTempDir(for: tempFile) }
 
-    let result = SwiftProtoParser.parseProtoString(content)
+    let result = SwiftProtoParser.parseFile(tempFile.path)
 
-    // This should actually succeed with an empty AST
-    if case .success(let ast) = result {
-      XCTAssertEqual(ast.syntax, .proto3)
-      XCTAssertNil(ast.package)
-      XCTAssertTrue(ast.messages.isEmpty)
-      XCTAssertTrue(ast.enums.isEmpty)
-      XCTAssertTrue(ast.services.isEmpty)
+    switch result {
+    case .success(let set):
+      XCTAssertEqual(set.file[0].syntax, "proto3")
+      XCTAssertEqual(set.file[0].package, "")
+      XCTAssertTrue(set.file[0].messageType.isEmpty)
+      XCTAssertTrue(set.file[0].enumType.isEmpty)
+      XCTAssertTrue(set.file[0].service.isEmpty)
+    case .failure:
+      break
     }
   }
 
   // MARK: - Edge Cases Tests
 
   func testParseProtoStringEmpty() {
-    let result = SwiftProtoParser.parseProtoString("")
+    let tempFile = writeTempProto("")
+    defer { removeTempDir(for: tempFile) }
 
-    XCTAssertTrue(result.isFailure)
-    // Should fail with lexer or parser error
+    let result = SwiftProtoParser.parseFile(tempFile.path)
+
+    switch result {
+    case .success:
+      XCTFail("Expected failure for empty file")
+    case .failure:
+      break
+    }
   }
 
   func testParseProtoStringWhitespaceOnly() {
-    let result = SwiftProtoParser.parseProtoString("   \n\t  \r\n  ")
+    let tempFile = writeTempProto("   \n\t  \r\n  ")
+    defer { removeTempDir(for: tempFile) }
 
-    XCTAssertTrue(result.isFailure)
-    // Should fail because no syntax declaration
+    let result = SwiftProtoParser.parseFile(tempFile.path)
+
+    switch result {
+    case .success:
+      XCTFail("Expected failure for whitespace-only file")
+    case .failure:
+      break
+    }
   }
 
   func testParseProtoStringUnicodeContent() {
-    let protoContent = """
+    let tempFile = writeTempProto(
+      """
       syntax = "proto3";
-
       message UnicodeTest {
           string unicode_field = 1; // 测试 unicode
       }
-      """
+      """,
+      name: "unicode_test.proto"
+    )
+    defer { removeTempDir(for: tempFile) }
 
-    let result = SwiftProtoParser.parseProtoString(protoContent, fileName: "unicode_test.proto")
+    let result = SwiftProtoParser.parseFile(tempFile.path)
 
-    XCTAssertTrue(result.isSuccess)
-    if case .success(let ast) = result {
-      XCTAssertEqual(ast.messages.count, 1)
-      XCTAssertEqual(ast.messages.first?.name, "UnicodeTest")
+    switch result {
+    case .success(let set):
+      XCTAssertEqual(set.file[0].messageType.count, 1)
+      XCTAssertEqual(set.file[0].messageType[0].name, "UnicodeTest")
+    case .failure(let error):
+      XCTFail("Expected success, got error: \(error)")
     }
   }
 
   // MARK: - Static API Tests
 
   func testSwiftProtoParserCannotBeInstantiated() {
-    // This tests that SwiftProtoParser init is private
-    // If it compiles, the API design is correct (static only)
+    // Verify that the API surface is static only — both methods return Result types
+    let fileResult = SwiftProtoParser.parseFile("")
+    let dirResult = SwiftProtoParser.parseDirectory("")
 
-    // Test that all methods are static
-    XCTAssertTrue(type(of: SwiftProtoParser.parseProtoString("")) == Result<ProtoAST, ProtoParseError>.self)
-    XCTAssertTrue(type(of: SwiftProtoParser.parseProtoFile("")) == Result<ProtoAST, ProtoParseError>.self)
+    // Both should fail for invalid paths
+    switch fileResult {
+    case .success:
+      XCTFail("Empty path should fail")
+    case .failure:
+      break
+    }
+    switch dirResult {
+    case .success:
+      XCTFail("Empty dir should fail")
+    case .failure:
+      break
+    }
   }
 
   // MARK: - Complex Integration Tests
 
   func testParseComplexFileFromDisk() {
-    let tempDir = FileManager.default.temporaryDirectory
-    let tempFile = tempDir.appendingPathComponent("complex_integration.proto")
-
-    let complexContent = """
+    let tempFile = writeTempProto(
+      """
       syntax = "proto3";
-
       package integration.test;
-
       option java_package = "com.integration.test";
 
       enum UserType {
@@ -443,47 +452,38 @@ final class SwiftProtoParserExtensionTests: XCTestCase {
       message GetUserRequest {
           string user_id = 1;
       }
-      """
+      """,
+      name: "complex_integration.proto"
+    )
+    defer { removeTempDir(for: tempFile) }
 
-    do {
-      try complexContent.write(to: tempFile, atomically: true, encoding: .utf8)
+    let result = SwiftProtoParser.parseFile(tempFile.path)
 
-      let result = SwiftProtoParser.parseProtoFile(tempFile.path)
+    switch result {
+    case .success(let set):
+      let fd = set.file[0]
+      XCTAssertEqual(fd.syntax, "proto3")
+      XCTAssertEqual(fd.package, "integration.test")
+      XCTAssertTrue(fd.hasOptions)
+      XCTAssertEqual(fd.enumType.count, 1)
+      XCTAssertEqual(fd.messageType.count, 3)
+      XCTAssertEqual(fd.service.count, 1)
 
-      XCTAssertTrue(result.isSuccess)
-      if case .success(let ast) = result {
-        XCTAssertEqual(ast.syntax, .proto3)
-        XCTAssertEqual(ast.package, "integration.test")
-        XCTAssertEqual(ast.options.count, 1)
-        XCTAssertEqual(ast.enums.count, 1)
-        XCTAssertEqual(ast.messages.count, 3)
-        XCTAssertEqual(ast.services.count, 1)
+      // Verify message names via parseFile (replaces getMessageNames)
+      let names = fd.messageType.map { $0.name }
+      XCTAssertEqual(names.count, 3)
+      XCTAssertTrue(names.contains("User"))
+      XCTAssertTrue(names.contains("UserList"))
+      XCTAssertTrue(names.contains("GetUserRequest"))
 
-        // Test convenience methods on this complex file
-        let versionResult = SwiftProtoParser.getProtoVersion(tempFile.path)
-        XCTAssertTrue(versionResult.isSuccess)
+      // Verify package (replaces getPackageName)
+      XCTAssertEqual(fd.package, "integration.test")
 
-        let packageResult = SwiftProtoParser.getPackageName(tempFile.path)
-        XCTAssertTrue(packageResult.isSuccess)
-        if case .success(let package) = packageResult {
-          XCTAssertEqual(package, "integration.test")
-        }
+      // Verify syntax (replaces getProtoVersion)
+      XCTAssertEqual(fd.syntax, "proto3")
 
-        let messagesResult = SwiftProtoParser.getMessageNames(tempFile.path)
-        XCTAssertTrue(messagesResult.isSuccess)
-        if case .success(let messageNames) = messagesResult {
-          XCTAssertEqual(messageNames.count, 3)
-          XCTAssertTrue(messageNames.contains("User"))
-          XCTAssertTrue(messageNames.contains("UserList"))
-          XCTAssertTrue(messageNames.contains("GetUserRequest"))
-        }
-      }
-
-      // Cleanup
-      try FileManager.default.removeItem(at: tempFile)
-    }
-    catch {
-      XCTFail("Failed to create or cleanup temp file: \(error)")
+    case .failure(let error):
+      XCTFail("Expected success, got error: \(error)")
     }
   }
 }

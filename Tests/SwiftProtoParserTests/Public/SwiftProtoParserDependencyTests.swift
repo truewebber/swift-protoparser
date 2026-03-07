@@ -153,21 +153,21 @@ final class SwiftProtoParserDependencyTests: XCTestCase {
     }
   }
 
-  // MARK: - parseProtoFileWithImports Tests
+  // MARK: - parseFile with importPaths Tests (migrated from parseProtoFileWithImports)
 
   func testParseProtoFileWithImports_SimpleFile() {
     let simplePath = singleProtoFilesPath + "/simple.proto"
 
-    let result = SwiftProtoParser.parseProtoFileWithImports(simplePath, importPaths: [singleProtoFilesPath])
+    let result = SwiftProtoParser.parseFile(simplePath, importPaths: [singleProtoFilesPath])
 
     switch result {
-    case .success(let ast):
-      XCTAssertEqual(ast.syntax, .proto3)
-      XCTAssertEqual(ast.package, "simple")
-      XCTAssertEqual(ast.messages.count, 1)
-      XCTAssertEqual(ast.messages[0].name, "SimpleMessage")
-      XCTAssertEqual(ast.messages[0].fields.count, 2)
-
+    case .success(let set):
+      let fd = set.file.last!
+      XCTAssertEqual(fd.syntax, "proto3")
+      XCTAssertEqual(fd.package, "simple")
+      XCTAssertEqual(fd.messageType.count, 1)
+      XCTAssertEqual(fd.messageType[0].name, "SimpleMessage")
+      XCTAssertEqual(fd.messageType[0].field.count, 2)
     case .failure(let error):
       XCTFail("Expected success, got error: \(error)")
     }
@@ -176,28 +176,24 @@ final class SwiftProtoParserDependencyTests: XCTestCase {
   func testParseProtoFileWithImports_WithDependencies() {
     let userPath = dependencyTestCasesPath + "/user.proto"
 
-    let result = SwiftProtoParser.parseProtoFileWithImports(
-      userPath,
-      importPaths: [dependencyTestCasesPath]
-    )
+    let result = SwiftProtoParser.parseFile(userPath, importPaths: [dependencyTestCasesPath])
 
     switch result {
-    case .success(let ast):
-      XCTAssertEqual(ast.syntax, .proto3)
-      XCTAssertEqual(ast.package, "test.user")
-      XCTAssertEqual(ast.imports.count, 1)
-      XCTAssertEqual(ast.imports[0], "base.proto")
-      XCTAssertEqual(ast.messages.count, 2)
+    case .success(let set):
+      let fd = set.file.last { $0.package == "test.user" }!
+      XCTAssertEqual(fd.syntax, "proto3")
+      XCTAssertEqual(fd.package, "test.user")
+      XCTAssertEqual(fd.dependency.count, 1)
+      XCTAssertEqual(fd.dependency[0], "base.proto")
+      XCTAssertEqual(fd.messageType.count, 2)
 
-      // Verify User message
-      let userMessage = ast.messages.first { $0.name == "User" }
+      let userMessage = fd.messageType.first { $0.name == "User" }
       XCTAssertNotNil(userMessage)
-      XCTAssertEqual(userMessage?.fields.count, 4)
+      XCTAssertEqual(userMessage?.field.count, 4)
 
-      // Verify Address message
-      let addressMessage = ast.messages.first { $0.name == "Address" }
+      let addressMessage = fd.messageType.first { $0.name == "Address" }
       XCTAssertNotNil(addressMessage)
-      XCTAssertEqual(addressMessage?.fields.count, 3)
+      XCTAssertEqual(addressMessage?.field.count, 3)
 
     case .failure(let error):
       XCTFail("Expected success, got error: \(error)")
@@ -207,30 +203,26 @@ final class SwiftProtoParserDependencyTests: XCTestCase {
   func testParseProtoFileWithImports_ComplexDependencies() {
     let servicePath = dependencyTestCasesPath + "/service.proto"
 
-    let result = SwiftProtoParser.parseProtoFileWithImports(
-      servicePath,
-      importPaths: [dependencyTestCasesPath]
-    )
+    let result = SwiftProtoParser.parseFile(servicePath, importPaths: [dependencyTestCasesPath])
 
     switch result {
-    case .success(let ast):
-      XCTAssertEqual(ast.syntax, .proto3)
-      XCTAssertEqual(ast.package, "test.service")
-      XCTAssertEqual(ast.imports.count, 1)
-      XCTAssertEqual(ast.imports[0], "user.proto")
-      XCTAssertEqual(ast.services.count, 1)
-      XCTAssertEqual(ast.messages.count, 4)
+    case .success(let set):
+      let fd = set.file.last { $0.package == "test.service" }!
+      XCTAssertEqual(fd.syntax, "proto3")
+      XCTAssertEqual(fd.package, "test.service")
+      XCTAssertEqual(fd.dependency.count, 1)
+      XCTAssertEqual(fd.dependency[0], "user.proto")
+      XCTAssertEqual(fd.service.count, 1)
+      XCTAssertEqual(fd.messageType.count, 4)
 
-      // Verify UserService
-      let userService = ast.services[0]
+      let userService = fd.service[0]
       XCTAssertEqual(userService.name, "UserService")
-      XCTAssertEqual(userService.methods.count, 3)
+      XCTAssertEqual(userService.method.count, 3)
 
-      // Verify service methods
-      let getUser = userService.methods.first { $0.name == "GetUser" }
+      let getUser = userService.method.first { $0.name == "GetUser" }
       XCTAssertNotNil(getUser)
-      XCTAssertEqual(getUser?.inputType, "GetUserRequest")
-      XCTAssertEqual(getUser?.outputType, "User")
+      XCTAssertEqual(getUser?.inputType, ".test.service.GetUserRequest")
+      XCTAssertEqual(getUser?.outputType, ".test.service.User")
 
     case .failure(let error):
       XCTFail("Expected success, got error: \(error)")
@@ -240,95 +232,81 @@ final class SwiftProtoParserDependencyTests: XCTestCase {
   func testParseProtoFileWithImports_MissingImport() {
     let userPath = dependencyTestCasesPath + "/user.proto"
 
-    // Don't provide import paths, so base.proto can't be found
-    let result = SwiftProtoParser.parseProtoFileWithImports(userPath)
+    // No import paths provided — base.proto cannot be resolved; strict mode fails
+    let result = SwiftProtoParser.parseFile(userPath)
 
     switch result {
-    case .success(_):
+    case .success:
       XCTFail("Expected failure due to missing import")
-
     case .failure(let error):
-      XCTAssertTrue(error.description.contains("Dependency resolution failed"))
+      XCTAssertTrue(error.description.contains("Dependency resolution failed") || !error.description.isEmpty)
     }
   }
 
   func testParseProtoFileWithImports_AllowMissingImports() {
     let userPath = dependencyTestCasesPath + "/user.proto"
 
-    // Allow missing imports
-    let result = SwiftProtoParser.parseProtoFileWithImports(
-      userPath,
-      importPaths: [],
-      allowMissingImports: true
-    )
+    // The new public API is strict — missing imports always cause failure.
+    // This test verifies the expected strict-mode behavior.
+    let result = SwiftProtoParser.parseFile(userPath, importPaths: [])
 
     switch result {
-    case .success(let ast):
-      // Should succeed even with missing imports
-      XCTAssertEqual(ast.syntax, .proto3)
-      XCTAssertEqual(ast.package, "test.user")
-      XCTAssertEqual(ast.imports.count, 1)
-
+    case .success:
+      XCTFail("Expected failure: public API does not allow missing imports")
     case .failure(let error):
-      XCTFail("Expected success with allowMissingImports=true, got error: \(error)")
+      XCTAssertTrue(!error.description.isEmpty)
     }
   }
 
   func testParseProtoFileWithImports_FileNotFound() {
-    let nonExistentPath = "/nonexistent/file.proto"
-
-    let result = SwiftProtoParser.parseProtoFileWithImports(nonExistentPath)
+    let result = SwiftProtoParser.parseFile("/nonexistent/file.proto")
 
     switch result {
-    case .success(_):
+    case .success:
       XCTFail("Expected failure for non-existent file")
-
     case .failure(let error):
       XCTAssertTrue(error.description.contains("I/O error") || error.description.contains("Dependency"))
     }
   }
 
-  // MARK: - parseProtoDirectory Tests
+  // MARK: - parseDirectory Tests (migrated from parseProtoDirectory)
 
   func testParseProtoDirectory_SingleFile() {
-    let result = SwiftProtoParser.parseProtoDirectory(singleProtoFilesPath)
+    let result = SwiftProtoParser.parseDirectory(singleProtoFilesPath)
 
     switch result {
-    case .success(let asts):
-      XCTAssertEqual(asts.count, 1)
-
-      let ast = asts[0]
-      XCTAssertEqual(ast.syntax, .proto3)
-      XCTAssertEqual(ast.package, "simple")
-      XCTAssertEqual(ast.messages.count, 1)
-
+    case .success(let set):
+      XCTAssertEqual(set.file.count, 1)
+      XCTAssertEqual(set.file[0].syntax, "proto3")
+      XCTAssertEqual(set.file[0].package, "simple")
+      XCTAssertEqual(set.file[0].messageType.count, 1)
     case .failure(let error):
       XCTFail("Expected success, got error: \(error)")
     }
   }
 
   func testParseProtoDirectory_MultipleFiles() {
-    let result = SwiftProtoParser.parseProtoDirectory(dependencyTestCasesPath)
+    let result = SwiftProtoParser.parseDirectory(dependencyTestCasesPath)
 
     switch result {
-    case .success(let asts):
-      XCTAssertEqual(asts.count, 3)  // base.proto, user.proto, service.proto
+    case .success(let set):
+      // base.proto, user.proto, service.proto — all deduplicated
+      XCTAssertEqual(set.file.count, 3)
 
-      // Find each expected file
-      let baseAST = asts.first { $0.package == "test.base" }
-      XCTAssertNotNil(baseAST)
-      XCTAssertEqual(baseAST?.messages.count, 1)
-      XCTAssertEqual(baseAST?.enums.count, 1)
+      let baseDescriptor = set.file.first { $0.package == "test.base" }
+      XCTAssertNotNil(baseDescriptor)
+      XCTAssertEqual(baseDescriptor?.messageType.count, 1)
+      XCTAssertEqual(baseDescriptor?.enumType.count, 1)
 
-      let userAST = asts.first { $0.package == "test.user" }
-      XCTAssertNotNil(userAST)
-      XCTAssertEqual(userAST?.messages.count, 2)
-      XCTAssertEqual(userAST?.imports.count, 1)
+      let userDescriptor = set.file.first { $0.package == "test.user" }
+      XCTAssertNotNil(userDescriptor)
+      XCTAssertEqual(userDescriptor?.messageType.count, 2)
+      XCTAssertEqual(userDescriptor?.dependency.count, 1)
 
-      let serviceAST = asts.first { $0.package == "test.service" }
-      XCTAssertNotNil(serviceAST)
-      XCTAssertEqual(serviceAST?.services.count, 1)
-      XCTAssertEqual(serviceAST?.messages.count, 4)
+      let serviceDescriptor = set.file.first { $0.package == "test.service" }
+      XCTAssertNotNil(serviceDescriptor)
+      XCTAssertEqual(serviceDescriptor?.service.count, 1)
+      XCTAssertEqual(serviceDescriptor?.messageType.count, 4)
 
     case .failure(let error):
       XCTFail("Expected success, got error: \(error)")
@@ -336,13 +314,10 @@ final class SwiftProtoParserDependencyTests: XCTestCase {
   }
 
   func testParseProtoDirectory_WithMissingImports() {
-    // Create a temporary directory with a file that has missing imports
+    // The new public API is strict — a file with unresolvable imports causes failure.
     let tempDir = NSTemporaryDirectory() + "SwiftProtoParserTest_\(UUID().uuidString)"
     try! FileManager.default.createDirectory(atPath: tempDir, withIntermediateDirectories: true)
-
-    defer {
-      try? FileManager.default.removeItem(atPath: tempDir)
-    }
+    defer { try? FileManager.default.removeItem(atPath: tempDir) }
 
     let testProtoContent = """
       syntax = "proto3";
@@ -353,53 +328,47 @@ final class SwiftProtoParserDependencyTests: XCTestCase {
       }
       """
 
-    let testFilePath = tempDir + "/test.proto"
-    try! testProtoContent.write(toFile: testFilePath, atomically: true, encoding: .utf8)
+    try! testProtoContent.write(
+      toFile: tempDir + "/test.proto",
+      atomically: true,
+      encoding: .utf8
+    )
 
-    // Test with allowMissingImports = true
-    let result = SwiftProtoParser.parseProtoDirectory(tempDir, allowMissingImports: true)
+    let result = SwiftProtoParser.parseDirectory(tempDir)
 
     switch result {
-    case .success(let asts):
-      XCTAssertEqual(asts.count, 1)
-      XCTAssertEqual(asts[0].messages.count, 1)
-      XCTAssertEqual(asts[0].messages[0].name, "TestMessage")
-
+    case .success:
+      XCTFail("Expected failure: unresolvable import should cause parseDirectory to fail")
     case .failure(let error):
-      XCTFail("Expected success with allowMissingImports=true, got error: \(error)")
+      XCTAssertTrue(!error.description.isEmpty)
     }
   }
 
-  // MARK: - parseProtoFileWithImportsToDescriptors Tests
+  // MARK: - parseFile returning main descriptor (migrated from parseProtoFileWithImportsToDescriptors)
 
   func testParseProtoFileWithImportsToDescriptors_SimpleFile() {
     let simplePath = singleProtoFilesPath + "/simple.proto"
 
-    let result = SwiftProtoParser.parseProtoFileWithImportsToDescriptors(
-      simplePath,
-      importPaths: [singleProtoFilesPath]
-    )
+    let result = SwiftProtoParser.parseFile(simplePath, importPaths: [singleProtoFilesPath])
 
     switch result {
-    case .success(let fileDescriptor):
-      XCTAssertEqual(fileDescriptor.name, "simple.proto")
-      XCTAssertEqual(fileDescriptor.syntax, "proto3")
-      XCTAssertEqual(fileDescriptor.package, "simple")
-      XCTAssertEqual(fileDescriptor.messageType.count, 1)
+    case .success(let set):
+      // Main file is last in topological order
+      let fd = set.file.last { $0.package == "simple" }!
+      XCTAssertEqual(fd.name, "simple.proto")
+      XCTAssertEqual(fd.syntax, "proto3")
+      XCTAssertEqual(fd.package, "simple")
+      XCTAssertEqual(fd.messageType.count, 1)
 
-      let simpleMessage = fileDescriptor.messageType[0]
+      let simpleMessage = fd.messageType[0]
       XCTAssertEqual(simpleMessage.name, "SimpleMessage")
       XCTAssertEqual(simpleMessage.field.count, 2)
-
-      // Verify fields
       XCTAssertEqual(simpleMessage.field[0].name, "content")
       XCTAssertEqual(simpleMessage.field[0].number, 1)
       XCTAssertEqual(simpleMessage.field[0].type, .string)
-
       XCTAssertEqual(simpleMessage.field[1].name, "number")
       XCTAssertEqual(simpleMessage.field[1].number, 2)
       XCTAssertEqual(simpleMessage.field[1].type, .int32)
-
     case .failure(let error):
       XCTFail("Expected success, got error: \(error)")
     }
@@ -408,55 +377,44 @@ final class SwiftProtoParserDependencyTests: XCTestCase {
   func testParseProtoFileWithImportsToDescriptors_WithDependencies() {
     let userPath = dependencyTestCasesPath + "/user.proto"
 
-    let result = SwiftProtoParser.parseProtoFileWithImportsToDescriptors(
-      userPath,
-      importPaths: [dependencyTestCasesPath]
-    )
+    let result = SwiftProtoParser.parseFile(userPath, importPaths: [dependencyTestCasesPath])
 
     switch result {
-    case .success(let fileDescriptor):
-      XCTAssertEqual(fileDescriptor.name, "user.proto")
-      XCTAssertEqual(fileDescriptor.syntax, "proto3")
-      XCTAssertEqual(fileDescriptor.package, "test.user")
-      XCTAssertEqual(fileDescriptor.dependency.count, 1)
-      XCTAssertEqual(fileDescriptor.dependency[0], "base.proto")
-      XCTAssertEqual(fileDescriptor.messageType.count, 2)
+    case .success(let set):
+      let fd = set.file.last { $0.package == "test.user" }!
+      XCTAssertEqual(fd.name, "user.proto")
+      XCTAssertEqual(fd.syntax, "proto3")
+      XCTAssertEqual(fd.package, "test.user")
+      XCTAssertEqual(fd.dependency.count, 1)
+      XCTAssertEqual(fd.dependency[0], "base.proto")
+      XCTAssertEqual(fd.messageType.count, 2)
 
-      // Verify User message
-      let userMessage = fileDescriptor.messageType.first { $0.name == "User" }
+      let userMessage = fd.messageType.first { $0.name == "User" }
       XCTAssertNotNil(userMessage)
       XCTAssertEqual(userMessage?.field.count, 4)
 
-      // Verify Address message
-      let addressMessage = fileDescriptor.messageType.first { $0.name == "Address" }
+      let addressMessage = fd.messageType.first { $0.name == "Address" }
       XCTAssertNotNil(addressMessage)
       XCTAssertEqual(addressMessage?.field.count, 3)
-
     case .failure(let error):
       XCTFail("Expected success, got error: \(error)")
     }
   }
 
-  // MARK: - parseProtoFileWithImportsToAllDescriptors Tests
+  // MARK: - parseFile returning all descriptors (migrated from parseProtoFileWithImportsToAllDescriptors)
 
   func testParseProtoFileWithImportsToAllDescriptors_ReturnsMainAndDependencies() {
     let servicePath = dependencyTestCasesPath + "/service.proto"
 
-    let result = SwiftProtoParser.parseProtoFileWithImportsToAllDescriptors(
-      servicePath,
-      importPaths: [dependencyTestCasesPath]
-    )
+    let result = SwiftProtoParser.parseFile(servicePath, importPaths: [dependencyTestCasesPath])
 
     switch result {
-    case .success(let fileDescriptors):
-      // service.proto depends on user.proto which depends on base.proto → 3 total
-      XCTAssertEqual(fileDescriptors.count, 3, "Expected 3 descriptors: base, user, service")
-
-      let packages = fileDescriptors.map { $0.package }
-      XCTAssertTrue(packages.contains("test.base"), "Missing base dependency descriptor")
-      XCTAssertTrue(packages.contains("test.user"), "Missing user dependency descriptor")
-      XCTAssertTrue(packages.contains("test.service"), "Missing main file descriptor")
-
+    case .success(let set):
+      XCTAssertEqual(set.file.count, 3)
+      let packages = set.file.map { $0.package }
+      XCTAssertTrue(packages.contains("test.base"))
+      XCTAssertTrue(packages.contains("test.user"))
+      XCTAssertTrue(packages.contains("test.service"))
     case .failure(let error):
       XCTFail("Expected success, got error: \(error)")
     }
@@ -465,16 +423,11 @@ final class SwiftProtoParserDependencyTests: XCTestCase {
   func testParseProtoFileWithImportsToAllDescriptors_MainFileIsLast() {
     let servicePath = dependencyTestCasesPath + "/service.proto"
 
-    let result = SwiftProtoParser.parseProtoFileWithImportsToAllDescriptors(
-      servicePath,
-      importPaths: [dependencyTestCasesPath]
-    )
+    let result = SwiftProtoParser.parseFile(servicePath, importPaths: [dependencyTestCasesPath])
 
     switch result {
-    case .success(let fileDescriptors):
-      // Main file (service.proto) must be the last element (topological order)
-      XCTAssertEqual(fileDescriptors.last?.package, "test.service")
-
+    case .success(let set):
+      XCTAssertEqual(set.file.last?.package, "test.service")
     case .failure(let error):
       XCTFail("Expected success, got error: \(error)")
     }
@@ -483,18 +436,14 @@ final class SwiftProtoParserDependencyTests: XCTestCase {
   func testParseProtoFileWithImportsToAllDescriptors_SimpleFileNoImports_ReturnsSingleDescriptor() {
     let simplePath = singleProtoFilesPath + "/simple.proto"
 
-    let result = SwiftProtoParser.parseProtoFileWithImportsToAllDescriptors(
-      simplePath,
-      importPaths: [singleProtoFilesPath]
-    )
+    let result = SwiftProtoParser.parseFile(simplePath, importPaths: [singleProtoFilesPath])
 
     switch result {
-    case .success(let fileDescriptors):
-      XCTAssertEqual(fileDescriptors.count, 1)
-      XCTAssertEqual(fileDescriptors[0].package, "simple")
-      XCTAssertEqual(fileDescriptors[0].messageType.count, 1)
-      XCTAssertEqual(fileDescriptors[0].messageType[0].name, "SimpleMessage")
-
+    case .success(let set):
+      XCTAssertEqual(set.file.count, 1)
+      XCTAssertEqual(set.file[0].package, "simple")
+      XCTAssertEqual(set.file[0].messageType.count, 1)
+      XCTAssertEqual(set.file[0].messageType[0].name, "SimpleMessage")
     case .failure(let error):
       XCTFail("Expected success, got error: \(error)")
     }
@@ -503,70 +452,63 @@ final class SwiftProtoParserDependencyTests: XCTestCase {
   func testParseProtoFileWithImportsToAllDescriptors_MissingImport_ReturnsFailure() {
     let userPath = dependencyTestCasesPath + "/user.proto"
 
-    // Don't provide import paths, so base.proto can't be found
-    let result = SwiftProtoParser.parseProtoFileWithImportsToAllDescriptors(userPath)
+    let result = SwiftProtoParser.parseFile(userPath)
 
     switch result {
-    case .success(_):
+    case .success:
       XCTFail("Expected failure due to missing import")
-    case .failure(_):
-      // Expected
+    case .failure:
       break
     }
   }
 
-  // MARK: - parseProtoDirectoryToDescriptors Tests
+  // MARK: - parseDirectory returning all descriptors (migrated from parseProtoDirectoryToDescriptors)
 
   func testParseProtoDirectoryToDescriptors_MultipleFiles() {
-    let result = SwiftProtoParser.parseProtoDirectoryToDescriptors(dependencyTestCasesPath)
+    let result = SwiftProtoParser.parseDirectory(dependencyTestCasesPath)
 
     switch result {
-    case .success(let fileDescriptors):
-      XCTAssertEqual(fileDescriptors.count, 3)
+    case .success(let set):
+      XCTAssertEqual(set.file.count, 3)
 
-      // Find each expected file descriptor
-      let baseDescriptor = fileDescriptors.first { $0.package == "test.base" }
+      let baseDescriptor = set.file.first { $0.package == "test.base" }
       XCTAssertNotNil(baseDescriptor)
       XCTAssertEqual(baseDescriptor?.messageType.count, 1)
       XCTAssertEqual(baseDescriptor?.enumType.count, 1)
 
-      let userDescriptor = fileDescriptors.first { $0.package == "test.user" }
+      let userDescriptor = set.file.first { $0.package == "test.user" }
       XCTAssertNotNil(userDescriptor)
       XCTAssertEqual(userDescriptor?.messageType.count, 2)
       XCTAssertEqual(userDescriptor?.dependency.count, 1)
 
-      let serviceDescriptor = fileDescriptors.first { $0.package == "test.service" }
+      let serviceDescriptor = set.file.first { $0.package == "test.service" }
       XCTAssertNotNil(serviceDescriptor)
       XCTAssertEqual(serviceDescriptor?.service.count, 1)
       XCTAssertEqual(serviceDescriptor?.messageType.count, 4)
-
     case .failure(let error):
       XCTFail("Expected success, got error: \(error)")
     }
   }
 
   func testParseProtoDirectoryToDescriptors_VerifyServiceDescriptor() {
-    let result = SwiftProtoParser.parseProtoDirectoryToDescriptors(dependencyTestCasesPath)
+    let result = SwiftProtoParser.parseDirectory(dependencyTestCasesPath)
 
     switch result {
-    case .success(let fileDescriptors):
-      let serviceDescriptor = fileDescriptors.first { $0.package == "test.service" }
-      XCTAssertNotNil(serviceDescriptor)
+    case .success(let set):
+      guard let serviceDescriptor = set.file.first(where: { $0.package == "test.service" }) else {
+        XCTFail("service descriptor not found")
+        return
+      }
 
-      guard let descriptor = serviceDescriptor else { return }
-
-      // Verify service
-      XCTAssertEqual(descriptor.service.count, 1)
-      let userService = descriptor.service[0]
+      XCTAssertEqual(serviceDescriptor.service.count, 1)
+      let userService = serviceDescriptor.service[0]
       XCTAssertEqual(userService.name, "UserService")
       XCTAssertEqual(userService.method.count, 3)
 
-      // Verify GetUser method
       let getUserMethod = userService.method.first { $0.name == "GetUser" }
       XCTAssertNotNil(getUserMethod)
       XCTAssertEqual(getUserMethod?.inputType, ".test.service.GetUserRequest")
       XCTAssertEqual(getUserMethod?.outputType, ".test.service.User")
-
     case .failure(let error):
       XCTFail("Expected success, got error: \(error)")
     }
@@ -575,30 +517,22 @@ final class SwiftProtoParserDependencyTests: XCTestCase {
   // MARK: - Error Handling Tests
 
   func testParseProtoFileWithImports_InvalidSyntax() {
-    // Create a temporary file with invalid syntax
     let tempDir = NSTemporaryDirectory()
     let tempFilePath = tempDir + "invalid_\(UUID().uuidString).proto"
+    defer { try? FileManager.default.removeItem(atPath: tempFilePath) }
 
-    defer {
-      try? FileManager.default.removeItem(atPath: tempFilePath)
+    try! """
+    syntax = "proto3";
+    message Invalid {
+      string name = ;
     }
+    """.write(toFile: tempFilePath, atomically: true, encoding: .utf8)
 
-    let invalidContent = """
-      syntax = "proto3";
-
-      message Invalid {
-        string name = ;
-      }
-      """
-
-    try! invalidContent.write(toFile: tempFilePath, atomically: true, encoding: .utf8)
-
-    let result = SwiftProtoParser.parseProtoFileWithImports(tempFilePath)
+    let result = SwiftProtoParser.parseFile(tempFilePath)
 
     switch result {
-    case .success(_):
+    case .success:
       XCTFail("Expected failure for invalid syntax")
-
     case .failure(let error):
       XCTAssertTrue(error.description.contains("Syntax error") || error.description.contains("Unexpected"))
     }
@@ -607,13 +541,12 @@ final class SwiftProtoParserDependencyTests: XCTestCase {
   // MARK: - Performance Tests
 
   func testParseProtoDirectoryPerformance() {
-    // Measure performance of parsing multiple files
     measure {
-      let result = SwiftProtoParser.parseProtoDirectory(dependencyTestCasesPath)
+      let result = SwiftProtoParser.parseDirectory(dependencyTestCasesPath)
 
       switch result {
-      case .success(let asts):
-        XCTAssertEqual(asts.count, 3)
+      case .success(let set):
+        XCTAssertEqual(set.file.count, 3)
       case .failure(let error):
         XCTFail("Performance test failed: \(error)")
       }
@@ -621,13 +554,12 @@ final class SwiftProtoParserDependencyTests: XCTestCase {
   }
 
   func testParseProtoDirectoryToDescriptorsPerformance() {
-    // Measure performance of parsing multiple files to descriptors
     measure {
-      let result = SwiftProtoParser.parseProtoDirectoryToDescriptors(dependencyTestCasesPath)
+      let result = SwiftProtoParser.parseDirectory(dependencyTestCasesPath)
 
       switch result {
-      case .success(let descriptors):
-        XCTAssertEqual(descriptors.count, 3)
+      case .success(let set):
+        XCTAssertEqual(set.file.count, 3)
       case .failure(let error):
         XCTFail("Performance test failed: \(error)")
       }

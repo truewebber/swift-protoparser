@@ -1,3 +1,4 @@
+import Foundation
 import XCTest
 
 @testable import SwiftProtoParser
@@ -8,22 +9,19 @@ final class PerformanceAPITests: XCTestCase {
 
   override func setUp() {
     super.setUp()
-    tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+    tempDir = URL(fileURLWithPath: NSTemporaryDirectory())
+      .appendingPathComponent(UUID().uuidString)
     try! FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
-
-    // Clear performance caches before each test
-    SwiftProtoParser.clearPerformanceCaches()
   }
 
   override func tearDown() {
     if let tempDir = tempDir {
       try? FileManager.default.removeItem(at: tempDir)
     }
-    SwiftProtoParser.clearPerformanceCaches()
     super.tearDown()
   }
 
-  // MARK: - Caching API Tests
+  // MARK: - Parsing Tests (previously tested via caching API)
 
   func testParseProtoFileWithCaching() {
     let protoContent = """
@@ -39,28 +37,24 @@ final class PerformanceAPITests: XCTestCase {
     let protoFile = tempDir.appendingPathComponent("cached.proto")
     try! protoContent.write(to: protoFile, atomically: true, encoding: .utf8)
 
-    // First parse (cache miss)
-    let result1 = SwiftProtoParser.parseProtoFileWithCaching(protoFile.path, enableCaching: true)
+    // First parse
+    let result1 = SwiftProtoParser.parseFile(protoFile.path)
     XCTAssertTrue(result1.isSuccess)
 
-    if case .success(let ast1) = result1 {
-      XCTAssertEqual(ast1.package, "test.caching")
-      XCTAssertEqual(ast1.messages.count, 1)
-      XCTAssertEqual(ast1.messages.first?.name, "CachedMessage")
+    if case .success(let set1) = result1 {
+      XCTAssertEqual(set1.file[0].package, "test.caching")
+      XCTAssertEqual(set1.file[0].messageType.count, 1)
+      XCTAssertEqual(set1.file[0].messageType[0].name, "CachedMessage")
     }
 
-    // Second parse (cache hit)
-    let result2 = SwiftProtoParser.parseProtoFileWithCaching(protoFile.path, enableCaching: true)
+    // Second parse — result must be consistent
+    let result2 = SwiftProtoParser.parseFile(protoFile.path)
     XCTAssertTrue(result2.isSuccess)
 
-    if case .success(let ast2) = result2 {
-      XCTAssertEqual(ast2.package, "test.caching")
-      XCTAssertEqual(ast2.messages.count, 1)
+    if case .success(let set2) = result2 {
+      XCTAssertEqual(set2.file[0].package, "test.caching")
+      XCTAssertEqual(set2.file[0].messageType.count, 1)
     }
-
-    // Verify cache statistics
-    let stats = SwiftProtoParser.getCacheStatistics()
-    XCTAssertGreaterThan(stats.astCacheHits, 0)
   }
 
   func testParseProtoFileWithCachingDisabled() {
@@ -76,13 +70,12 @@ final class PerformanceAPITests: XCTestCase {
     let protoFile = tempDir.appendingPathComponent("nocached.proto")
     try! protoContent.write(to: protoFile, atomically: true, encoding: .utf8)
 
-    // Parse with caching disabled
-    let result = SwiftProtoParser.parseProtoFileWithCaching(protoFile.path, enableCaching: false)
+    let result = SwiftProtoParser.parseFile(protoFile.path)
     XCTAssertTrue(result.isSuccess)
 
-    if case .success(let ast) = result {
-      XCTAssertEqual(ast.package, "test.nocaching")
-      XCTAssertEqual(ast.messages.count, 1)
+    if case .success(let set) = result {
+      XCTAssertEqual(set.file[0].package, "test.nocaching")
+      XCTAssertEqual(set.file[0].messageType.count, 1)
     }
   }
 
@@ -110,30 +103,28 @@ final class PerformanceAPITests: XCTestCase {
 
     // Write original content and parse
     try! originalContent.write(to: protoFile, atomically: true, encoding: .utf8)
-    let result1 = SwiftProtoParser.parseProtoFileWithCaching(protoFile.path)
+    let result1 = SwiftProtoParser.parseFile(protoFile.path)
     XCTAssertTrue(result1.isSuccess)
 
-    if case .success(let ast1) = result1 {
-      XCTAssertEqual(ast1.messages.first?.name, "OriginalMessage")
+    if case .success(let set1) = result1 {
+      XCTAssertEqual(set1.file[0].messageType[0].name, "OriginalMessage")
     }
 
-    // Modify file content
+    // Modify file content and parse again
     try! modifiedContent.write(to: protoFile, atomically: true, encoding: .utf8)
 
-    // Parse again - should get new content (cache miss due to content change)
-    let result2 = SwiftProtoParser.parseProtoFileWithCaching(protoFile.path)
+    let result2 = SwiftProtoParser.parseFile(protoFile.path)
     XCTAssertTrue(result2.isSuccess)
 
-    if case .success(let ast2) = result2 {
-      XCTAssertEqual(ast2.messages.first?.name, "ModifiedMessage")
-      XCTAssertEqual(ast2.messages.first?.fields.count, 2)
+    if case .success(let set2) = result2 {
+      XCTAssertEqual(set2.file[0].messageType[0].name, "ModifiedMessage")
+      XCTAssertEqual(set2.file[0].messageType[0].field.count, 2)
     }
   }
 
-  // MARK: - Incremental Parsing Tests
+  // MARK: - Directory Parsing Tests (previously tested via incremental API)
 
   func testParseProtoDirectoryIncremental() {
-    // Create multiple proto files
     let file1Content = """
       syntax = "proto3";
       package test.incremental;
@@ -158,30 +149,27 @@ final class PerformanceAPITests: XCTestCase {
     try! file1Content.write(to: file1, atomically: true, encoding: .utf8)
     try! file2Content.write(to: file2, atomically: true, encoding: .utf8)
 
-    // Parse directory incrementally
-    let result = SwiftProtoParser.parseProtoDirectoryIncremental(tempDir.path)
+    let result = SwiftProtoParser.parseDirectory(tempDir.path)
     XCTAssertTrue(result.isSuccess)
 
-    if case .success(let asts) = result {
-      XCTAssertEqual(asts.count, 2)
+    if case .success(let set) = result {
+      XCTAssertEqual(set.file.count, 2)
 
-      let messageNames = asts.flatMap { $0.messages.map { $0.name } }
+      let messageNames = set.file.flatMap { $0.messageType.map { $0.name } }
       XCTAssertTrue(messageNames.contains("Message1"))
       XCTAssertTrue(messageNames.contains("Message2"))
     }
   }
 
-  // MARK: - Streaming Tests
+  // MARK: - Large File Tests (previously tested via streaming API)
 
   func testParseProtoFileStreaming() {
-    // Create a moderately large proto file
     var largeContent = """
       syntax = "proto3";
       package test.streaming;
 
       """
 
-    // Add many message definitions to make it larger
     for i in 1...100 {
       largeContent += """
         message LargeMessage\(i) {
@@ -196,17 +184,16 @@ final class PerformanceAPITests: XCTestCase {
     let largeFile = tempDir.appendingPathComponent("large.proto")
     try! largeContent.write(to: largeFile, atomically: true, encoding: .utf8)
 
-    // Parse using streaming
-    let result = SwiftProtoParser.parseProtoFileStreaming(largeFile.path)
+    let result = SwiftProtoParser.parseFile(largeFile.path)
     XCTAssertTrue(result.isSuccess)
 
-    if case .success(let ast) = result {
-      XCTAssertEqual(ast.package, "test.streaming")
-      XCTAssertEqual(ast.messages.count, 100)
+    if case .success(let set) = result {
+      XCTAssertEqual(set.file[0].package, "test.streaming")
+      XCTAssertEqual(set.file[0].messageType.count, 100)
     }
   }
 
-  // MARK: - Statistics Tests
+  // MARK: - Statistics Tests (functional equivalents)
 
   func testCacheStatistics() {
     let protoContent = """
@@ -221,26 +208,22 @@ final class PerformanceAPITests: XCTestCase {
     let protoFile = tempDir.appendingPathComponent("stats.proto")
     try! protoContent.write(to: protoFile, atomically: true, encoding: .utf8)
 
-    // Initial statistics
-    let initialStats = SwiftProtoParser.getCacheStatistics()
-    XCTAssertEqual(initialStats.astCacheHits, 0)
-    XCTAssertEqual(initialStats.astCacheMisses, 0)
+    // Parse file (first call)
+    let result1 = SwiftProtoParser.parseFile(protoFile.path)
+    XCTAssertTrue(result1.isSuccess)
 
-    // Parse file (cache miss)
-    _ = SwiftProtoParser.parseProtoFileWithCaching(protoFile.path)
+    // Parse again (second call — internally may use cache)
+    let result2 = SwiftProtoParser.parseFile(protoFile.path)
+    XCTAssertTrue(result2.isSuccess)
 
-    // Parse again (cache hit)
-    _ = SwiftProtoParser.parseProtoFileWithCaching(protoFile.path)
-
-    // Check updated statistics
-    let finalStats = SwiftProtoParser.getCacheStatistics()
-    XCTAssertGreaterThan(finalStats.astCacheHits, 0)
-    XCTAssertGreaterThan(finalStats.astCacheMisses, 0)
-    XCTAssertGreaterThan(finalStats.astHitRate, 0.0)
+    // Results should be consistent
+    if case .success(let set1) = result1, case .success(let set2) = result2 {
+      XCTAssertEqual(set1.file[0].messageType.count, set2.file[0].messageType.count)
+      XCTAssertEqual(set1.file[0].messageType[0].name, set2.file[0].messageType[0].name)
+    }
   }
 
   func testIncrementalStatistics() {
-    // Create a proto file
     let protoContent = """
       syntax = "proto3";
       package test.incremental.stats;
@@ -253,13 +236,13 @@ final class PerformanceAPITests: XCTestCase {
     let protoFile = tempDir.appendingPathComponent("incremental.proto")
     try! protoContent.write(to: protoFile, atomically: true, encoding: .utf8)
 
-    // Parse directory incrementally
-    _ = SwiftProtoParser.parseProtoDirectoryIncremental(tempDir.path)
+    // Parse directory — should succeed
+    let result = SwiftProtoParser.parseDirectory(tempDir.path)
+    XCTAssertTrue(result.isSuccess)
 
-    // Check incremental statistics
-    let stats = SwiftProtoParser.getIncrementalStatistics()
-    XCTAssertGreaterThanOrEqual(stats.totalFilesTracked, 0)
-    XCTAssertGreaterThanOrEqual(stats.incrementalEfficiency, 0.0)
+    if case .success(let set) = result {
+      XCTAssertGreaterThanOrEqual(set.file.count, 1)
+    }
   }
 
   func testClearPerformanceCaches() {
@@ -275,23 +258,20 @@ final class PerformanceAPITests: XCTestCase {
     let protoFile = tempDir.appendingPathComponent("clear.proto")
     try! protoContent.write(to: protoFile, atomically: true, encoding: .utf8)
 
-    // Parse file to populate cache
-    _ = SwiftProtoParser.parseProtoFileWithCaching(protoFile.path)
+    // Parse to populate internal caches
+    let result1 = SwiftProtoParser.parseFile(protoFile.path)
+    XCTAssertTrue(result1.isSuccess)
 
-    // Verify cache has entries
-    let statsBeforeClear = SwiftProtoParser.getCacheStatistics()
-    XCTAssertGreaterThan(statsBeforeClear.astCacheMisses, 0)
+    // Parse again — should still work correctly regardless of internal cache state
+    let result2 = SwiftProtoParser.parseFile(protoFile.path)
+    XCTAssertTrue(result2.isSuccess)
 
-    // Clear caches
-    SwiftProtoParser.clearPerformanceCaches()
-
-    // Verify caches are cleared
-    let statsAfterClear = SwiftProtoParser.getCacheStatistics()
-    XCTAssertEqual(statsAfterClear.astCacheHits, 0)
-    XCTAssertEqual(statsAfterClear.astCacheMisses, 0)
+    if case .success(let set1) = result1, case .success(let set2) = result2 {
+      XCTAssertEqual(set1.file[0].messageType[0].name, set2.file[0].messageType[0].name)
+    }
   }
 
-  // MARK: - Benchmark Tests
+  // MARK: - Benchmark Tests (functional equivalents)
 
   func testBenchmarkPerformance() {
     let protoContent = """
@@ -308,25 +288,19 @@ final class PerformanceAPITests: XCTestCase {
     let protoFile = tempDir.appendingPathComponent("benchmark.proto")
     try! protoContent.write(to: protoFile, atomically: true, encoding: .utf8)
 
-    // Run benchmark
-    let config = PerformanceBenchmark.Configuration(
-      iterations: 3,
-      warmupIterations: 1,
-      trackMemory: true,
-      maxParsingTime: 1.0,
-      maxMemoryUsage: 100 * 1024 * 1024
-    )
+    // Run parseFile multiple times (simulates benchmark iterations)
+    var results: [Bool] = []
+    for _ in 1...3 {
+      let result = SwiftProtoParser.parseFile(protoFile.path)
+      results.append(result.isSuccess)
+    }
 
-    let result = SwiftProtoParser.benchmarkPerformance(protoFile.path, configuration: config)
-
-    XCTAssertEqual(result.measurements.count, 3)
-    XCTAssertGreaterThan(result.averageDuration, 0)
-    XCTAssertGreaterThanOrEqual(result.successRate, 0.0)
-    XCTAssertLessThanOrEqual(result.successRate, 1.0)
+    let successCount = results.filter { $0 }.count
+    XCTAssertEqual(successCount, 3)
+    XCTAssertGreaterThan(results.count, 0)
   }
 
   func testBenchmarkDirectoryPerformance() {
-    // Create multiple proto files
     for i in 1...3 {
       let content = """
         syntax = "proto3";
@@ -341,45 +315,51 @@ final class PerformanceAPITests: XCTestCase {
       try! content.write(to: file, atomically: true, encoding: .utf8)
     }
 
-    // Run directory benchmark
-    let config = PerformanceBenchmark.Configuration(
-      iterations: 2,
-      warmupIterations: 1,
-      trackMemory: false,
-      maxParsingTime: 2.0,
-      maxMemoryUsage: 200 * 1024 * 1024
-    )
+    // Run parseDirectory multiple times (simulates benchmark iterations)
+    var results: [Bool] = []
+    for _ in 1...2 {
+      let result = SwiftProtoParser.parseDirectory(tempDir.path)
+      results.append(result.isSuccess)
+    }
 
-    let result = SwiftProtoParser.benchmarkPerformance(tempDir.path, configuration: config)
-
-    XCTAssertEqual(result.measurements.count, 2)
-    XCTAssertGreaterThan(result.averageDuration, 0)
+    let successCount = results.filter { $0 }.count
+    XCTAssertEqual(successCount, 2)
   }
 
   func testBenchmarkNonExistentPath() {
-    let result = SwiftProtoParser.benchmarkPerformance("/nonexistent/path")
+    let result = SwiftProtoParser.parseFile("/nonexistent/path")
 
-    XCTAssertTrue(result.operation.contains("not found"))
-    XCTAssertEqual(result.measurements.count, 0)
+    switch result {
+    case .success:
+      XCTFail("Non-existent path should fail")
+    case .failure:
+      break
+    }
   }
 
   // MARK: - Error Handling Tests
 
   func testParseProtoFileWithCachingError() {
-    let result = SwiftProtoParser.parseProtoFileWithCaching("/nonexistent/file.proto")
+    let result = SwiftProtoParser.parseFile("/nonexistent/file.proto")
     XCTAssertTrue(result.isFailure)
 
     if case .failure(let error) = result {
-      XCTAssertTrue(error.description.contains("I/O error") || error.description.contains("No such file"))
+      XCTAssertTrue(
+        error.description.contains("I/O error") || error.description.contains("Dependency")
+          || error.description.contains("No such file")
+      )
     }
   }
 
   func testParseProtoFileStreamingError() {
-    let result = SwiftProtoParser.parseProtoFileStreaming("/nonexistent/large.proto")
+    let result = SwiftProtoParser.parseFile("/nonexistent/large.proto")
     XCTAssertTrue(result.isFailure)
 
     if case .failure(let error) = result {
-      XCTAssertTrue(error.description.contains("I/O error") || error.description.contains("No such file"))
+      XCTAssertTrue(
+        error.description.contains("I/O error") || error.description.contains("Dependency")
+          || error.description.contains("No such file")
+      )
     }
   }
 
@@ -401,29 +381,18 @@ final class PerformanceAPITests: XCTestCase {
     let protoFile = tempDir.appendingPathComponent("performance.proto")
     try! protoContent.write(to: protoFile, atomically: true, encoding: .utf8)
 
-    // Measure parsing without caching
-    let startTimeNoCaching = Date()
+    // Parse 10 times — all should succeed
+    var allSucceeded = true
     for _ in 0..<10 {
-      _ = SwiftProtoParser.parseProtoFileWithCaching(protoFile.path, enableCaching: false)
+      let result = SwiftProtoParser.parseFile(protoFile.path)
+      if result.isFailure { allSucceeded = false }
     }
-    let noCachingTime = Date().timeIntervalSince(startTimeNoCaching)
 
-    // Clear and measure parsing with caching
-    SwiftProtoParser.clearPerformanceCaches()
+    XCTAssertTrue(allSucceeded, "All 10 parsing attempts should succeed")
 
-    let startTimeCaching = Date()
-    for _ in 0..<10 {
-      _ = SwiftProtoParser.parseProtoFileWithCaching(protoFile.path, enableCaching: true)
+    // Verify final result correctness
+    if case .success(let set) = SwiftProtoParser.parseFile(protoFile.path) {
+      XCTAssertEqual(set.file[0].messageType[0].name, "PerformanceMessage")
     }
-    let cachingTime = Date().timeIntervalSince(startTimeCaching)
-
-    // Caching should be faster for repeated parsing (though first parse might be slower)
-    // We mainly verify that caching doesn't break functionality
-    XCTAssertGreaterThan(noCachingTime, 0)
-    XCTAssertGreaterThan(cachingTime, 0)
-
-    // Verify cache statistics show hits
-    let stats = SwiftProtoParser.getCacheStatistics()
-    XCTAssertGreaterThan(stats.astCacheHits, 0)
   }
 }
