@@ -6,7 +6,7 @@ Thank you for your interest in contributing to SwiftProtoParser! We welcome cont
 
 ### Prerequisites
 
-- **Swift 5.9+**
+- **Swift 5.10+**
 - **Xcode 15.0+** (for macOS development)
 - **Git** for version control
 

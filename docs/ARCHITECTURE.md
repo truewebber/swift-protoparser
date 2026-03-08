@@ -35,6 +35,8 @@ Native Swift library for parsing Protocol Buffers `.proto` files into
 │             │  │  FieldDescriptorBuilder            │
 │             │  │  EnumDescriptorBuilder             │
 │             │  │  ServiceDescriptorBuilder          │
+│             │  │  UnresolvedTypeValidator           │
+│             │  │  EnumTypePostProcessor             │
 └──────────┬──┘  └────────────────────────────────────┘
            │                         ▲
 ┌──────────▼──────────────────────────────────────────┐
@@ -104,14 +106,23 @@ Native Swift library for parsing Protocol Buffers `.proto` files into
 `DescriptorBuilder/FieldDescriptorBuilder.swift`,
 `DescriptorBuilder/EnumDescriptorBuilder.swift`,
 `DescriptorBuilder/ServiceDescriptorBuilder.swift`,
-`DescriptorBuilder/DescriptorError.swift`
+`DescriptorBuilder/DescriptorError.swift`,
+`DescriptorBuilder/UnresolvedTypeValidator.swift`,
+`DescriptorBuilder/EnumTypePostProcessor.swift`
 
-**Responsibility**: Convert `ProtoAST` into SwiftProtobuf descriptor types.
+**Responsibility**: Convert `ProtoAST` into SwiftProtobuf descriptor types and validate
+cross-file type references.
 
 - `DescriptorBuilder.buildFileDescriptor(from:fileName:)` — top-level entry point; delegates
   to specialized builders.
 - Generates synthetic entry messages for `map<K, V>` fields (protoc-compatible).
 - Produces fully qualified type names (`.package.Type`) for all message/enum references.
+- `UnresolvedTypeValidator` — post-assembly pass applied to the full `FileDescriptorSet`;
+  validates every `typeName` against the global type registry and applies protobuf C++ scoping
+  rules (innermost message scope → package hierarchy → root) to resolve unqualified references.
+  Returns `.semanticError` for types that cannot be resolved — matching `protoc` behaviour.
+- `EnumTypePostProcessor` — second post-assembly pass; corrects `type` from `.message` to
+  `.enum` for fields whose `typeName` resolves to an enum defined in another file.
 
 ### Layer 4 — DependencyResolver
 
@@ -176,7 +187,8 @@ public struct SwiftProtoParser {
 ```
 
 The facade delegates to `DependencyResolver` (Layer 4), `ProtoParsingPipeline` (Layer 2),
-and `DescriptorBuilder` (Layer 3). It contains no parsing logic of its own.
+`DescriptorBuilder` (Layer 3), `UnresolvedTypeValidator` (Layer 3), and
+`EnumTypePostProcessor` (Layer 3). It contains no parsing or validation logic of its own.
 
 ## 5. Data Flow
 
@@ -197,9 +209,19 @@ ProtoParsingPipeline.parse(content:fileName:)
 DescriptorBuilder.buildFileDescriptor(from:fileName:)
   → ProtoAST → Google_Protobuf_FileDescriptorProto
   │
-  ▼ Layer 6
+  ▼ Layer 6 — assembly
 SwiftProtoParser.buildDescriptorSet(from: [ResolvedProtoFile])
-  → Google_Protobuf_FileDescriptorSet
+  → assembles Google_Protobuf_FileDescriptorSet
+  │
+  ▼ Layer 3 — post-processing pass 1
+UnresolvedTypeValidator.validate(_:)
+  → validates all typeName values against the global type registry
+  → applies C++ scoping rules for unresolved references
+  → returns .failure(.semanticError) if any type cannot be resolved
+  │
+  ▼ Layer 3 — post-processing pass 2
+EnumTypePostProcessor.process(_:)
+  → corrects field type from .message → .enum for cross-file enum references
   │
   ▼
 Result<Google_Protobuf_FileDescriptorSet, ProtoParseError>

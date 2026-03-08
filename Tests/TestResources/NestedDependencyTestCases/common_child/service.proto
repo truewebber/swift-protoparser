@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+import "common/base.proto";
+
+package nested.common.child;
+
+// Fixture for valid scope-walking resolution.
+//
+// This file uses UNQUALIFIED references to types from package nested.common.
+// Because nested.common.child is a sub-package of nested.common, protobuf
+// scope-walking finds them:
+//
+//   BaseItem   → try .nested.common.child.BaseItem (not found)
+//               → try .nested.common.BaseItem       (found) ✓
+//
+//   BaseStatus → try .nested.common.child.BaseStatus (not found)
+//               → try .nested.common.BaseStatus      (found) ✓
+//
+// protoc accepts this file and produces the same resolved FQN type names.
+
+message ChildRequest {
+  BaseItem item = 1;
+  BaseStatus status = 2;
+}

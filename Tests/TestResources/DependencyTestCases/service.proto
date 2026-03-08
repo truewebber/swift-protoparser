@@ -5,8 +5,8 @@ import "user.proto";
 package test.service;
 
 service UserService {
-  rpc GetUser(GetUserRequest) returns (User);
-  rpc CreateUser(CreateUserRequest) returns (User);
+  rpc GetUser(GetUserRequest) returns (test.user.User);
+  rpc CreateUser(CreateUserRequest) returns (test.user.User);
   rpc ListUsers(ListUsersRequest) returns (ListUsersResponse);
 }
 
@@ -15,7 +15,7 @@ message GetUserRequest {
 }
 
 message CreateUserRequest {
-  User user = 1;
+  test.user.User user = 1;
 }
 
 message ListUsersRequest {
@@ -24,6 +24,6 @@ message ListUsersRequest {
 }
 
 message ListUsersResponse {
-  repeated User users = 1;
+  repeated test.user.User users = 1;
   string next_page_token = 2;
 }

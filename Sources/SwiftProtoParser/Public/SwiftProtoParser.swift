@@ -149,8 +149,14 @@ extension SwiftProtoParser {
 
     var set = Google_Protobuf_FileDescriptorSet()
     set.file = fileDescriptors
-    let processed = EnumTypePostProcessor.process(set)
-    return .success(processed)
+
+    switch UnresolvedTypeValidator.validate(set) {
+    case .success(let validated):
+      let processed = EnumTypePostProcessor.process(validated)
+      return .success(processed)
+    case .failure(let error):
+      return .failure(error)
+    }
   }
 }
 

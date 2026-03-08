@@ -115,3 +115,5 @@ if case .success(let set) = SwiftProtoParser.parseFile("service.proto") {
 - Custom options via `extend google.protobuf.*`
 - Qualified types (`google.protobuf.Timestamp`, etc.)
 - `reserved` field numbers and names
+- Semantic type validation: unresolvable type references return `.semanticError` (protoc-compatible)
+- Protobuf C++ scoping rules for unqualified type names (inner message → package hierarchy → root)

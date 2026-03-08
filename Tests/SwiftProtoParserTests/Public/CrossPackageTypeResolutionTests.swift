@@ -140,69 +140,71 @@ final class CrossPackageTypeResolutionTests: XCTestCase {
     }
   }
 
-  // MARK: - Negative: unqualified cross-package type reference
+  // MARK: - Negative: unqualified cross-package type reference (sibling package)
 
-  func testParseFile_UnqualifiedCrossPackageType_TypeNameHasWrongPackage() {
-    // This documents the CURRENT (incorrect) behavior: unqualified "BaseItem" in package
-    // nested.v1 becomes ".nested.v1.BaseItem" instead of ".nested.common.BaseItem".
-    // This is semantically wrong — BaseItem is not defined in nested.v1.
+  func testParseFile_UnqualifiedCrossPackageSiblingType_ReturnsSemanticError() {
+    // BaseItem is defined in nested.common, not in nested.v1.
+    // nested.v1 and nested.common are sibling packages — scope walking for
+    // "BaseItem" in "nested.v1" tries .nested.v1.BaseItem, .nested.BaseItem,
+    // .BaseItem — none of which exist.
+    // protoc rejects this file; we must return a semantic error too.
     let servicePath = nestedDependencyTestCasesPath + "/v1/service_unqualified.proto"
 
     let result = SwiftProtoParser.parseFile(servicePath, importPaths: [nestedDependencyTestCasesPath])
 
     switch result {
-    case .success(let set):
-      let serviceDescriptor = set.file.first { $0.package == "nested.v1" }
-      let responseMessage = serviceDescriptor?.messageType.first { $0.name == "UnqualifiedResponse" }
-      XCTAssertNotNil(responseMessage)
-
-      let itemField = responseMessage?.field.first { $0.name == "item" }
-      XCTAssertNotNil(itemField)
-      XCTAssertEqual(
-        itemField?.typeName,
-        ".nested.v1.BaseItem",
-        "unqualified cross-package type incorrectly gets current package prepended"
-      )
-      // .nested.v1.BaseItem does not exist — BaseItem is only defined in nested.common.
-      // No message named BaseItem exists in the nested.v1 package scope.
-      let baseItemInV1 = set.file
-        .filter { $0.package == "nested.v1" }
-        .flatMap { $0.messageType }
-        .first { $0.name == "BaseItem" }
-      XCTAssertNil(
-        baseItemInV1,
-        "BaseItem is not defined in nested.v1 — the generated typeName is unresolvable"
-      )
-
+    case .success:
+      XCTFail("Expected semantic error for unqualified cross-package sibling type reference")
     case .failure(let error):
-      XCTFail("Parser accepted the file (expected for now — no type validation yet): \(error)")
+      guard case .semanticError(let message, _) = error else {
+        XCTFail("Expected .semanticError, got: \(error)")
+        return
+      }
+      XCTAssertTrue(
+        message.contains("nested.v1.BaseItem") || message.contains("nested.v1.BaseStatus"),
+        "Error message should name the unresolvable type, got: \(message)"
+      )
     }
   }
 
-  func testParseFile_UnqualifiedCrossPackageEnum_TypeNameHasWrongPackage() {
-    let servicePath = nestedDependencyTestCasesPath + "/v1/service_unqualified.proto"
+  // MARK: - Positive: unqualified reference resolved via scope walking (sub-package)
 
-    let result = SwiftProtoParser.parseFile(servicePath, importPaths: [nestedDependencyTestCasesPath])
+  func testParseFile_UnqualifiedTypeInSubPackage_ResolvesViaParentPackageScopeWalking() {
+    // nested.common.child is a sub-package of nested.common.
+    // Scope walking for "BaseItem" in "nested.common.child" finds
+    // .nested.common.BaseItem at the parent scope level.
+    let childPath = nestedDependencyTestCasesPath + "/common_child/service.proto"
+
+    let result = SwiftProtoParser.parseFile(childPath, importPaths: [nestedDependencyTestCasesPath])
 
     switch result {
     case .success(let set):
-      let serviceDescriptor = set.file.first { $0.package == "nested.v1" }
-      let responseMessage = serviceDescriptor?.messageType.first { $0.name == "UnqualifiedResponse" }
-      let statusField = responseMessage?.field.first { $0.name == "status" }
-      XCTAssertNotNil(statusField)
+      let descriptor = set.file.first { $0.package == "nested.common.child" }
+      XCTAssertNotNil(descriptor, "nested.common.child descriptor must be present")
 
-      // BaseStatus is an enum in nested.common — but unqualified it resolves to
-      // either .nested.v1.BaseStatus (if treated as message) or .enumType("BaseStatus")
-      // depending on EnumFieldTypeResolver. BaseStatus does NOT exist in this file,
-      // so EnumFieldTypeResolver cannot identify it as an enum.
-      XCTAssertNotEqual(
+      let requestMessage = descriptor?.messageType.first { $0.name == "ChildRequest" }
+      XCTAssertNotNil(requestMessage, "ChildRequest must exist")
+
+      let itemField = requestMessage?.field.first { $0.name == "item" }
+      XCTAssertNotNil(itemField, "item field must exist")
+      XCTAssertEqual(
+        itemField?.typeName,
+        ".nested.common.BaseItem",
+        "unqualified BaseItem in sub-package must resolve to .nested.common.BaseItem"
+      )
+      XCTAssertEqual(itemField?.type, .message)
+
+      let statusField = requestMessage?.field.first { $0.name == "status" }
+      XCTAssertNotNil(statusField, "status field must exist")
+      XCTAssertEqual(
         statusField?.typeName,
         ".nested.common.BaseStatus",
-        "unqualified cross-package enum does NOT resolve to the correct package"
+        "unqualified BaseStatus in sub-package must resolve to .nested.common.BaseStatus"
       )
+      XCTAssertEqual(statusField?.type, .enum)
 
     case .failure(let error):
-      XCTFail("Parser accepted the file (expected for now — no type validation yet): \(error)")
+      XCTFail("Expected success for sub-package scope walking, got error: \(error)")
     }
   }
 

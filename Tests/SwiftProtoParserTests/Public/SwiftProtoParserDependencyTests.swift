@@ -226,7 +226,7 @@ final class SwiftProtoParserDependencyTests: XCTestCase {
       let getUser = userService.method.first { $0.name == "GetUser" }
       XCTAssertNotNil(getUser)
       XCTAssertEqual(getUser?.inputType, ".test.service.GetUserRequest")
-      XCTAssertEqual(getUser?.outputType, ".test.service.User")
+      XCTAssertEqual(getUser?.outputType, ".test.user.User")
 
     case .failure(let error):
       XCTFail("Expected success, got error: \(error)")
@@ -512,7 +512,7 @@ final class SwiftProtoParserDependencyTests: XCTestCase {
       let getUserMethod = userService.method.first { $0.name == "GetUser" }
       XCTAssertNotNil(getUserMethod)
       XCTAssertEqual(getUserMethod?.inputType, ".test.service.GetUserRequest")
-      XCTAssertEqual(getUserMethod?.outputType, ".test.service.User")
+      XCTAssertEqual(getUserMethod?.outputType, ".test.user.User")
     case .failure(let error):
       XCTFail("Expected success, got error: \(error)")
     }
