@@ -153,11 +153,6 @@ class DependencyResolver {
 
       // Load all dependency files
       for path in dependencyPaths {
-        // Skip well-known types for now
-        if FileSystemScanner.isWellKnownType(path) {
-          continue
-        }
-
         do {
           let depImportPath = scanner.importRelativePath(for: path)
           let depFile = try ResolvedProtoFile.from(filePath: path, importPath: depImportPath)

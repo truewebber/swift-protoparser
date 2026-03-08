@@ -24,6 +24,41 @@ final class DependencyResolverAdvancedTests: XCTestCase {
     try super.tearDownWithError()
   }
 
+  // MARK: - Helpers
+
+  private func createWellKnownTypeStubs() throws {
+    let googleProtobufDir = tempDir.appendingPathComponent("google/protobuf")
+    try FileManager.default.createDirectory(at: googleProtobufDir, withIntermediateDirectories: true)
+
+    let timestampContent = """
+      syntax = "proto3";
+      package google.protobuf;
+      message Timestamp {
+          int64 seconds = 1;
+          int32 nanos = 2;
+      }
+      """
+    try timestampContent.write(
+      to: googleProtobufDir.appendingPathComponent("timestamp.proto"),
+      atomically: true,
+      encoding: .utf8
+    )
+
+    let anyContent = """
+      syntax = "proto3";
+      package google.protobuf;
+      message Any {
+          string type_url = 1;
+          bytes value = 2;
+      }
+      """
+    try anyContent.write(
+      to: googleProtobufDir.appendingPathComponent("any.proto"),
+      atomically: true,
+      encoding: .utf8
+    )
+  }
+
   // MARK: - Advanced Resolution Tests
 
   func testResolveDependenciesWithSingleImport() throws {
@@ -118,6 +153,8 @@ final class DependencyResolverAdvancedTests: XCTestCase {
   }
 
   func testResolveDependenciesWithWellKnownTypes() throws {
+    try createWellKnownTypeStubs()
+
     let mainContent = """
       syntax = "proto3";
       package main;
@@ -443,6 +480,8 @@ final class DependencyResolverAdvancedTests: XCTestCase {
   // MARK: - Cache and Utility Tests
 
   func testResolverCacheOperations() throws {
+    try createWellKnownTypeStubs()
+
     let mainContent = """
       syntax = "proto3";
       package main;

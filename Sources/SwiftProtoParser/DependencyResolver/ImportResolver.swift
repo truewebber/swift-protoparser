@@ -57,16 +57,7 @@ struct ImportResolver {
     defer { resolutionStack.remove(importPath) }
 
     // Try to resolve the import
-    let resolvedPath: String
-
-    // Check if it's a well-known type (skip resolution for now)
-    if FileSystemScanner.isWellKnownType(importPath) {
-      resolvedPath = importPath  // Will be handled specially later
-    }
-    else {
-      // Try to find the file
-      resolvedPath = try scanner.findProtoFile(importPath)
-    }
+    let resolvedPath = try scanner.findProtoFile(importPath)
 
     // Cache the result
     resolvedCache[cacheKey] = resolvedPath
@@ -111,11 +102,6 @@ struct ImportResolver {
       }
 
       allImports.insert(currentImport)
-
-      // Skip well-known types for now
-      if FileSystemScanner.isWellKnownType(currentImport) {
-        continue
-      }
 
       // Load the imported file and get its imports
       do {
@@ -194,11 +180,6 @@ struct ImportResolver {
 
     // Check all imports
     for importPath in currentFile.imports {
-      // Skip well-known types
-      if FileSystemScanner.isWellKnownType(importPath) {
-        continue
-      }
-
       // Try to find the imported file
       if let importedFile = files.first(where: { $0.importPath == importPath || $0.filePath.hasSuffix(importPath) }) {
         let importedFilePath = importedFile.filePath

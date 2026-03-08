@@ -26,6 +26,41 @@ final class ImportResolverDetailedTests: XCTestCase {
     try super.tearDownWithError()
   }
 
+  // MARK: - Helpers
+
+  private func createWellKnownTypeStubs() throws {
+    let googleProtobufDir = tempDir.appendingPathComponent("google/protobuf")
+    try FileManager.default.createDirectory(at: googleProtobufDir, withIntermediateDirectories: true)
+
+    let timestampContent = """
+      syntax = "proto3";
+      package google.protobuf;
+      message Timestamp {
+          int64 seconds = 1;
+          int32 nanos = 2;
+      }
+      """
+    try timestampContent.write(
+      to: googleProtobufDir.appendingPathComponent("timestamp.proto"),
+      atomically: true,
+      encoding: .utf8
+    )
+
+    let anyContent = """
+      syntax = "proto3";
+      package google.protobuf;
+      message Any {
+          string type_url = 1;
+          bytes value = 2;
+      }
+      """
+    try anyContent.write(
+      to: googleProtobufDir.appendingPathComponent("any.proto"),
+      atomically: true,
+      encoding: .utf8
+    )
+  }
+
   // MARK: - Individual Import Resolution Tests
 
   func testResolveImportSingleFile() throws {
@@ -47,9 +82,12 @@ final class ImportResolverDetailedTests: XCTestCase {
   }
 
   func testResolveImportWellKnownType() throws {
-    let resolved = try resolver.resolveImport("google/protobuf/timestamp.proto", fromFile: tempDir.path)
+    try createWellKnownTypeStubs()
 
-    XCTAssertEqual(resolved, "google/protobuf/timestamp.proto")
+    let resolved = try resolver.resolveImport("google/protobuf/timestamp.proto", fromFile: tempDir.path)
+    let expectedPath = tempDir.appendingPathComponent("google/protobuf/timestamp.proto").path
+
+    XCTAssertEqual(resolved, expectedPath)
   }
 
   func testResolveImportNotFound() {
@@ -93,17 +131,18 @@ final class ImportResolverDetailedTests: XCTestCase {
   // MARK: - Multiple Import Resolution Tests
 
   func testResolveImportsFromFile() throws {
-    // Create dependency files
+    try createWellKnownTypeStubs()
+
     let dep1Content = "syntax = \"proto3\"; package dep1; message Dep1Message { string name = 1; }"
     let dep2Content = "syntax = \"proto3\"; package dep2; message Dep2Message { int32 value = 1; }"
 
     let dep1File = tempDir.appendingPathComponent("dep1.proto")
     let dep2File = tempDir.appendingPathComponent("dep2.proto")
+    let timestampFile = tempDir.appendingPathComponent("google/protobuf/timestamp.proto")
 
     try dep1Content.write(to: dep1File, atomically: true, encoding: .utf8)
     try dep2Content.write(to: dep2File, atomically: true, encoding: .utf8)
 
-    // Create main file with imports
     let mainContent = """
       syntax = "proto3";
       package main;
@@ -128,7 +167,7 @@ final class ImportResolverDetailedTests: XCTestCase {
     XCTAssertEqual(resolvedImports.count, 3)
     XCTAssertTrue(resolvedImports.contains(dep1File.path))
     XCTAssertTrue(resolvedImports.contains(dep2File.path))
-    XCTAssertTrue(resolvedImports.contains("google/protobuf/timestamp.proto"))
+    XCTAssertTrue(resolvedImports.contains(timestampFile.path))
   }
 
   func testResolveImportsRecursively() throws {
@@ -181,6 +220,8 @@ final class ImportResolverDetailedTests: XCTestCase {
   }
 
   func testResolveImportsRecursivelyWithWellKnownTypes() throws {
+    try createWellKnownTypeStubs()
+
     let dep1Content = """
       syntax = "proto3";
       package dep1;
@@ -207,6 +248,8 @@ final class ImportResolverDetailedTests: XCTestCase {
 
     let dep1File = tempDir.appendingPathComponent("dep1.proto")
     let mainFile = tempDir.appendingPathComponent("main.proto")
+    let timestampFile = tempDir.appendingPathComponent("google/protobuf/timestamp.proto")
+    let anyFile = tempDir.appendingPathComponent("google/protobuf/any.proto")
 
     try dep1Content.write(to: dep1File, atomically: true, encoding: .utf8)
     try mainContent.write(to: mainFile, atomically: true, encoding: .utf8)
@@ -214,15 +257,16 @@ final class ImportResolverDetailedTests: XCTestCase {
     let resolvedFile = try ResolvedProtoFile.from(filePath: mainFile.path)
     let allImports = try resolver.resolveImportsRecursively(from: resolvedFile)
 
-    // Should include dep1.proto and well-known types
     XCTAssertTrue(allImports.contains(dep1File.path))
-    XCTAssertTrue(allImports.contains("google/protobuf/any.proto"))
-    XCTAssertTrue(allImports.contains("google/protobuf/timestamp.proto"))
+    XCTAssertTrue(allImports.contains(anyFile.path))
+    XCTAssertTrue(allImports.contains(timestampFile.path))
   }
 
   // MARK: - Validation Tests
 
   func testValidateImportsSuccess() throws {
+    try createWellKnownTypeStubs()
+
     let depContent = "syntax = \"proto3\"; package dep; message DepMessage { string name = 1; }"
     let depFile = tempDir.appendingPathComponent("dep.proto")
     try depContent.write(to: depFile, atomically: true, encoding: .utf8)
@@ -256,7 +300,7 @@ final class ImportResolverDetailedTests: XCTestCase {
 
       import "missing1.proto";
       import "missing2.proto";
-      import "google/protobuf/timestamp.proto";
+      import "missing3.proto";
 
       message MainMessage {
           string name = 1;
@@ -269,11 +313,10 @@ final class ImportResolverDetailedTests: XCTestCase {
     let resolvedFile = try ResolvedProtoFile.from(filePath: mainFile.path)
     let errors = resolver.validateImports(in: resolvedFile)
 
-    XCTAssertEqual(errors.count, 2)
+    XCTAssertEqual(errors.count, 3)
 
     for error in errors {
-      // All errors should be ResolverError type
-      _ = error as ResolverError  // This cast should always succeed
+      _ = error as ResolverError
     }
   }
 

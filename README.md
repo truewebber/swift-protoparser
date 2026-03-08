@@ -5,7 +5,7 @@ A Swift library for parsing Protocol Buffers `.proto` files into AST and descrip
 [![Platform](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Ftruewebber%2Fswift-protoparser%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/truewebber/swift-protoparser)
 [![Swift Package Index](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Ftruewebber%2Fswift-protoparser%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/truewebber/swift-protoparser)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg?style=flat)](LICENSE)
-[![Coverage](https://img.shields.io/badge/Test%20Coverage-92.98%25-green.svg?style=flat)](#testing)
+[![Coverage](https://img.shields.io/badge/Test%20Coverage-92.94%25-green.svg?style=flat)](#testing)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/truewebber/swift-protoparser)
 
 ## Overview
@@ -18,7 +18,7 @@ Add to your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/truewebber/swift-protoparser.git", from: "0.6.0")
+    .package(url: "https://github.com/truewebber/swift-protoparser.git", from: "0.7.1")
 ]
 ```
 
@@ -62,6 +62,13 @@ let result = SwiftProtoParser.parseDirectory(
 )
 ```
 
+> **Note:** SwiftProtoParser does not bundle well-known types (`google/protobuf/*.proto`).
+> If your `.proto` files import them, add the directory containing `google/protobuf/` to
+> `importPaths`. You can obtain the files from the
+> [official protobuf repository](https://github.com/protocolbuffers/protobuf/tree/main/src/google/protobuf)
+> or from a local `protoc` installation (typically `/usr/local/include` or
+> `/usr/include/google/protobuf`).
+
 ### Working with Descriptors
 
 ```swift
@@ -91,7 +98,7 @@ case .failure(let error):
 - **Dependency Resolution**: Handle `import` statements and multi-file dependencies
 - **Extend Statements**: Support for proto3 custom options (`extend google.protobuf.*`)
 - **Scope-Aware Enum Resolution**: Strict protobuf scoping rules enforcement (matches `protoc` behavior)
-- **Qualified Types**: Well-known types and nested message references
+- **Qualified Types**: Nested message references and well-known types resolved from disk via `importPaths`
 - **Performance Caching**: Content-based caching with 85%+ hit rates
 - **Incremental Parsing**: Only re-parse changed files in large projects
 - **Streaming Support**: Memory-efficient parsing of large files (>50MB)
@@ -220,7 +227,7 @@ make test
 make coverage
 ```
 
-Test coverage: **92.98%** (lines), **92.53%** (functions), **95.31%** (regions)
+Test coverage: **92.94%** (lines), **92.53%** (functions), **95.29%** (regions)
 
 ## Contributing
 
