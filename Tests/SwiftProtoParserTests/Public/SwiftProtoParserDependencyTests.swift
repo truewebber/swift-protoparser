@@ -27,6 +27,10 @@ final class SwiftProtoParserDependencyTests: XCTestCase {
     return testResourcesPath + "/SingleProtoFiles"
   }
 
+  private var nestedDependencyTestCasesPath: String {
+    return testResourcesPath + "/NestedDependencyTestCases"
+  }
+
   // MARK: - Setup & Teardown
 
   override func setUp() {
@@ -563,6 +567,161 @@ final class SwiftProtoParserDependencyTests: XCTestCase {
       case .failure(let error):
         XCTFail("Performance test failed: \(error)")
       }
+    }
+  }
+
+  // MARK: - fileProto.name must be import-relative path (not bare filename)
+
+  func testParseFile_NestedFile_NameContainsRelativePath() {
+    let servicePath = nestedDependencyTestCasesPath + "/v1/service.proto"
+
+    let result = SwiftProtoParser.parseFile(servicePath, importPaths: [nestedDependencyTestCasesPath])
+
+    switch result {
+    case .success(let set):
+      let serviceDescriptor = set.file.first { $0.package == "nested.v1" }
+      XCTAssertNotNil(serviceDescriptor, "Expected descriptor for package nested.v1")
+      XCTAssertEqual(
+        serviceDescriptor?.name,
+        "v1/service.proto",
+        "name must be path relative to import root, not bare filename"
+      )
+    case .failure(let error):
+      XCTFail("Expected success, got error: \(error)")
+    }
+  }
+
+  func testParseFile_NestedDependency_NameContainsRelativePath() {
+    let servicePath = nestedDependencyTestCasesPath + "/v1/service.proto"
+
+    let result = SwiftProtoParser.parseFile(servicePath, importPaths: [nestedDependencyTestCasesPath])
+
+    switch result {
+    case .success(let set):
+      let baseDescriptor = set.file.first { $0.package == "nested.common" }
+      XCTAssertNotNil(baseDescriptor, "Expected descriptor for package nested.common")
+      XCTAssertEqual(
+        baseDescriptor?.name,
+        "common/base.proto",
+        "dependency name must be path relative to import root, not bare filename"
+      )
+    case .failure(let error):
+      XCTFail("Expected success, got error: \(error)")
+    }
+  }
+
+  func testParseFile_DependencyFieldMatchesDescriptorName() {
+    let servicePath = nestedDependencyTestCasesPath + "/v1/service.proto"
+
+    let result = SwiftProtoParser.parseFile(servicePath, importPaths: [nestedDependencyTestCasesPath])
+
+    switch result {
+    case .success(let set):
+      let serviceDescriptor = set.file.first { $0.package == "nested.v1" }
+      XCTAssertNotNil(serviceDescriptor)
+
+      guard let dep = serviceDescriptor?.dependency.first else {
+        XCTFail("Expected at least one dependency in nested.v1 descriptor")
+        return
+      }
+
+      let referencedDescriptor = set.file.first { $0.name == dep }
+      XCTAssertNotNil(
+        referencedDescriptor,
+        "dependency '\(dep)' must match the name of an existing FileDescriptorProto in the set"
+      )
+    case .failure(let error):
+      XCTFail("Expected success, got error: \(error)")
+    }
+  }
+
+  // MARK: - Multiple imports: ALL dependency entries must match fileProto.name
+
+  func testParseFile_MultipleImports_AllDependenciesMatchDescriptorNames() {
+    // multi_import.proto imports TWO files: common/base.proto and ext/extra.proto.
+    // Every entry in fileProto.dependency must exactly match fileProto.name of the
+    // corresponding file in the FileDescriptorSet — this is the contract that
+    // protoc and SwiftProtobuf consumers depend on to link descriptors together.
+    let path = nestedDependencyTestCasesPath + "/v1/multi_import.proto"
+
+    let result = SwiftProtoParser.parseFile(path, importPaths: [nestedDependencyTestCasesPath])
+
+    switch result {
+    case .success(let set):
+      let multiDescriptor = set.file.first { $0.package == "nested.v1" && $0.name.contains("multi") }
+      XCTAssertNotNil(multiDescriptor, "multi_import.proto descriptor must be present")
+
+      let deps = multiDescriptor?.dependency ?? []
+      XCTAssertEqual(deps.count, 2, "multi_import.proto must declare exactly 2 dependencies")
+      XCTAssertTrue(deps.contains("common/base.proto"), "dependency must include common/base.proto")
+      XCTAssertTrue(deps.contains("ext/extra.proto"), "dependency must include ext/extra.proto")
+
+      let knownNames = Set(set.file.map { $0.name })
+      for dep in deps {
+        XCTAssertTrue(
+          knownNames.contains(dep),
+          "dependency '\(dep)' must match the name of an existing FileDescriptorProto in the set"
+        )
+      }
+
+    case .failure(let error):
+      XCTFail("Expected success, got error: \(error)")
+    }
+  }
+
+  func testParseFile_MultipleImports_AllFileNamesAreImportRelative() {
+    let path = nestedDependencyTestCasesPath + "/v1/multi_import.proto"
+
+    let result = SwiftProtoParser.parseFile(path, importPaths: [nestedDependencyTestCasesPath])
+
+    switch result {
+    case .success(let set):
+      let expectedNames: Set<String> = [
+        "v1/multi_import.proto",
+        "common/base.proto",
+        "ext/extra.proto",
+      ]
+      let actualNames = Set(set.file.map { $0.name })
+      XCTAssertEqual(actualNames, expectedNames, "All fileProto.name values must be import-relative paths")
+
+    case .failure(let error):
+      XCTFail("Expected success, got error: \(error)")
+    }
+  }
+
+  // MARK: - Cross-package enum fields resolved correctly in multi-import scenario
+
+  func testParseFile_MultipleImports_CrossPackageEnumTypeIsEnum() {
+    let path = nestedDependencyTestCasesPath + "/v1/multi_import.proto"
+
+    let result = SwiftProtoParser.parseFile(path, importPaths: [nestedDependencyTestCasesPath])
+
+    switch result {
+    case .success(let set):
+      let descriptor = set.file.first { $0.package == "nested.v1" && $0.name.contains("multi") }
+      let message = descriptor?.messageType.first { $0.name == "MultiImportResponse" }
+      XCTAssertNotNil(message)
+
+      // nested.common.BaseStatus — enum from first import
+      let statusField = message?.field.first { $0.name == "status" }
+      XCTAssertEqual(statusField?.type, .enum, "BaseStatus field must have type = .enum")
+      XCTAssertEqual(statusField?.typeName, ".nested.common.BaseStatus")
+
+      // nested.ext.ExtraCode — enum from second import
+      let codeField = message?.field.first { $0.name == "code" }
+      XCTAssertEqual(codeField?.type, .enum, "ExtraCode field must have type = .enum")
+      XCTAssertEqual(codeField?.typeName, ".nested.ext.ExtraCode")
+
+      // nested.common.BaseItem — message from first import (must stay .message)
+      let itemField = message?.field.first { $0.name == "item" }
+      XCTAssertEqual(itemField?.type, .message, "BaseItem field must have type = .message")
+
+      // nested.ext.ExtraMetadata — message from second import (must stay .message)
+      let metadataField = message?.field.first { $0.name == "metadata" }
+      XCTAssertEqual(metadataField?.type, .message, "ExtraMetadata field must have type = .message")
+
+    case .failure(let error):
+      XCTFail("Expected success, got error: \(error)")
     }
   }
 }

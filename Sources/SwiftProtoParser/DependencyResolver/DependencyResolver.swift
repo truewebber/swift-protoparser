@@ -127,8 +127,10 @@ class DependencyResolver {
 
     // Load the main file
     let absolutePath = scanner.absolutePath(for: filePath)
+    let mainFileImportPath = scanner.importRelativePath(for: absolutePath)
     let mainFile = try ResolvedProtoFile.from(
       filePath: absolutePath,
+      importPath: mainFileImportPath,
       isMainFile: true
     )
 
@@ -157,7 +159,8 @@ class DependencyResolver {
         }
 
         do {
-          let depFile = try ResolvedProtoFile.from(filePath: path)
+          let depImportPath = scanner.importRelativePath(for: path)
+          let depFile = try ResolvedProtoFile.from(filePath: path, importPath: depImportPath)
           dependencies.append(depFile)
 
           // Validate dependency syntax if requested

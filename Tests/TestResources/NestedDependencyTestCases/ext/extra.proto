@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package nested.ext;
+
+message ExtraMetadata {
+  string key = 1;
+  string value = 2;
+}
+
+enum ExtraCode {
+  EXTRA_CODE_UNSPECIFIED = 0;
+  EXTRA_CODE_OK = 1;
+  EXTRA_CODE_ERROR = 2;
+}

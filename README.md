@@ -5,7 +5,7 @@ A Swift library for parsing Protocol Buffers `.proto` files into AST and descrip
 [![Platform](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Ftruewebber%2Fswift-protoparser%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/truewebber/swift-protoparser)
 [![Swift Package Index](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Ftruewebber%2Fswift-protoparser%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/truewebber/swift-protoparser)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg?style=flat)](LICENSE)
-[![Coverage](https://img.shields.io/badge/Test%20Coverage-93%25-green.svg?style=flat)](#testing)
+[![Coverage](https://img.shields.io/badge/Test%20Coverage-92.76%25-green.svg?style=flat)](#testing)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/truewebber/swift-protoparser)
 
 ## Overview
@@ -209,7 +209,7 @@ for regression detection in the development workflow.
 
 ## Testing
 
-The library has comprehensive test coverage with 1263 tests covering all functionality:
+The library has comprehensive test coverage with 1308 tests covering all functionality:
 
 ```bash
 # Run all tests
@@ -220,7 +220,7 @@ make test
 make coverage
 ```
 
-Test coverage: **92.59%** (lines), **92.23%** (functions), **95.04%** (regions)
+Test coverage: **92.76%** (lines), **92.38%** (functions), **95.15%** (regions)
 
 ## Contributing
 

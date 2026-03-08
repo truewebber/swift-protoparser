@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+// Fixture: a file with TWO imports, used to verify that all dependency entries
+// in the FileDescriptorProto exactly match fileProto.name of the imported files.
+import "common/base.proto";
+import "ext/extra.proto";
+
+package nested.v1;
+
+message MultiImportResponse {
+  nested.common.BaseItem item = 1;
+  nested.common.BaseStatus status = 2;
+  nested.ext.ExtraMetadata metadata = 3;
+  nested.ext.ExtraCode code = 4;
+}

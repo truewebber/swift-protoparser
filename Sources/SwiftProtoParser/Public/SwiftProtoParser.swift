@@ -119,7 +119,7 @@ extension SwiftProtoParser {
     for resolvedFile in files {
       let astResult = ProtoParsingPipeline.parse(
         content: resolvedFile.content,
-        fileName: resolvedFile.fileName
+        fileName: resolvedFile.importPath
       )
 
       switch astResult {
@@ -127,7 +127,7 @@ extension SwiftProtoParser {
         do {
           let descriptor = try DescriptorBuilder.buildFileDescriptor(
             from: ast,
-            fileName: resolvedFile.fileName
+            fileName: resolvedFile.importPath
           )
           fileDescriptors.append(descriptor)
         }
@@ -149,7 +149,8 @@ extension SwiftProtoParser {
 
     var set = Google_Protobuf_FileDescriptorSet()
     set.file = fileDescriptors
-    return .success(set)
+    let processed = EnumTypePostProcessor.process(set)
+    return .success(processed)
   }
 }
 

@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+import "common/base.proto";
+
+package nested.v1;
+
+// This file intentionally uses UNQUALIFIED cross-package type references.
+// BaseItem and BaseStatus are defined in package nested.common, not nested.v1.
+// A correct proto compiler would reject these unqualified references.
+// Used as a negative test fixture to document current parser behavior.
+
+message UnqualifiedRequest {
+  string item_id = 1;
+}
+
+message UnqualifiedResponse {
+  BaseItem item = 1;
+  BaseStatus status = 2;
+}

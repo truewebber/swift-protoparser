@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+import "common/base.proto";
+
+package nested.v1;
+
+// Fixture covering all cross-package enum reference scenarios at the descriptor level.
+
+// 1. Regular field: cross-package message (already tested, kept for completeness)
+// 2. Regular field: cross-package enum
+// 3. Map value: cross-package enum
+// 4. Oneof: cross-package enum field
+// 5. Nested message: cross-package enum field
+message ComprehensiveResponse {
+  nested.common.BaseItem item = 1;
+  nested.common.BaseStatus status = 2;
+  map<string, nested.common.BaseStatus> status_map = 3;
+
+  oneof result {
+    nested.common.BaseItem success_item = 4;
+    nested.common.BaseStatus failure_status = 5;
+  }
+
+  message Nested {
+    nested.common.BaseStatus nested_status = 1;
+    nested.common.BaseItem nested_item = 2;
+  }
+
+  Nested nested = 6;
+}

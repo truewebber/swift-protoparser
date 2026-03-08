@@ -120,6 +120,29 @@ struct FileSystemScanner {
     return (fileManager.currentDirectoryPath as NSString).appendingPathComponent(path)
   }
 
+  /// Compute the import-relative path for an absolute file path.
+  ///
+  /// Strips the matching import directory prefix, returning the path that should
+  /// be used as `FileDescriptorProto.name` (e.g. `"api/v1/user.proto"`).
+  ///
+  /// - Parameter absoluteFilePath: The absolute path to the file.
+  /// - Returns: Import-relative path if the file lives under one of the import directories,
+  ///            or `nil` if no import directory is a prefix of the given path.
+  func importRelativePath(for absoluteFilePath: String) -> String? {
+    let normalizedFile = (absoluteFilePath as NSString).standardizingPath
+
+    for importDir in importPaths {
+      let normalizedDir = (importDir as NSString).standardizingPath
+      let prefix = normalizedDir.hasSuffix("/") ? normalizedDir : normalizedDir + "/"
+
+      if normalizedFile.hasPrefix(prefix) {
+        return String(normalizedFile.dropFirst(prefix.count))
+      }
+    }
+
+    return nil
+  }
+
   /// Check if a path is accessible.
   /// - Parameter path: The path to check.
   /// - Returns: True if the path exists and is accessible.

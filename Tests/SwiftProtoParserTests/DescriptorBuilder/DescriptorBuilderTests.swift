@@ -173,6 +173,52 @@ class DescriptorBuilderTests: XCTestCase {
     XCTAssertEqual(descriptor.service.count, 0)
   }
 
+  // MARK: - fileProto.name contract
+
+  func testBuildFileDescriptor_FileNameIsPreservedExactly_BareFilename() throws {
+    let ast = ProtoAST(syntax: .proto3, package: "example")
+
+    let descriptor = try DescriptorBuilder.buildFileDescriptor(from: ast, fileName: "user.proto")
+
+    XCTAssertEqual(descriptor.name, "user.proto")
+  }
+
+  func testBuildFileDescriptor_FileNameIsPreservedExactly_SingleSubdirectory() throws {
+    let ast = ProtoAST(syntax: .proto3, package: "example")
+
+    let descriptor = try DescriptorBuilder.buildFileDescriptor(from: ast, fileName: "api/user.proto")
+
+    XCTAssertEqual(descriptor.name, "api/user.proto")
+  }
+
+  func testBuildFileDescriptor_FileNameIsPreservedExactly_DeepPath() throws {
+    let ast = ProtoAST(syntax: .proto3, package: "google.protobuf")
+
+    let descriptor = try DescriptorBuilder.buildFileDescriptor(
+      from: ast,
+      fileName: "google/protobuf/timestamp.proto"
+    )
+
+    XCTAssertEqual(descriptor.name, "google/protobuf/timestamp.proto")
+  }
+
+  func testBuildFileDescriptor_FileNameMatchesDependencyStrings() throws {
+    let ast = ProtoAST(
+      syntax: .proto3,
+      package: "example.service",
+      imports: ["api/user.proto", "common/base.proto"]
+    )
+
+    let descriptor = try DescriptorBuilder.buildFileDescriptor(
+      from: ast,
+      fileName: "api/v1/service.proto"
+    )
+
+    XCTAssertEqual(descriptor.name, "api/v1/service.proto")
+    XCTAssertEqual(descriptor.dependency[0], "api/user.proto")
+    XCTAssertEqual(descriptor.dependency[1], "common/base.proto")
+  }
+
   func testBuildFileDescriptorWithOptions() throws {
     // Create AST with options (currently ignored but should not fail)
     let option = OptionNode(name: "java_package", value: .string("com.test"))
@@ -191,5 +237,85 @@ class DescriptorBuilderTests: XCTestCase {
 
     // Should complete without error
     XCTAssertEqual(descriptor.name, "test.proto")
+  }
+
+  // MARK: - Cross-package field typeName in FileDescriptorProto
+
+  func testBuildFileDescriptor_QualifiedTypeField_TypeNameNotPackagePrefixed() throws {
+    let field = FieldNode(name: "item", type: .qualifiedType("nested.common.BaseItem"), number: 1)
+    let message = MessageNode(name: "GetItemResponse", fields: [field])
+    let ast = ProtoAST(
+      syntax: .proto3,
+      package: "nested.v1",
+      imports: ["common/base.proto"],
+      options: [],
+      messages: [message],
+      enums: [],
+      services: []
+    )
+
+    let descriptor = try DescriptorBuilder.buildFileDescriptor(from: ast, fileName: "v1/service.proto")
+
+    let responseMessage = descriptor.messageType.first { $0.name == "GetItemResponse" }
+    XCTAssertNotNil(responseMessage)
+    XCTAssertEqual(
+      responseMessage?.field[0].typeName,
+      ".nested.common.BaseItem",
+      "qualified type from imported package must not get current file package prepended"
+    )
+  }
+
+  func testBuildFileDescriptor_QualifiedEnumField_TypeNameNotPackagePrefixed() throws {
+    let field = FieldNode(name: "status", type: .qualifiedType("nested.common.BaseStatus"), number: 1)
+    let message = MessageNode(name: "GetItemResponse", fields: [field])
+    let ast = ProtoAST(
+      syntax: .proto3,
+      package: "nested.v1",
+      imports: ["common/base.proto"],
+      options: [],
+      messages: [message],
+      enums: [],
+      services: []
+    )
+
+    let descriptor = try DescriptorBuilder.buildFileDescriptor(from: ast, fileName: "v1/service.proto")
+
+    let responseMessage = descriptor.messageType.first { $0.name == "GetItemResponse" }
+    XCTAssertNotNil(responseMessage)
+    let statusField = responseMessage?.field.first { $0.name == "status" }
+    XCTAssertEqual(
+      statusField?.typeName,
+      ".nested.common.BaseStatus",
+      "qualified enum type from imported package must not get current file package prepended"
+    )
+    // Known limitation: cross-file enum via qualifiedType is stored as .message at this layer
+    XCTAssertEqual(
+      statusField?.type,
+      .message,
+      "cross-file enum via qualifiedType is reported as .message — known limitation at DescriptorBuilder layer"
+    )
+  }
+
+  func testBuildFileDescriptor_LocalMessageField_GetsPackagePrepended() throws {
+    let field = FieldNode(name: "request", type: .message("GetItemRequest"), number: 1)
+    let message = MessageNode(name: "GetItemResponse", fields: [field])
+    let ast = ProtoAST(
+      syntax: .proto3,
+      package: "nested.v1",
+      imports: [],
+      options: [],
+      messages: [message],
+      enums: [],
+      services: []
+    )
+
+    let descriptor = try DescriptorBuilder.buildFileDescriptor(from: ast, fileName: "v1/service.proto")
+
+    let responseMessage = descriptor.messageType.first { $0.name == "GetItemResponse" }
+    XCTAssertEqual(
+      responseMessage?.field[0].typeName,
+      ".nested.v1.GetItemRequest",
+      "local (same-package) type must get current file package prepended"
+    )
   }
 }

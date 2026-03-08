@@ -435,6 +435,87 @@ final class FieldDescriptorBuilderTests: XCTestCase {
     XCTAssertEqual(fieldProto.options.uninterpretedOption[0].name[0].namePart, "custom_option")
   }
 
+  // MARK: - qualifiedType handling (cross-package references)
+
+  func testBuildQualifiedTypeField_NoLeadingDot_GetsLeadingDot() throws {
+    let fieldNode = FieldNode(name: "item", type: .qualifiedType("nested.common.BaseItem"), number: 1)
+
+    let fieldProto = try FieldDescriptorBuilder.build(from: fieldNode, index: 1, packageName: "nested.v1")
+
+    XCTAssertEqual(fieldProto.type, .message)
+    XCTAssertEqual(
+      fieldProto.typeName,
+      ".nested.common.BaseItem",
+      "qualified type must NOT get the current file package prepended"
+    )
+  }
+
+  func testBuildQualifiedTypeField_WithLeadingDot_NoDoubleDot() throws {
+    let fieldNode = FieldNode(name: "item", type: .qualifiedType(".nested.common.BaseItem"), number: 1)
+
+    let fieldProto = try FieldDescriptorBuilder.build(from: fieldNode, index: 1, packageName: "nested.v1")
+
+    XCTAssertEqual(
+      fieldProto.typeName,
+      ".nested.common.BaseItem",
+      "already-leading-dot qualified type must not get a second dot"
+    )
+  }
+
+  func testBuildQualifiedTypeField_DeepPackageHierarchy() throws {
+    let fieldNode = FieldNode(
+      name: "ts",
+      type: .qualifiedType("google.protobuf.Timestamp"),
+      number: 1
+    )
+
+    let fieldProto = try FieldDescriptorBuilder.build(
+      from: fieldNode,
+      index: 1,
+      packageName: "my.company.service.v2"
+    )
+
+    XCTAssertEqual(fieldProto.typeName, ".google.protobuf.Timestamp")
+  }
+
+  func testBuildQualifiedTypeField_NilPackage_GetsLeadingDot() throws {
+    let fieldNode = FieldNode(name: "item", type: .qualifiedType("other.pkg.Foo"), number: 1)
+
+    let fieldProto = try FieldDescriptorBuilder.build(from: fieldNode, index: 1, packageName: nil)
+
+    XCTAssertEqual(fieldProto.typeName, ".other.pkg.Foo")
+  }
+
+  func testBuildQualifiedTypeField_AlwaysMessageType() throws {
+    // qualifiedType is always treated as .message because we cannot distinguish
+    // cross-file enums at this layer without access to the full FileDescriptorSet
+    let fieldNode = FieldNode(name: "status", type: .qualifiedType("nested.common.BaseStatus"), number: 1)
+
+    let fieldProto = try FieldDescriptorBuilder.build(from: fieldNode, index: 1, packageName: "nested.v1")
+
+    XCTAssertEqual(
+      fieldProto.type,
+      .message,
+      "cross-file enum via qualifiedType is reported as .message — known limitation"
+    )
+    XCTAssertEqual(fieldProto.typeName, ".nested.common.BaseStatus")
+  }
+
+  func testBuildMessageField_WithDottedName_GetsPackagePrepended() throws {
+    // .message("nested.common.BaseItem") — parser produces this if type has NO dots.
+    // Dotted names from parser become .qualifiedType, not .message.
+    // This test documents: if somehow .message("foo.Bar") arrives, package IS prepended.
+    let fieldNode = FieldNode(name: "item", type: .message("nested.common.BaseItem"), number: 1)
+
+    let fieldProto = try FieldDescriptorBuilder.build(from: fieldNode, index: 1, packageName: "nested.v1")
+
+    XCTAssertEqual(
+      fieldProto.typeName,
+      ".nested.v1.nested.common.BaseItem",
+      ".message() always gets package prepended — dotted .message() would be a parser bug upstream"
+    )
+  }
+
   // MARK: - Edge Cases and Error Handling Tests
 
   func testBuildFieldWithEmptyOptions() throws {

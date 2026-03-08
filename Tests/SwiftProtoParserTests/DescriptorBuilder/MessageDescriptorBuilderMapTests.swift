@@ -393,4 +393,63 @@ class MessageDescriptorBuilderMapTests: XCTestCase {
       }
     }
   }
+
+  // MARK: - Cross-package enum as map value type
+
+  func testMapValueType_CrossPackageEnum_BuilderRawOutputIsMessage() throws {
+    // map<string, nested.common.BaseStatus> where BaseStatus is an enum in another package.
+    //
+    // MessageDescriptorBuilder operates on a single file in isolation; it cannot resolve
+    // cross-file type names.  Therefore it conservatively emits .message for every
+    // qualified type reference — this is the correct raw output of the builder.
+    //
+    // EnumTypePostProcessor (applied at the FileDescriptorSet level in SwiftProtoParser)
+    // later corrects .message → .enum for all entries that resolve to known enums.
+    // The end-to-end correction is covered by CrossPackageTypeResolutionTests.
+    let mapField = FieldNode(
+      name: "status_map",
+      type: .map(key: .string, value: .qualifiedType("nested.common.BaseStatus")),
+      number: 1
+    )
+    let message = MessageNode(name: "ComprehensiveResponse", fields: [mapField])
+
+    let descriptor = try MessageDescriptorBuilder.build(from: message, packageName: "nested.v1")
+
+    let entryMessage = descriptor.nestedType.first { $0.name == "Status_mapEntry" }
+    XCTAssertNotNil(entryMessage, "Entry message Status_mapEntry must exist")
+
+    let valueField = entryMessage?.field.first { $0.name == "value" }
+    XCTAssertNotNil(valueField)
+    XCTAssertEqual(valueField?.typeName, ".nested.common.BaseStatus")
+    XCTAssertEqual(
+      valueField?.type,
+      .message,
+      "MessageDescriptorBuilder raw output: all qualified types are .message (EnumTypePostProcessor corrects this)"
+    )
+  }
+
+  func testMapValueType_CrossPackageMessage_ValueFieldTypeIsMessage() throws {
+    // map<string, nested.common.BaseItem> where BaseItem is a message in another package.
+    // This should stay as .message — the positive control case.
+    let mapField = FieldNode(
+      name: "item_map",
+      type: .map(key: .string, value: .qualifiedType("nested.common.BaseItem")),
+      number: 1
+    )
+    let message = MessageNode(name: "ComprehensiveResponse", fields: [mapField])
+
+    let descriptor = try MessageDescriptorBuilder.build(from: message, packageName: "nested.v1")
+
+    let entryMessage = descriptor.nestedType.first { $0.name == "Item_mapEntry" }
+    XCTAssertNotNil(entryMessage, "Entry message Item_mapEntry must exist")
+
+    let valueField = entryMessage?.field.first { $0.name == "value" }
+    XCTAssertNotNil(valueField)
+    XCTAssertEqual(valueField?.typeName, ".nested.common.BaseItem")
+    XCTAssertEqual(
+      valueField?.type,
+      .message,
+      "cross-package message as map value must have type = .message"
+    )
+  }
 }

@@ -34,8 +34,15 @@ struct MessageDescriptorBuilder {
       messageProto.enumType.append(enumProto)
     }
 
-    // Convert oneof groups
-    for oneofGroup in messageNode.oneofGroups {
+    // Convert oneof groups.
+    // Per proto spec, oneof fields live in the message's main field array with oneofIndex
+    // pointing at the corresponding entry in oneofDecl.
+    for (oneofIdx, oneofGroup) in messageNode.oneofGroups.enumerated() {
+      for fieldNode in oneofGroup.fields {
+        var fieldProto = try FieldDescriptorBuilder.build(from: fieldNode, index: 0, packageName: packageName)
+        fieldProto.oneofIndex = Int32(oneofIdx)
+        messageProto.field.append(fieldProto)
+      }
       let oneofProto = try buildOneof(from: oneofGroup)
       messageProto.oneofDecl.append(oneofProto)
     }

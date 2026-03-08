@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package nested.common;
+
+message BaseItem {
+  string id = 1;
+  string name = 2;
+}
+
+enum BaseStatus {
+  STATUS_UNKNOWN = 0;
+  STATUS_ACTIVE = 1;
+  STATUS_INACTIVE = 2;
+}
