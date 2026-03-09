@@ -1,11 +1,11 @@
 # SwiftProtoParser
 
-A Swift library for parsing Protocol Buffers `.proto` files into AST and descriptors without `protoc`.
+A Swift library for parsing Protocol Buffers `.proto` files (proto2 & proto3) into AST and descriptors without `protoc`.
 
 [![Platform](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Ftruewebber%2Fswift-protoparser%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/truewebber/swift-protoparser)
 [![Swift Package Index](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Ftruewebber%2Fswift-protoparser%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/truewebber/swift-protoparser)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg?style=flat)](LICENSE)
-[![Coverage](https://img.shields.io/badge/Test%20Coverage-95.40%25-green.svg?style=flat)](#testing)
+[![Coverage](https://img.shields.io/badge/Test%20Coverage-96.41%25-green.svg?style=flat)](#testing)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/truewebber/swift-protoparser)
 
 ## Overview
@@ -18,7 +18,7 @@ Add to your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/truewebber/swift-protoparser.git", from: "0.8.0")
+    .package(url: "https://github.com/truewebber/swift-protoparser.git", from: "0.8.4")
 ]
 ```
 
@@ -97,8 +97,11 @@ case .failure(let error):
 - **Map Fields**: Full support for map types with automatic synthetic entry message generation (protoc-compatible)
 - **Dependency Resolution**: Handle `import` statements and multi-file dependencies
 - **Extend Statements**: Support for proto3 custom options (`extend google.protobuf.*`)
-- **Scope-Aware Enum Resolution**: Strict protobuf scoping rules enforcement (matches `protoc` behavior)
+- **Extension Range Options**: Full support for `extensions N to M [declaration = { … }]` syntax
+- **Reserved Ranges**: `reserved N to max;` syntax supported in both messages and enums
+- **Scope-Aware Type Resolution**: Strict protobuf scoping rules with sibling nested-type resolution (matches `protoc` behavior)
 - **Qualified Types**: Nested message references and well-known types resolved from disk via `importPaths`
+- **Well-Known Types Verified**: Integration-tested against `protoc`-generated descriptors for all `google/protobuf/*.proto`
 - **Performance Caching**: Content-based caching with 85%+ hit rates
 - **Incremental Parsing**: Only re-parse changed files in large projects
 - **Streaming Support**: Memory-efficient parsing of large files (>50MB)
@@ -216,7 +219,7 @@ for regression detection in the development workflow.
 
 ## Testing
 
-The library has comprehensive test coverage with 1521 tests covering all functionality:
+The library has comprehensive test coverage with 1588 tests covering all functionality:
 
 ```bash
 # Run all tests
@@ -227,7 +230,7 @@ make test
 make coverage
 ```
 
-Test coverage: **95.40%** (lines), **92.54%** (functions), **93.52%** (regions)
+Test coverage: **96.41%** (lines), **93.16%** (functions), **93.99%** (regions)
 
 ## Contributing
 
