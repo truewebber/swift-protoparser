@@ -221,6 +221,7 @@ struct MessageDescriptorBuilder {
   ///
   /// The `end` value in each `ExtensionRangeNode` is already exclusive (stored as written M + 1,
   /// or 536870912 for `max`), so it is copied directly into the descriptor without adjustment.
+  /// If the range carries an `options` block, it is mapped to `Google_Protobuf_ExtensionRangeOptions`.
   private static func buildExtensionRanges(
     from ranges: [ExtensionRangeNode]
   ) -> [Google_Protobuf_DescriptorProto.ExtensionRange] {
@@ -228,8 +229,38 @@ struct MessageDescriptorBuilder {
       var extensionRange = Google_Protobuf_DescriptorProto.ExtensionRange()
       extensionRange.start = rangeNode.start
       extensionRange.end = rangeNode.end
+      if let opts = rangeNode.options {
+        extensionRange.options = buildExtensionRangeOptions(from: opts)
+      }
       return extensionRange
     }
+  }
+
+  /// Maps an `ExtensionRangeOptionsNode` to `Google_Protobuf_ExtensionRangeOptions`.
+  private static func buildExtensionRangeOptions(
+    from node: ExtensionRangeOptionsNode
+  ) -> Google_Protobuf_ExtensionRangeOptions {
+    var opts = Google_Protobuf_ExtensionRangeOptions()
+
+    opts.declaration = node.declarations.map { declNode in
+      var decl = Google_Protobuf_ExtensionRangeOptions.Declaration()
+      if let n = declNode.number { decl.number = n }
+      if let fn = declNode.fullName { decl.fullName = fn }
+      if let t = declNode.typeName { decl.type = t }
+      if let r = declNode.reserved { decl.reserved = r }
+      if let r = declNode.repeated { decl.repeated = r }
+      return decl
+    }
+
+    if let v = node.verification {
+      switch v {
+      case "DECLARATION": opts.verification = .declaration
+      case "UNVERIFIED": opts.verification = .unverified
+      default: break
+      }
+    }
+
+    return opts
   }
 
   /// Build reserved ranges from reserved numbers.

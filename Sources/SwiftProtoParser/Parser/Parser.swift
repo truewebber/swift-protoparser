@@ -1565,9 +1565,226 @@ final class Parser {
       }
     } while !state.isAtEnd
 
+    skipIgnorableTokens()
+
+    // Extension range options: `extensions N [declaration = {...}];`
+    // Parse the options block and attach it to every range in this statement.
+    var rangeOptions: ExtensionRangeOptionsNode? = nil
+    if state.checkSymbol("[") {
+      rangeOptions = parseExtensionRangeOptionsBlock()
+      skipIgnorableTokens()
+    }
+
     _ = state.expectSymbol(";")
 
+    if let opts = rangeOptions {
+      return ranges.map { ExtensionRangeNode(start: $0.start, end: $0.end, options: opts) }
+    }
     return ranges
+  }
+
+  /// Parses the `[...]` options block that may appear after extension range numbers.
+  ///
+  /// Grammar: `[` key `=` value (`,` key `=` value)* `]`
+  ///
+  /// Recognised keys: `declaration` (repeated `{}` message), `verification` (identifier).
+  /// Unknown keys have their values consumed and discarded for forward compatibility.
+  private func parseExtensionRangeOptionsBlock() -> ExtensionRangeOptionsNode {
+    guard state.checkSymbol("[") else {
+      return ExtensionRangeOptionsNode(declarations: [], verification: nil)
+    }
+    state.advance()  // consume `[`
+    skipIgnorableTokens()
+
+    var declarations: [ExtensionRangeDeclarationNode] = []
+    var verification: String? = nil
+
+    while !state.isAtEnd && !state.checkSymbol("]") {
+      skipIgnorableTokens()
+
+      guard let key = state.identifierName else {
+        state.advance()
+        continue
+      }
+      state.advance()  // consume key
+      skipIgnorableTokens()
+
+      guard state.checkSymbol("=") else { continue }
+      state.advance()  // consume `=`
+      skipIgnorableTokens()
+
+      switch key {
+      case "declaration":
+        if let decl = parseExtensionRangeDeclaration() {
+          declarations.append(decl)
+        }
+      case "verification":
+        if let ident = state.identifierName {
+          verification = ident
+          state.advance()
+        }
+      default:
+        skipTextProtoValue()
+      }
+
+      skipIgnorableTokens()
+      if state.checkSymbol(",") {
+        state.advance()
+        skipIgnorableTokens()
+      }
+    }
+
+    if state.checkSymbol("]") {
+      state.advance()  // consume `]`
+    }
+
+    return ExtensionRangeOptionsNode(declarations: declarations, verification: verification)
+  }
+
+  /// Parses a text-proto message literal `{ field: value ... }` as an extension range declaration.
+  ///
+  /// Recognises the fields defined in `ExtensionRangeOptions.Declaration`:
+  /// `number`, `full_name`, `type`, `reserved`, `repeated`.
+  private func parseExtensionRangeDeclaration() -> ExtensionRangeDeclarationNode? {
+    guard state.checkSymbol("{") else { return nil }
+    state.advance()  // consume `{`
+    skipIgnorableTokens()
+
+    var number: Int32? = nil
+    var fullName: String? = nil
+    var typeName: String? = nil
+    var reserved: Bool? = nil
+    var repeated: Bool? = nil
+
+    while !state.isAtEnd && !state.checkSymbol("}") {
+      skipIgnorableTokens()
+      // Text-proto field names may be identifiers or proto keywords (e.g. `reserved`, `repeated`).
+      guard let fieldName = textProtoFieldName() else {
+        state.advance()
+        continue
+      }
+      state.advance()  // consume field name
+      skipIgnorableTokens()
+
+      // Text-proto uses `:` as field separator (unlike option syntax which uses `=`)
+      if state.checkSymbol(":") {
+        state.advance()
+        skipIgnorableTokens()
+      }
+
+      switch fieldName {
+      case "number":
+        if let n = state.integerLiteralValue {
+          number = Int32(n)
+          state.advance()
+        }
+        else {
+          skipTextProtoValue()
+        }
+      case "full_name":
+        if let s = state.stringLiteralValue {
+          fullName = s
+          state.advance()
+        }
+        else {
+          skipTextProtoValue()
+        }
+      case "type":
+        if let s = state.stringLiteralValue {
+          typeName = s
+          state.advance()
+        }
+        else {
+          skipTextProtoValue()
+        }
+      case "reserved":
+        if let b = state.booleanLiteralValue {
+          reserved = b
+          state.advance()
+        }
+        else {
+          skipTextProtoValue()
+        }
+      case "repeated":
+        if let b = state.booleanLiteralValue {
+          repeated = b
+          state.advance()
+        }
+        else {
+          skipTextProtoValue()
+        }
+      default:
+        skipTextProtoValue()
+      }
+
+      skipIgnorableTokens()
+      // Text-proto allows optional `,` or `;` between fields
+      if state.checkSymbol(",") || state.checkSymbol(";") {
+        state.advance()
+        skipIgnorableTokens()
+      }
+    }
+
+    if state.checkSymbol("}") {
+      state.advance()  // consume `}`
+    }
+
+    return ExtensionRangeDeclarationNode(
+      number: number,
+      fullName: fullName,
+      typeName: typeName,
+      reserved: reserved,
+      repeated: repeated
+    )
+  }
+
+  /// Returns the field name from the current token, accepting both identifiers and proto keywords.
+  ///
+  /// Text-proto field names may coincide with reserved proto keywords (e.g. `reserved`, `repeated`).
+  private func textProtoFieldName() -> String? {
+    guard let token = state.currentToken else { return nil }
+    switch token.type {
+    case .identifier(let name): return name
+    case .keyword(let kw): return kw.rawValue
+    default: return nil
+    }
+  }
+
+  /// Skips a single value in text-proto format — a scalar token, or a balanced `{...}` / `[...]` block.
+  private func skipTextProtoValue() {
+    guard let token = state.currentToken else { return }
+    switch token.type {
+    case .symbol("{"):
+      var depth = 0
+      while !state.isAtEnd {
+        if state.checkSymbol("{") {
+          depth += 1
+        }
+        else if state.checkSymbol("}") {
+          depth -= 1
+          state.advance()
+          if depth == 0 { return }
+          continue
+        }
+        state.advance()
+      }
+    case .symbol("["):
+      var depth = 0
+      while !state.isAtEnd {
+        if state.checkSymbol("[") {
+          depth += 1
+        }
+        else if state.checkSymbol("]") {
+          depth -= 1
+          state.advance()
+          if depth == 0 { return }
+          continue
+        }
+        state.advance()
+      }
+    default:
+      state.advance()
+    }
   }
 
   /// Parses a service declaration.

@@ -2,6 +2,33 @@ import Foundation
 
 // MARK: - ExtensionRangeNode
 
+/// A single `declaration = { ... }` entry inside an extension range options block.
+///
+/// Corresponds to `ExtensionRangeOptions.Declaration` in descriptor.proto.
+struct ExtensionRangeDeclarationNode: Equatable {
+  /// The extension field number this declaration applies to.
+  let number: Int32?
+  /// The fully-qualified name of the extension field (e.g. `.foo.bar_ext`).
+  let fullName: String?
+  /// The fully-qualified type name of the extension field (e.g. `.foo.Bar`).
+  let typeName: String?
+  /// Whether this extension field is reserved and must not be used.
+  let reserved: Bool?
+  /// Whether this extension field is repeated.
+  let repeated: Bool?
+}
+
+/// The options block attached to an extension range declaration.
+///
+/// Corresponds to `ExtensionRangeOptions` in descriptor.proto.
+/// Parsed from the `[declaration = { ... }, verification = STATE]` syntax.
+struct ExtensionRangeOptionsNode: Equatable {
+  /// Zero or more `declaration = { ... }` entries.
+  let declarations: [ExtensionRangeDeclarationNode]
+  /// The verification state: `"DECLARATION"` or `"UNVERIFIED"`.
+  let verification: String?
+}
+
 /// Represents a single extension range declaration inside a proto2 message.
 ///
 /// Extension ranges allow external `.proto` files to add fields to a message
@@ -13,6 +40,14 @@ struct ExtensionRangeNode: Equatable {
   let start: Int32
   /// One past the last field number in the range (exclusive), matching the descriptor format.
   let end: Int32
+  /// Optional options block attached to this range (e.g. `declaration = { ... }`).
+  let options: ExtensionRangeOptionsNode?
+
+  init(start: Int32, end: Int32, options: ExtensionRangeOptionsNode? = nil) {
+    self.start = start
+    self.end = end
+    self.options = options
+  }
 }
 
 // MARK: - MessageNode

@@ -384,6 +384,124 @@ final class Proto2ParserTests: XCTestCase {
     }
   }
 
+  func test_parse_proto2ExtensionRangeWithDeclarationOption_succeeds() {
+    // Tests extension range options syntax: extensions N [declaration = {...}];
+    // This syntax appears in google/protobuf/descriptor.proto bundled with protoc 3.x+
+    let proto = """
+      syntax = "proto2";
+      message FileDescriptorSet {
+        repeated string file = 1;
+        extensions 536000000 [declaration = {
+          number: 536000000
+          type: ".buf.descriptor.v1.FileDescriptorSetExtension"
+          full_name: ".buf.descriptor.v1.buf_file_descriptor_set_extension"
+        }];
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    switch result {
+    case .success(let ast):
+      XCTAssertEqual(ast.messages.count, 1)
+      let ranges = ast.messages[0].extensionRanges
+      XCTAssertEqual(ranges.count, 1)
+      XCTAssertEqual(ranges[0].start, 536_000_000)
+      XCTAssertEqual(ranges[0].end, 536_000_001, "End must be stored exclusive (536000000 + 1)")
+      let opts = ranges[0].options
+      XCTAssertNotNil(opts, "Extension range must have parsed options")
+      XCTAssertEqual(opts?.declarations.count, 1)
+      let decl = opts?.declarations[0]
+      XCTAssertEqual(decl?.number, 536_000_000)
+      XCTAssertEqual(decl?.typeName, ".buf.descriptor.v1.FileDescriptorSetExtension")
+      XCTAssertEqual(decl?.fullName, ".buf.descriptor.v1.buf_file_descriptor_set_extension")
+    case .failure(let error):
+      XCTFail("Extension range with declaration options must succeed, got: \(error.description)")
+    }
+  }
+
+  func test_parse_proto2ExtensionRangeWithMultipleDeclarations_succeeds() {
+    // Multiple declarations in a single extension range options block
+    let proto = """
+      syntax = "proto2";
+      message Extendable {
+        required int32 id = 1;
+        extensions 1000 to 1999 [declaration = {
+          number: 1000
+          type: ".foo.Bar"
+          full_name: ".foo.bar_extension"
+        }, declaration = {
+          number: 1001
+          type: ".foo.Baz"
+          full_name: ".foo.baz_extension"
+        }];
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    switch result {
+    case .success(let ast):
+      let ranges = ast.messages[0].extensionRanges
+      XCTAssertEqual(ranges.count, 1)
+      XCTAssertEqual(ranges[0].start, 1000)
+      XCTAssertEqual(ranges[0].end, 2000, "End stored exclusive (1999 + 1)")
+      let decls = ranges[0].options?.declarations
+      XCTAssertEqual(decls?.count, 2)
+      XCTAssertEqual(decls?[0].number, 1000)
+      XCTAssertEqual(decls?[0].typeName, ".foo.Bar")
+      XCTAssertEqual(decls?[0].fullName, ".foo.bar_extension")
+      XCTAssertEqual(decls?[1].number, 1001)
+      XCTAssertEqual(decls?[1].typeName, ".foo.Baz")
+      XCTAssertEqual(decls?[1].fullName, ".foo.baz_extension")
+    case .failure(let error):
+      XCTFail("Extension range with multiple declarations must succeed, got: \(error.description)")
+    }
+  }
+
+  func test_parse_proto2ExtensionRangeWithVerification_parsesVerificationState() {
+    let proto = """
+      syntax = "proto2";
+      message Extendable {
+        required int32 id = 1;
+        extensions 1000 to 1999 [
+          declaration = { number: 1000 full_name: ".foo.bar_ext" type: ".foo.Bar" },
+          verification = DECLARATION
+        ];
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    switch result {
+    case .success(let ast):
+      let opts = ast.messages[0].extensionRanges[0].options
+      XCTAssertNotNil(opts)
+      XCTAssertEqual(opts?.verification, "DECLARATION")
+      XCTAssertEqual(opts?.declarations.count, 1)
+    case .failure(let error):
+      XCTFail("Extension range with verification must succeed, got: \(error.description)")
+    }
+  }
+
+  func test_parse_proto2ExtensionRangeWithReservedDeclaration_parsesReservedFlag() {
+    let proto = """
+      syntax = "proto2";
+      message Extendable {
+        required int32 id = 1;
+        extensions 1000 [declaration = {
+          number: 1000
+          full_name: ".foo.old_ext"
+          type: ".foo.OldType"
+          reserved: true
+        }];
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    switch result {
+    case .success(let ast):
+      let decl = ast.messages[0].extensionRanges[0].options?.declarations[0]
+      XCTAssertEqual(decl?.reserved, true)
+      XCTAssertEqual(decl?.number, 1000)
+    case .failure(let error):
+      XCTFail("Extension range with reserved declaration must succeed, got: \(error.description)")
+    }
+  }
+
   func test_parse_proto2MessageNoExtensionRanges_returnsEmpty() {
     let proto = """
       syntax = "proto2";

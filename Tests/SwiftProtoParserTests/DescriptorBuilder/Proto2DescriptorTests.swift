@@ -62,6 +62,84 @@ final class Proto2DescriptorTests: XCTestCase {
     XCTAssertEqual(descriptor.extensionRange[0].end, 536_870_912)
   }
 
+  func test_build_proto2MessageWithExtensionRangeDeclaration_setsOptionsInDescriptor() throws {
+    let declaration = ExtensionRangeDeclarationNode(
+      number: 536_000_000,
+      fullName: ".buf.descriptor.v1.buf_file_descriptor_set_extension",
+      typeName: ".buf.descriptor.v1.FileDescriptorSetExtension",
+      reserved: nil,
+      repeated: nil
+    )
+    let options = ExtensionRangeOptionsNode(declarations: [declaration], verification: nil)
+    let messageNode = MessageNode(
+      name: "FileDescriptorSet",
+      fields: [],
+      extensionRanges: [ExtensionRangeNode(start: 536_000_000, end: 536_000_001, options: options)]
+    )
+
+    let descriptor = try MessageDescriptorBuilder.build(from: messageNode)
+
+    XCTAssertEqual(descriptor.extensionRange.count, 1)
+    XCTAssertEqual(descriptor.extensionRange[0].start, 536_000_000)
+    XCTAssertEqual(descriptor.extensionRange[0].end, 536_000_001)
+    let rangeOpts = descriptor.extensionRange[0].options
+    XCTAssertEqual(rangeOpts.declaration.count, 1)
+    XCTAssertEqual(rangeOpts.declaration[0].number, 536_000_000)
+    XCTAssertEqual(rangeOpts.declaration[0].fullName, ".buf.descriptor.v1.buf_file_descriptor_set_extension")
+    XCTAssertEqual(rangeOpts.declaration[0].type, ".buf.descriptor.v1.FileDescriptorSetExtension")
+  }
+
+  func test_build_proto2MessageWithExtensionRangeMultipleDeclarations_setsAllInDescriptor() throws {
+    let opts = ExtensionRangeOptionsNode(
+      declarations: [
+        ExtensionRangeDeclarationNode(
+          number: 1000,
+          fullName: ".foo.bar_ext",
+          typeName: ".foo.Bar",
+          reserved: nil,
+          repeated: nil
+        ),
+        ExtensionRangeDeclarationNode(
+          number: 1001,
+          fullName: ".foo.baz_ext",
+          typeName: ".foo.Baz",
+          reserved: true,
+          repeated: nil
+        ),
+      ],
+      verification: "DECLARATION"
+    )
+    let messageNode = MessageNode(
+      name: "Extendable",
+      fields: [],
+      extensionRanges: [ExtensionRangeNode(start: 1000, end: 2000, options: opts)]
+    )
+
+    let descriptor = try MessageDescriptorBuilder.build(from: messageNode)
+
+    let rangeOpts = descriptor.extensionRange[0].options
+    XCTAssertEqual(rangeOpts.declaration.count, 2)
+    XCTAssertEqual(rangeOpts.declaration[0].number, 1000)
+    XCTAssertEqual(rangeOpts.declaration[0].fullName, ".foo.bar_ext")
+    XCTAssertFalse(rangeOpts.declaration[0].reserved)
+    XCTAssertEqual(rangeOpts.declaration[1].number, 1001)
+    XCTAssertTrue(rangeOpts.declaration[1].reserved)
+    XCTAssertEqual(rangeOpts.verification, .declaration)
+  }
+
+  func test_build_proto2MessageWithExtensionRangeNoOptions_hasEmptyOptions() throws {
+    let messageNode = MessageNode(
+      name: "Extendable",
+      fields: [],
+      extensionRanges: [ExtensionRangeNode(start: 100, end: 200, options: nil)]
+    )
+
+    let descriptor = try MessageDescriptorBuilder.build(from: messageNode)
+
+    XCTAssertEqual(descriptor.extensionRange.count, 1)
+    XCTAssertEqual(descriptor.extensionRange[0].options.declaration.count, 0)
+  }
+
   func test_build_proto2MessageNoExtensionRanges_hasEmptyExtensionRange() throws {
     let messageNode = MessageNode(
       name: "Plain",
