@@ -346,16 +346,17 @@ struct UnresolvedTypeValidator {
   }
 
   /// Generates scope-walking candidates for `sourceName` in descending order
-  /// from the innermost scope to the root, following proto3 C++ scoping rules.
+  /// from the innermost scope to the root, following protobuf C++ scoping rules.
   ///
-  /// The innermost scope is the containing message (`messageFQN`), followed by
-  /// each package-prefix level, ending at the root scope.
+  /// Walks up through every enclosing message scope before descending through
+  /// the package hierarchy — matching the behaviour of `protoc`.
   ///
-  /// Example: `sourceName = "Foo"`, `messageFQN = ".a.b.Outer"`, `package = "a.b"` →
-  ///   `.a.b.Outer.Foo` (innermost: message scope)
-  ///   `.a.b.Foo`       (file package)
+  /// Example: `sourceName = "Foo"`, `messageFQN = ".a.b.Outer.Inner"`, `package = "a.b"` →
+  ///   `.a.b.Outer.Inner.Foo`  (innermost: containing message)
+  ///   `.a.b.Outer.Foo`        (parent message scope)
+  ///   `.a.b.Foo`              (file package)
   ///   `.a.Foo`
-  ///   `.Foo`           (root)
+  ///   `.Foo`                  (root)
   private static func scopeCandidates(
     for sourceName: String,
     inPackage package: String,
@@ -364,22 +365,29 @@ struct UnresolvedTypeValidator {
     var candidates: [String] = []
     var seen: Set<String> = []
 
-    // 1. Innermost: containing message scope
+    // 1. Walk up through every enclosing message scope, stopping at the
+    //    package boundary.  This covers both the innermost scope and every
+    //    intermediate parent-message scope that standard C++ scoping checks.
     if !messageFQN.isEmpty {
-      let innermost = "\(messageFQN).\(sourceName)"
-      if seen.insert(innermost).inserted {
-        candidates.append(innermost)
+      let packageDepth = package.isEmpty ? 0 : package.split(separator: ".").count
+      var messageComponents = messageFQN.dropFirst().split(separator: ".").map(String.init)
+      while messageComponents.count > packageDepth {
+        let candidate = ".\(messageComponents.joined(separator: ".")).\(sourceName)"
+        if seen.insert(candidate).inserted {
+          candidates.append(candidate)
+        }
+        messageComponents.removeLast()
       }
     }
 
     // 2. Package hierarchy (full package down to root)
-    var components = package.isEmpty ? [] : package.split(separator: ".").map(String.init)
-    while !components.isEmpty {
-      let candidate = ".\(components.joined(separator: ".")).\(sourceName)"
+    var pkgComponents = package.isEmpty ? [] : package.split(separator: ".").map(String.init)
+    while !pkgComponents.isEmpty {
+      let candidate = ".\(pkgComponents.joined(separator: ".")).\(sourceName)"
       if seen.insert(candidate).inserted {
         candidates.append(candidate)
       }
-      components.removeLast()
+      pkgComponents.removeLast()
     }
 
     // 3. Root scope

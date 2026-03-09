@@ -498,6 +498,274 @@ final class UnresolvedTypeValidatorTests: XCTestCase {
     XCTAssertEqual(validated.file[1].messageType[0].field[0].typeName, ".other.Ext")
   }
 
+  // MARK: - Sibling nested-message scope resolution
+
+  /// Regression test: a field whose type is a sibling nested message
+  /// (defined in the same parent, but not in the same nested message) must be
+  /// resolved via the parent message scope.
+  ///
+  /// Proto structure:
+  /// ```
+  /// package pkg;
+  /// message Outer {
+  ///   message Top { }        // sibling
+  ///   message Inner {
+  ///     Top item = 1;        // references sibling, not self-nested
+  ///   }
+  /// }
+  /// ```
+  /// The descriptor builder initially sets `typeName` to
+  /// `.pkg.Outer.Inner.Top` (which does not exist).  The validator must
+  /// walk up to `.pkg.Outer.Top` and resolve it there.
+  func test_siblingNestedMessageScope_resolvesToParentScope() {
+    // Build the `Top` nested message (empty)
+    var topMsg = Google_Protobuf_DescriptorProto()
+    topMsg.name = "Top"
+
+    // Build a field inside `Inner` referencing `Top`.
+    // `FieldDescriptorBuilder.buildFullyQualifiedTypeName` prepends only the package prefix,
+    // so the initial typeName is ".pkg.Top" — which does NOT exist; the actual type is
+    // ".pkg.Outer.Top" (a sibling of Inner inside Outer).
+    var field = Google_Protobuf_FieldDescriptorProto()
+    field.name = "item"
+    field.number = 1
+    field.label = .optional
+    field.type = .message
+    field.typeName = ".pkg.Top"  // package-prefixed; must be resolved to sibling scope
+
+    var innerMsg = Google_Protobuf_DescriptorProto()
+    innerMsg.name = "Inner"
+    innerMsg.field = [field]
+
+    var outerMsg = Google_Protobuf_DescriptorProto()
+    outerMsg.name = "Outer"
+    outerMsg.nestedType = [topMsg, innerMsg]
+
+    var file = Google_Protobuf_FileDescriptorProto()
+    file.name = "test.proto"
+    file.package = "pkg"
+    file.syntax = "proto3"
+    file.messageType = [outerMsg]
+
+    var set = Google_Protobuf_FileDescriptorSet()
+    set.file = [file]
+
+    let result = UnresolvedTypeValidator.validate(set)
+    guard case .success(let validated) = result else {
+      XCTFail("Expected success, got: \(result)")
+      return
+    }
+
+    let resolvedField = validated.file[0].messageType[0].nestedType[1].field[0]
+    XCTAssertEqual(resolvedField.typeName, ".pkg.Outer.Top",
+      "Must resolve to sibling scope, not fail with undefined type")
+  }
+
+  // MARK: - 3-level nesting: grandparent message scope
+
+  /// `A.B.C` references a type `D` that lives at `A.D` — two message levels up.
+  func test_grandparentMessageScope_resolvesToTwoLevelsUp() {
+    var dMsg = Google_Protobuf_DescriptorProto()
+    dMsg.name = "D"
+
+    var field = Google_Protobuf_FieldDescriptorProto()
+    field.name = "d"
+    field.number = 1
+    field.label = .optional
+    field.type = .message
+    field.typeName = ".pkg.D"  // builder prefix; real type is .pkg.A.D
+
+    var cMsg = Google_Protobuf_DescriptorProto()
+    cMsg.name = "C"
+    cMsg.field = [field]
+
+    var bMsg = Google_Protobuf_DescriptorProto()
+    bMsg.name = "B"
+    bMsg.nestedType = [cMsg]
+
+    var aMsg = Google_Protobuf_DescriptorProto()
+    aMsg.name = "A"
+    aMsg.nestedType = [dMsg, bMsg]  // D is sibling of B inside A
+
+    var file = Google_Protobuf_FileDescriptorProto()
+    file.name = "test.proto"
+    file.package = "pkg"
+    file.messageType = [aMsg]
+
+    var set = Google_Protobuf_FileDescriptorSet()
+    set.file = [file]
+
+    let result = UnresolvedTypeValidator.validate(set)
+    guard case .success(let validated) = result else {
+      XCTFail("Expected success for grandparent scope, got: \(result)")
+      return
+    }
+
+    let resolvedField = validated.file[0].messageType[0]  // A
+      .nestedType[1]  // B
+      .nestedType[0]  // C
+      .field[0]
+    XCTAssertEqual(resolvedField.typeName, ".pkg.A.D",
+      "Must resolve to grandparent scope .pkg.A.D")
+  }
+
+  // MARK: - Enum nested in parent, referenced from sibling message
+
+  func test_enumNestedInParent_referencedFromSiblingMessage_resolved() {
+    var statusEnum = Google_Protobuf_EnumDescriptorProto()
+    statusEnum.name = "Status"
+    var enumVal = Google_Protobuf_EnumValueDescriptorProto()
+    enumVal.name = "UNKNOWN"
+    enumVal.number = 0
+    statusEnum.value = [enumVal]
+
+    var field = Google_Protobuf_FieldDescriptorProto()
+    field.name = "status"
+    field.number = 1
+    field.label = .optional
+    field.type = .enum
+    field.typeName = ".pkg.Status"  // builder prefix; real type is .pkg.Outer.Status
+
+    var innerMsg = Google_Protobuf_DescriptorProto()
+    innerMsg.name = "Inner"
+    innerMsg.field = [field]
+
+    var outerMsg = Google_Protobuf_DescriptorProto()
+    outerMsg.name = "Outer"
+    outerMsg.enumType = [statusEnum]
+    outerMsg.nestedType = [innerMsg]
+
+    var file = Google_Protobuf_FileDescriptorProto()
+    file.name = "test.proto"
+    file.package = "pkg"
+    file.messageType = [outerMsg]
+
+    var set = Google_Protobuf_FileDescriptorSet()
+    set.file = [file]
+
+    let result = UnresolvedTypeValidator.validate(set)
+    guard case .success(let validated) = result else {
+      XCTFail("Expected success for parent-scope enum, got: \(result)")
+      return
+    }
+
+    let resolvedField = validated.file[0].messageType[0].nestedType[0].field[0]
+    XCTAssertEqual(resolvedField.typeName, ".pkg.Outer.Status")
+    XCTAssertEqual(resolvedField.type, .enum)
+  }
+
+  // MARK: - Cross-file qualified reference to nested type
+
+  /// From a different file, `Outer.Top` is referenced by the qualified name `Outer.Top`.
+  /// `FieldDescriptorBuilder` produces `.Outer.Top` (no package prefix for qualified names).
+  /// The validator must resolve this to `.pkg.Outer.Top` via scope-walking.
+  func test_crossFile_qualifiedNestedTypeRef_resolved() {
+    // File A defines Outer.Top
+    var topMsg = Google_Protobuf_DescriptorProto()
+    topMsg.name = "Top"
+
+    var outerMsg = Google_Protobuf_DescriptorProto()
+    outerMsg.name = "Outer"
+    outerMsg.nestedType = [topMsg]
+
+    var defFile = Google_Protobuf_FileDescriptorProto()
+    defFile.name = "base.proto"
+    defFile.package = "pkg"
+    defFile.messageType = [outerMsg]
+
+    // File B uses the qualified source name "Outer.Top".
+    // FieldDescriptorBuilder.qualifiedType case → typeName = ".Outer.Top" (no package prefix).
+    var field = Google_Protobuf_FieldDescriptorProto()
+    field.name = "top"
+    field.number = 1
+    field.label = .optional
+    field.type = .message
+    field.typeName = ".Outer.Top"  // qualified ref: no package prefix
+
+    var wrapper = Google_Protobuf_DescriptorProto()
+    wrapper.name = "Wrapper"
+    wrapper.field = [field]
+
+    var usingFile = Google_Protobuf_FileDescriptorProto()
+    usingFile.name = "using.proto"
+    usingFile.package = "pkg"
+    usingFile.messageType = [wrapper]
+    usingFile.dependency = ["base.proto"]
+
+    var set = Google_Protobuf_FileDescriptorSet()
+    set.file = [defFile, usingFile]
+
+    let result = UnresolvedTypeValidator.validate(set)
+    guard case .success(let validated) = result else {
+      XCTFail("Expected success for cross-file qualified reference, got: \(result)")
+      return
+    }
+
+    XCTAssertEqual(validated.file[1].messageType[0].field[0].typeName, ".pkg.Outer.Top")
+  }
+
+  // MARK: - End-to-end: proto string with sibling nested type
+
+  /// Full pipeline test (parse → build → validate) mirrors the real-world failure:
+  /// `TopList.top3` references sibling `Top` inside the same parent message.
+  func test_endToEnd_siblingNestedTypeInProtoString_parsesSuccessfully() {
+    let proto = """
+      syntax = "proto3";
+      package semrush.pt;
+
+      message Response {
+        message Top {
+          int32 count = 1;
+        }
+        message TopList {
+          Top top3   = 1;
+          Top top10  = 2;
+          Top top100 = 3;
+        }
+        TopList data = 1;
+      }
+      """
+
+    // Parse → AST
+    guard case .success(let ast) = ProtoParsingPipeline.parse(content: proto, fileName: "test.proto")
+    else {
+      XCTFail("Parsing failed")
+      return
+    }
+
+    // AST → FileDescriptorProto
+    guard
+      let descriptor = try? DescriptorBuilder.buildFileDescriptor(from: ast, fileName: "test.proto")
+    else {
+      XCTFail("Descriptor building failed")
+      return
+    }
+
+    // FileDescriptorProto → FileDescriptorSet → validate
+    var set = Google_Protobuf_FileDescriptorSet()
+    set.file = [descriptor]
+
+    guard case .success(let validated) = UnresolvedTypeValidator.validate(set) else {
+      XCTFail("Validation failed")
+      return
+    }
+
+    let file = validated.file[0]
+    let response = file.messageType.first { $0.name == "Response" }
+    XCTAssertNotNil(response, "Response message must exist")
+
+    let topList = response?.nestedType.first { $0.name == "TopList" }
+    XCTAssertNotNil(topList, "TopList must exist")
+
+    let top3Field = topList?.field.first { $0.name == "top3" }
+    XCTAssertNotNil(top3Field, "top3 field must exist")
+    XCTAssertEqual(
+      top3Field?.typeName,
+      ".semrush.pt.Response.Top",
+      "top3 must resolve to sibling scope .semrush.pt.Response.Top"
+    )
+  }
+
   // MARK: - type field is corrected when kind changes
 
   func test_existingTypeWithWrongKind_kindIsCorrected() {
