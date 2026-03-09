@@ -43,12 +43,40 @@ struct DescriptorBuilder {
       fileProto.service.append(serviceProto)
     }
 
+    // Convert top-level extend blocks → FileDescriptorProto.extension
+    for extendNode in ast.extends {
+      let extendee = buildFullyQualifiedExtendee(extendNode.extendedType, packageName: ast.package)
+      for fieldNode in extendNode.fields {
+        var fieldProto = try FieldDescriptorBuilder.build(
+          from: fieldNode,
+          index: 0,
+          packageName: ast.package
+        )
+        fieldProto.extendee = extendee
+        fileProto.extension.append(fieldProto)
+      }
+    }
+
     // Convert file options
     if !ast.options.isEmpty {
       fileProto.options = try buildFileOptions(from: ast.options)
     }
 
     return fileProto
+  }
+
+  /// Returns the fully-qualified extendee name, always beginning with `.`.
+  ///
+  /// - If `name` already starts with `.`, it is returned unchanged.
+  /// - Otherwise the package (if any) is prepended: `.<package>.<name>` or `.<name>`.
+  private static func buildFullyQualifiedExtendee(_ name: String, packageName: String?) -> String {
+    if name.hasPrefix(".") {
+      return name
+    }
+    if let package = packageName, !package.isEmpty {
+      return ".\(package).\(name)"
+    }
+    return ".\(name)"
   }
 
   /// Build FileOptions from AST options.
