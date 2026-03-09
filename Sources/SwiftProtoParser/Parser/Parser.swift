@@ -1129,6 +1129,8 @@ final class Parser {
 
     var values: [EnumValueNode] = []
     var options: [OptionNode] = []
+    var reservedNumbers: [Int32] = []
+    var reservedNames: [String] = []
 
     // Parse enum body
     while !state.isAtEnd {
@@ -1147,6 +1149,11 @@ final class Parser {
       case .keyword(.option):
         let option = try parseOptionDeclaration()
         options.append(option)
+
+      case .keyword(.reserved):
+        let (numbers, names) = try parseReservedDeclaration()
+        reservedNumbers.append(contentsOf: numbers)
+        reservedNames.append(contentsOf: names)
 
       case .identifier:
         let enumValue = try parseEnumValue()
@@ -1173,7 +1180,13 @@ final class Parser {
       validateEnumNoDuplicateValues(values, enumName: enumName)
     }
 
-    return EnumNode(name: enumName, values: values, options: options)
+    return EnumNode(
+      name: enumName,
+      values: values,
+      options: options,
+      reservedNumbers: reservedNumbers,
+      reservedNames: reservedNames
+    )
   }
 
   /// Parses an enum value: VALUE_NAME = number [options];.

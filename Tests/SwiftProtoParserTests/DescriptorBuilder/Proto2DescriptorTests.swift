@@ -850,4 +850,82 @@ final class Proto2DescriptorTests: XCTestCase {
       XCTFail("nested extend with package must succeed, got: \(error.description)")
     }
   }
+
+  // MARK: - Reserved inside enum descriptor
+
+  func test_build_enumWithReservedNumbers_setsReservedRangeInDescriptor() throws {
+    let enumNode = EnumNode(
+      name: "Utf8Validation",
+      values: [EnumValueNode(name: "UTF8_VALIDATION_UNKNOWN", number: 0)],
+      reservedNumbers: [1]
+    )
+
+    let descriptor = try EnumDescriptorBuilder.build(from: enumNode, protoVersion: .proto3)
+
+    XCTAssertEqual(descriptor.reservedRange.count, 1)
+    XCTAssertEqual(descriptor.reservedRange[0].start, 1)
+    XCTAssertEqual(descriptor.reservedRange[0].end, 1, "EnumReservedRange.end is inclusive")
+    XCTAssertTrue(descriptor.reservedName.isEmpty)
+  }
+
+  func test_build_enumWithConsecutiveReservedNumbers_mergesIntoSingleRange() throws {
+    let enumNode = EnumNode(
+      name: "Status",
+      values: [EnumValueNode(name: "UNKNOWN", number: 0)],
+      reservedNumbers: [4, 5, 6]
+    )
+
+    let descriptor = try EnumDescriptorBuilder.build(from: enumNode, protoVersion: .proto3)
+
+    XCTAssertEqual(descriptor.reservedRange.count, 1)
+    XCTAssertEqual(descriptor.reservedRange[0].start, 4)
+    XCTAssertEqual(descriptor.reservedRange[0].end, 6, "Consecutive numbers merged, end is inclusive")
+  }
+
+  func test_build_enumWithNonConsecutiveReservedNumbers_createsMultipleRanges() throws {
+    let enumNode = EnumNode(
+      name: "Status",
+      values: [EnumValueNode(name: "UNKNOWN", number: 0)],
+      reservedNumbers: [1, 3, 5]
+    )
+
+    let descriptor = try EnumDescriptorBuilder.build(from: enumNode, protoVersion: .proto3)
+
+    XCTAssertEqual(descriptor.reservedRange.count, 3)
+    XCTAssertEqual(descriptor.reservedRange[0].start, 1)
+    XCTAssertEqual(descriptor.reservedRange[0].end, 1)
+    XCTAssertEqual(descriptor.reservedRange[1].start, 3)
+    XCTAssertEqual(descriptor.reservedRange[1].end, 3)
+    XCTAssertEqual(descriptor.reservedRange[2].start, 5)
+    XCTAssertEqual(descriptor.reservedRange[2].end, 5)
+  }
+
+  func test_build_enumWithReservedNames_setsReservedNameInDescriptor() throws {
+    let enumNode = EnumNode(
+      name: "Status",
+      values: [EnumValueNode(name: "UNKNOWN", number: 0)],
+      reservedNames: ["DEPRECATED_VALUE", "OLD_VALUE"]
+    )
+
+    let descriptor = try EnumDescriptorBuilder.build(from: enumNode, protoVersion: .proto3)
+
+    XCTAssertTrue(descriptor.reservedRange.isEmpty)
+    XCTAssertEqual(descriptor.reservedName, ["DEPRECATED_VALUE", "OLD_VALUE"])
+  }
+
+  func test_build_enumWithReservedNumbersAndNames_setsBoth() throws {
+    let enumNode = EnumNode(
+      name: "Status",
+      values: [EnumValueNode(name: "UNKNOWN", number: 0)],
+      reservedNumbers: [10, 11],
+      reservedNames: ["OLD_NAME"]
+    )
+
+    let descriptor = try EnumDescriptorBuilder.build(from: enumNode, protoVersion: .proto3)
+
+    XCTAssertEqual(descriptor.reservedRange.count, 1)
+    XCTAssertEqual(descriptor.reservedRange[0].start, 10)
+    XCTAssertEqual(descriptor.reservedRange[0].end, 11)
+    XCTAssertEqual(descriptor.reservedName, ["OLD_NAME"])
+  }
 }

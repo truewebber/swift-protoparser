@@ -11,14 +11,24 @@ struct EnumNode: Equatable {
   /// Enum-specific options.
   let options: [OptionNode]
 
+  /// Reserved enum value numbers (from `reserved N, M;` and `reserved N to M;` statements).
+  let reservedNumbers: [Int32]
+
+  /// Reserved enum value names (from `reserved "NAME";` statements).
+  let reservedNames: [String]
+
   init(
     name: String,
     values: [EnumValueNode] = [],
-    options: [OptionNode] = []
+    options: [OptionNode] = [],
+    reservedNumbers: [Int32] = [],
+    reservedNames: [String] = []
   ) {
     self.name = name
     self.values = values
     self.options = options
+    self.reservedNumbers = reservedNumbers
+    self.reservedNames = reservedNames
   }
 
   /// Returns true if this enum has a zero value (required in proto3).

@@ -30,7 +30,55 @@ struct EnumDescriptorBuilder {
       enumProto.options = try buildEnumOptions(from: enumNode.options)
     }
 
+    // Convert reserved numbers → EnumReservedRange (end is inclusive, unlike DescriptorProto.ReservedRange)
+    if !enumNode.reservedNumbers.isEmpty {
+      enumProto.reservedRange = buildEnumReservedRanges(from: enumNode.reservedNumbers)
+    }
+
+    // Convert reserved names
+    if !enumNode.reservedNames.isEmpty {
+      enumProto.reservedName.append(contentsOf: enumNode.reservedNames)
+    }
+
     return enumProto
+  }
+
+  /// Groups sorted reserved numbers into `EnumReservedRange` entries.
+  ///
+  /// Consecutive numbers (e.g. [4, 5, 6]) are merged into a single range.
+  /// `EnumReservedRange.end` is **inclusive** (unlike `DescriptorProto.ReservedRange` where end is exclusive).
+  private static func buildEnumReservedRanges(
+    from reservedNumbers: [Int32]
+  ) -> [Google_Protobuf_EnumDescriptorProto.EnumReservedRange] {
+    var ranges: [Google_Protobuf_EnumDescriptorProto.EnumReservedRange] = []
+    let sorted = reservedNumbers.sorted()
+    var rangeStart: Int32?
+    var rangeEnd: Int32?
+
+    for number in sorted {
+      if let end = rangeEnd, number == end + 1 {
+        rangeEnd = number
+      }
+      else {
+        if let start = rangeStart, let end = rangeEnd {
+          var r = Google_Protobuf_EnumDescriptorProto.EnumReservedRange()
+          r.start = start
+          r.end = end
+          ranges.append(r)
+        }
+        rangeStart = number
+        rangeEnd = number
+      }
+    }
+
+    if let start = rangeStart, let end = rangeEnd {
+      var r = Google_Protobuf_EnumDescriptorProto.EnumReservedRange()
+      r.start = start
+      r.end = end
+      ranges.append(r)
+    }
+
+    return ranges
   }
 
   /// Build EnumValueDescriptorProto from EnumValueNode.

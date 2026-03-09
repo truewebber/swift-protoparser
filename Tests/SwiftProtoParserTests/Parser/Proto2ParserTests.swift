@@ -1054,4 +1054,108 @@ final class Proto2ParserTests: XCTestCase {
       XCTFail("Proto2 nested extend must parse successfully, got: \(error.description)")
     }
   }
+
+  // MARK: - Reserved inside enum
+
+  func test_parse_enumWithReservedSingleNumber_storesNumber() {
+    let proto = """
+      syntax = "proto2";
+      enum Utf8Validation {
+        UTF8_VALIDATION_UNKNOWN = 0;
+        VERIFY = 2;
+        NONE = 3;
+        reserved 1;
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    switch result {
+    case .success(let ast):
+      XCTAssertEqual(ast.enums.count, 1)
+      XCTAssertEqual(ast.enums[0].reservedNumbers, [1])
+      XCTAssertTrue(ast.enums[0].reservedNames.isEmpty)
+    case .failure(let error):
+      XCTFail("Enum with reserved number must succeed, got: \(error.description)")
+    }
+  }
+
+  func test_parse_enumWithReservedRange_expandsNumbers() {
+    let proto = """
+      syntax = "proto2";
+      enum Status {
+        UNKNOWN = 0;
+        ACTIVE = 1;
+        reserved 4 to 6;
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    switch result {
+    case .success(let ast):
+      let reserved = ast.enums[0].reservedNumbers
+      XCTAssertEqual(reserved.sorted(), [4, 5, 6])
+    case .failure(let error):
+      XCTFail("Enum with reserved range must succeed, got: \(error.description)")
+    }
+  }
+
+  func test_parse_enumWithReservedNames_storesNames() {
+    let proto = """
+      syntax = "proto2";
+      enum Status {
+        UNKNOWN = 0;
+        reserved "DEPRECATED_VALUE", "OLD_VALUE";
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    switch result {
+    case .success(let ast):
+      XCTAssertTrue(ast.enums[0].reservedNumbers.isEmpty)
+      XCTAssertEqual(ast.enums[0].reservedNames.sorted(), ["DEPRECATED_VALUE", "OLD_VALUE"])
+    case .failure(let error):
+      XCTFail("Enum with reserved names must succeed, got: \(error.description)")
+    }
+  }
+
+  func test_parse_enumWithMultipleReservedStatements_accumulatesAll() {
+    let proto = """
+      syntax = "proto2";
+      enum Utf8Validation {
+        UTF8_VALIDATION_UNKNOWN = 0;
+        VERIFY = 2;
+        NONE = 3;
+        reserved 1;
+        reserved 10, 11;
+        reserved "OLD_NAME";
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    switch result {
+    case .success(let ast):
+      let e = ast.enums[0]
+      XCTAssertEqual(e.reservedNumbers.sorted(), [1, 10, 11])
+      XCTAssertEqual(e.reservedNames, ["OLD_NAME"])
+    case .failure(let error):
+      XCTFail("Enum with multiple reserved statements must succeed, got: \(error.description)")
+    }
+  }
+
+  func test_parse_nestedEnumWithReserved_succeeds() {
+    let proto = """
+      syntax = "proto2";
+      message Foo {
+        enum Bar {
+          BAR_UNKNOWN = 0;
+          BAR_A = 1;
+          reserved 5, 6;
+        }
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    switch result {
+    case .success(let ast):
+      let nestedEnum = ast.messages[0].nestedEnums[0]
+      XCTAssertEqual(nestedEnum.reservedNumbers.sorted(), [5, 6])
+    case .failure(let error):
+      XCTFail("Nested enum with reserved must succeed, got: \(error.description)")
+    }
+  }
 }
