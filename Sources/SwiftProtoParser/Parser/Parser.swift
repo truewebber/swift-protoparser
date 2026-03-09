@@ -1905,7 +1905,17 @@ final class Parser {
     // Emit deferred proto3 validation errors now that field numbers are known.
     switch proto3Validation {
     case .valid:
-      break
+      // An extend block must contain at least one field declaration.
+      // protoc error: "Expected 'required', 'optional', or 'repeated'."
+      if fields.isEmpty && options.isEmpty {
+        state.addError(
+          .invalidExtendTarget(
+            "Extend block for \"\(extendedType)\" must contain at least one field declaration.",
+            line: position.line,
+            column: position.column
+          )
+        )
+      }
     case .noExtensionRanges(let displayName):
       if fields.isEmpty {
         state.addError(

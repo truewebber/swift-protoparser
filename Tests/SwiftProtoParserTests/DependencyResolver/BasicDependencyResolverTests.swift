@@ -341,4 +341,73 @@ final class BasicDependencyResolverTests: XCTestCase {
     XCTAssertEqual(resolved.syntax, "proto3")
     XCTAssertNil(resolved.packageName)
   }
+
+  // MARK: - baseName without .proto extension
+
+  func test_resolvedProtoFile_baseName_withoutProtoExtension() {
+    let file = ResolvedProtoFile(
+      filePath: "/tmp/myfile.txt",
+      importPath: "myfile.txt",
+      content: "",
+      imports: [],
+      modificationTime: Date(),
+      fileSize: 0
+    )
+    XCTAssertEqual(file.baseName, "myfile.txt", "baseName should return full filename when no .proto extension")
+  }
+
+  func test_resolvedProtoFile_baseName_withProtoExtension() {
+    let file = ResolvedProtoFile(
+      filePath: "/tmp/myfile.proto",
+      importPath: "myfile.proto",
+      content: "",
+      imports: [],
+      modificationTime: Date(),
+      fileSize: 0
+    )
+    XCTAssertEqual(file.baseName, "myfile", "baseName should strip .proto extension")
+  }
+
+  // MARK: - Malformed declarations hit nil return paths in private extractors
+
+  func test_resolvedProtoFile_malformedSyntaxLine_returnsNilSyntax() throws {
+    // "syntax_version" starts with "syntax" but doesn't match `syntax = "..."` pattern
+    let content = """
+      syntax_version = "proto3";
+      message Dummy { string f = 1; }
+      """
+    let file = tempDir.appendingPathComponent("malsyntax.proto")
+    try content.write(to: file, atomically: true, encoding: .utf8)
+
+    let resolved = try ResolvedProtoFile.from(filePath: file.path)
+    XCTAssertNil(resolved.syntax, "Malformed syntax line should produce nil syntax")
+  }
+
+  func test_resolvedProtoFile_malformedPackageLine_returnsNilPackage() throws {
+    // "package" keyword present but without valid identifier (e.g., only "package ;")
+    let content = """
+      syntax = "proto3";
+      package ;
+      message Dummy { string f = 1; }
+      """
+    let file = tempDir.appendingPathComponent("malpkg.proto")
+    try content.write(to: file, atomically: true, encoding: .utf8)
+
+    let resolved = try ResolvedProtoFile.from(filePath: file.path)
+    XCTAssertNil(resolved.packageName, "Malformed package line should produce nil packageName")
+  }
+
+  func test_resolvedProtoFile_malformedImportLine_isIgnored() throws {
+    // "import" keyword present but without a quoted path
+    let content = """
+      syntax = "proto3";
+      import missing_quotes.proto;
+      message Dummy { string f = 1; }
+      """
+    let file = tempDir.appendingPathComponent("malimp.proto")
+    try content.write(to: file, atomically: true, encoding: .utf8)
+
+    let resolved = try ResolvedProtoFile.from(filePath: file.path)
+    XCTAssertTrue(resolved.imports.isEmpty, "Malformed import line should be ignored")
+  }
 }

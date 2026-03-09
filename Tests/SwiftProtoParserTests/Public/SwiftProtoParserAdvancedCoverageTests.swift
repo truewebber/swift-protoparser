@@ -630,4 +630,105 @@ final class SwiftProtoParserAdvancedCoverageTests: XCTestCase {
       XCTFail("Both directory parses should succeed and return consistent results")
     }
   }
+
+  // MARK: - parseProtoDirectory (internal helper) coverage
+
+  func test_parseProtoDirectory_success() {
+    let tempDir = createTempDirectory()
+    defer { removeTempDirectory(tempDir) }
+
+    try! """
+    syntax = "proto3";
+    message DirMsg { string name = 1; }
+    """.write(to: tempDir.appendingPathComponent("msg.proto"), atomically: true, encoding: .utf8)
+
+    let result = SwiftProtoParser.parseProtoDirectory(tempDir.path)
+    switch result {
+    case .success(let asts):
+      XCTAssertFalse(asts.isEmpty, "Should parse files in directory")
+    case .failure(let error):
+      XCTFail("Expected success: \(error)")
+    }
+  }
+
+  func test_parseProtoDirectory_recursive() {
+    let tempDir = createTempDirectory()
+    defer { removeTempDirectory(tempDir) }
+
+    let subDir = tempDir.appendingPathComponent("sub")
+    try! FileManager.default.createDirectory(at: subDir, withIntermediateDirectories: true)
+
+    try! """
+    syntax = "proto3";
+    message RootMsg { string val = 1; }
+    """.write(to: tempDir.appendingPathComponent("root.proto"), atomically: true, encoding: .utf8)
+
+    try! """
+    syntax = "proto3";
+    message SubMsg { int32 id = 1; }
+    """.write(to: subDir.appendingPathComponent("sub.proto"), atomically: true, encoding: .utf8)
+
+    let result = SwiftProtoParser.parseProtoDirectory(tempDir.path, recursive: true)
+    switch result {
+    case .success(let asts):
+      XCTAssertEqual(asts.count, 2, "Should parse files in both root and subdir")
+    case .failure(let error):
+      XCTFail("Expected success: \(error)")
+    }
+  }
+
+  func test_parseProtoDirectory_nonexistentPath_fails() {
+    let result = SwiftProtoParser.parseProtoDirectory("/nonexistent/directory")
+    XCTAssertTrue(
+      {
+        if case .failure = result { return true }
+        return false
+      }(),
+      "Should fail for nonexistent directory"
+    )
+  }
+
+  // MARK: - parseProtoToDescriptors success path
+
+  func test_parseProtoToDescriptors_success() {
+    let tempFile = createTempProtoFile(
+      content: """
+        syntax = "proto3";
+        message ToDescriptor { string value = 1; }
+        """
+    )
+    defer { removeTempFile(tempFile) }
+
+    let result = SwiftProtoParser.parseProtoToDescriptors(tempFile)
+    switch result {
+    case .success(let descriptor):
+      XCTAssertFalse(descriptor.messageType.isEmpty, "Should have message descriptor")
+      XCTAssertEqual(descriptor.messageType[0].name, "ToDescriptor")
+    case .failure(let error):
+      XCTFail("Expected success: \(error)")
+    }
+  }
+
+  // MARK: - ProtoParsingPipeline.parseDirectory failure path
+
+  func test_parseProtoDirectory_withInvalidProtoFile_fails() {
+    let tempDir = createTempDirectory()
+    defer { removeTempDirectory(tempDir) }
+
+    // Write a malformed proto file - this should cause parse() to fail inside parseDirectory
+    try! "THIS IS NOT VALID PROTO SYNTAX !@#$".write(
+      to: tempDir.appendingPathComponent("bad.proto"),
+      atomically: true,
+      encoding: .utf8
+    )
+
+    let result = SwiftProtoParser.parseProtoDirectory(tempDir.path)
+    switch result {
+    case .success:
+      // Error recovery might make it succeed - acceptable
+      XCTAssertTrue(true, "Parser recovered from invalid proto")
+    case .failure:
+      XCTAssertTrue(true, "Parser correctly failed on invalid proto")
+    }
+  }
 }

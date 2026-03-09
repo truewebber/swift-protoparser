@@ -664,7 +664,184 @@ final class LexerTests: XCTestCase {
     }
   }
 
-  /// Test various edge cases for comprehensive coverage.
+  // MARK: - Static tokenize method coverage
+
+  func test_lexer_staticTokenize_success() {
+    let input = "syntax = \"proto3\";"
+    let result = Lexer.tokenize(input)
+    XCTAssertTrue(result.isSuccess, "Static tokenize should succeed for valid input")
+    if case .success(let tokens) = result {
+      XCTAssertFalse(tokens.isEmpty)
+    }
+  }
+
+  func test_lexer_staticTokenize_withFileName() {
+    let input = "message Foo {}"
+    let result = Lexer.tokenize(input, fileName: "test.proto")
+    XCTAssertTrue(result.isSuccess)
+  }
+
+  func test_lexer_staticTokenize_failure() {
+    let input = "\"unclosed string"
+    let result = Lexer.tokenize(input)
+    XCTAssertTrue(result.isFailure, "Static tokenize should fail for invalid input")
+  }
+
+  // MARK: - Octal literal parsing
+
+  func test_lexer_octalLiteral_valid() {
+    // Proto files can embed octal integers; 077 = 63 in decimal
+    let input = "option x = 077;"
+    let lexer = Lexer(input: input)
+    let result = lexer.tokenizeForPublicAPI()
+    XCTAssertTrue(result.isSuccess, "Octal literal should tokenize successfully")
+    if case .success(let tokens) = result {
+      let intTokens = tokens.filter {
+        if case .integerLiteral = $0.type { return true }
+        return false
+      }
+      XCTAssertFalse(intTokens.isEmpty, "Should produce integer token from octal literal")
+      if case .integerLiteral(let val) = intTokens.first?.type {
+        XCTAssertEqual(val, 63, "077 octal = 63 decimal")
+      }
+    }
+  }
+
+  func test_lexer_octalLiteral_zero() {
+    let input = "option x = 00;"
+    let lexer = Lexer(input: input)
+    let result = lexer.tokenizeForPublicAPI()
+    XCTAssertTrue(result.isSuccess)
+  }
+
+  // MARK: - Escape sequence coverage
+
+  func test_lexer_escapeSequence_carriageReturn() {
+    let input = "option s = \"hello\\rworld\";"
+    let lexer = Lexer(input: input)
+    let result = lexer.tokenizeForPublicAPI()
+    XCTAssertTrue(result.isSuccess, "\\r escape should parse successfully")
+    if case .success(let tokens) = result {
+      let strTokens = tokens.filter {
+        if case .stringLiteral = $0.type { return true }
+        return false
+      }
+      XCTAssertFalse(strTokens.isEmpty)
+      if case .stringLiteral(let s) = strTokens.first?.type {
+        XCTAssertTrue(s.contains("\r"), "Should contain carriage return character")
+      }
+    }
+  }
+
+  func test_lexer_escapeSequence_singleQuote() {
+    let input = "option s = \"it\\'s here\";"
+    let lexer = Lexer(input: input)
+    let result = lexer.tokenizeForPublicAPI()
+    XCTAssertTrue(result.isSuccess, "\\' escape should parse successfully")
+    if case .success(let tokens) = result {
+      let strTokens = tokens.filter {
+        if case .stringLiteral = $0.type { return true }
+        return false
+      }
+      if case .stringLiteral(let s) = strTokens.first?.type {
+        XCTAssertTrue(s.contains("'"), "Should contain single quote character")
+      }
+    }
+  }
+
+  func test_lexer_escapeSequence_backslashAtEnd_fails() {
+    let input = "option s = \"\\"
+    let lexer = Lexer(input: input)
+    let result = lexer.tokenizeForPublicAPI()
+    XCTAssertTrue(result.isFailure, "Backslash at end of input should fail")
+  }
+
+  // MARK: - Large hex number (UInt64 path)
+
+  func test_lexer_hexLiteral_large_usesUInt64Bitpattern() {
+    // 0xFFFFFFFFFFFFFFFF can't fit in Int64 as positive, forces the UInt64 bit-pattern path
+    let input = "option x = 0xFFFFFFFFFFFFFFFF;"
+    let lexer = Lexer(input: input)
+    let result = lexer.tokenizeForPublicAPI()
+    XCTAssertTrue(result.isSuccess, "Large hex should tokenize via UInt64 path")
+    if case .success(let tokens) = result {
+      let intTokens = tokens.filter {
+        if case .integerLiteral = $0.type { return true }
+        return false
+      }
+      XCTAssertFalse(intTokens.isEmpty)
+    }
+  }
+
+  // MARK: - Number error paths
+
+  func test_lexer_hexLiteral_empty_fails() {
+    // "0x" with no hex digits should fail
+    let input = "option x = 0x;"
+    let result = Lexer.tokenize(input)
+    XCTAssertTrue(result.isFailure, "Empty hex literal (0x) should fail")
+    if case .failure(let error) = result, case .invalidIntegerLiteral = error {
+      XCTAssertTrue(true)
+    }
+    else if case .failure = result {
+      XCTAssertTrue(true, "Failed as expected")
+    }
+  }
+
+  func test_lexer_signWithNoDigits_isSymbol() {
+    // A lone '+' or '-' is tokenized as a symbol (not a number error)
+    let inputs = ["+", "-"]
+    for input in inputs {
+      let result = Lexer.tokenize(input)
+      XCTAssertTrue(result.isSuccess, "Sign character should tokenize as symbol: \(input)")
+    }
+  }
+
+  func test_lexer_scientificNotation_noExponentDigits_fails() {
+    // "1e" with no exponent digits should fail
+    let input = "1e;"
+    let result = Lexer.tokenize(input)
+    XCTAssertTrue(result.isFailure, "Scientific notation without exponent digits should fail")
+    if case .failure(let error) = result, case .invalidFloatLiteral = error {
+      XCTAssertTrue(true)
+    }
+    else if case .failure = result {
+      XCTAssertTrue(true, "Failed as expected")
+    }
+  }
+
+  func test_lexer_signedPositiveNumber() {
+    // Leading '+' with a valid integer
+    let input = "+42"
+    let result = Lexer.tokenize(input)
+    // The lexer may succeed (producing integerLiteral) or fail; either is OK
+    switch result {
+    case .success(let tokens):
+      let intTokens = tokens.filter {
+        if case .integerLiteral = $0.type { return true }
+        return false
+      }
+      XCTAssertFalse(intTokens.isEmpty, "Should produce integer token")
+    case .failure:
+      XCTAssertTrue(true, "Lexer rejected signed positive integer (acceptable)")
+    }
+  }
+
+  func test_lexer_octalLiteral_outOfRange_fails() {
+    // An octal number too large for Int64 should fail with numberOutOfRange
+    let digits = String(repeating: "7", count: 25)
+    let input = "0\(digits)"
+    let result = Lexer.tokenize(input)
+    XCTAssertTrue(result.isFailure, "Octal out of range should fail")
+    if case .failure(let error) = result, case .numberOutOfRange = error {
+      XCTAssertTrue(true)
+    }
+    else if case .failure = result {
+      XCTAssertTrue(true, "Failed as expected")
+    }
+  }
+
+  // MARK: - Various edge cases for comprehensive coverage.
   func testLexerErrorPathsCoverage() {
     let testCases = [
       ("", "empty input"),

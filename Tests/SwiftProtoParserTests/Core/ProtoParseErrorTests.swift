@@ -222,6 +222,62 @@ final class ProtoParseErrorTests: XCTestCase {
     }
   }
 
+  // MARK: - Cache, Performance and Descriptor Error Coverage
+
+  func test_cacheError_allProperties() {
+    let message = "Cache file corrupted"
+    let error = ProtoParseError.cacheError(message: message)
+
+    XCTAssertEqual(error.errorDescription, "Cache error: \(message)")
+    XCTAssertEqual(error.failureReason, "An error occurred in the caching system.")
+    XCTAssertEqual(error.recoverySuggestion, "Try clearing the cache or check file system permissions.")
+  }
+
+  func test_performanceLimitExceeded_allProperties() {
+    let message = "File too large"
+    let limit = "1000"
+    let error = ProtoParseError.performanceLimitExceeded(message: message, limit: limit)
+
+    XCTAssertEqual(error.errorDescription, "Performance limit exceeded (\(limit)): \(message)")
+    XCTAssertEqual(error.failureReason, "A performance limit was exceeded during processing.")
+    XCTAssertEqual(
+      error.recoverySuggestion,
+      "Consider reducing file size, using incremental parsing, or increasing limits."
+    )
+  }
+
+  func test_descriptorError_failureReasonAndRecovery() {
+    let error = ProtoParseError.descriptorError("Invalid message type")
+
+    XCTAssertEqual(error.failureReason, "Failed to convert parsed AST to Protocol Buffers descriptor format.")
+    XCTAssertEqual(
+      error.recoverySuggestion,
+      "Check that all AST nodes contain valid data for descriptor conversion."
+    )
+  }
+
+  func test_allErrorTypesHaveDescriptionsIncludingNewCases() {
+    let allErrors: [ProtoParseError] = [
+      .fileNotFound("test.proto"),
+      .ioError(underlying: NSError(domain: "test", code: 1)),
+      .dependencyResolutionError(message: "test", importPath: "test.proto"),
+      .circularDependency(["a.proto", "b.proto"]),
+      .lexicalError(message: "test", file: "test.proto", line: 1, column: 1),
+      .syntaxError(message: "test", file: "test.proto", line: 1, column: 1),
+      .semanticError(message: "test", context: "test"),
+      .descriptorError("test descriptor error"),
+      .cacheError(message: "test cache error"),
+      .performanceLimitExceeded(message: "test", limit: "100"),
+      .internalError(message: "test"),
+    ]
+
+    for error in allErrors {
+      XCTAssertNotNil(error.errorDescription, "errorDescription should not be nil for \(error)")
+      XCTAssertNotNil(error.failureReason, "failureReason should not be nil for \(error)")
+      XCTAssertNotNil(error.recoverySuggestion, "recoverySuggestion should not be nil for \(error)")
+    }
+  }
+
   // MARK: - Edge Cases Tests
 
   func testEmptyStringsHandling() {
