@@ -50,6 +50,9 @@ enum ParserError: Error, Equatable {
   /// Missing field label in extend statement.
   case missingFieldLabel(String, line: Int, column: Int)
 
+  /// Duplicate enum value without allow_alias = true.
+  case duplicateEnumValue(String, line: Int, column: Int)
+
   /// Internal parser error.
   case internalError(String)
 
@@ -70,7 +73,8 @@ enum ParserError: Error, Equatable {
       .invalidOptionValue(_, let line, _),
       .missingEnumZeroValue(_, let line, _),
       .invalidExtendTarget(_, let line, _),
-      .missingFieldLabel(_, let line, _):
+      .missingFieldLabel(_, let line, _),
+      .duplicateEnumValue(_, let line, _):
       return line
     case .unexpectedEndOfInput, .internalError:
       return 0
@@ -94,7 +98,8 @@ enum ParserError: Error, Equatable {
       .invalidOptionValue(_, _, let column),
       .missingEnumZeroValue(_, _, let column),
       .invalidExtendTarget(_, _, let column),
-      .missingFieldLabel(_, _, let column):
+      .missingFieldLabel(_, _, let column),
+      .duplicateEnumValue(_, _, let column):
       return column
     case .unexpectedEndOfInput, .internalError:
       return 0
@@ -151,6 +156,9 @@ enum ParserError: Error, Equatable {
 
     case .missingFieldLabel(let message, let line, let column):
       return "Missing field label at line \(line), column \(column): \(message)"
+
+    case .duplicateEnumValue(let message, _, _):
+      return message
 
     case .internalError(let message):
       return "Internal parser error: \(message)"

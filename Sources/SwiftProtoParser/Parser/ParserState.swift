@@ -23,6 +23,12 @@ struct ParserState {
   /// Used for cross-syntax validation (e.g. rejecting proto2-only constructs in proto3 files).
   var protoVersion: ProtoVersion = .default
 
+  /// The package name declared in the file, if any.
+  ///
+  /// Set as soon as the `package` declaration is parsed. Used to form fully-qualified
+  /// names in diagnostics (e.g. allow_alias duplicate value errors).
+  var currentPackage: String? = nil
+
   init(
     tokens: [Token],
     maxErrors: Int = 100,

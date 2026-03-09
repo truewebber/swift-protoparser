@@ -102,6 +102,7 @@ final class Parser {
           }
           else {
             package = try parsePackageDeclaration()
+            state.currentPackage = package
           }
 
         case .import:
@@ -873,9 +874,15 @@ final class Parser {
     _ = state.expectSymbol("}")
     if state.checkSymbol(";") { state.advance() }
 
-    // Validate that enum has a zero value (required in proto3)
-    if !values.contains(where: { $0.number == 0 }) {
+    // Zero-value is only required in proto3; proto2 and no-syntax allow any starting value.
+    if state.protoVersion == .proto3 && !values.contains(where: { $0.number == 0 }) {
       state.addError(.missingEnumZeroValue(enumName, at: state.currentPosition))
+    }
+
+    // Duplicate numeric values require option allow_alias = true.
+    let hasAllowAlias = options.contains { $0.name == "allow_alias" && $0.value == .boolean(true) }
+    if !hasAllowAlias {
+      validateEnumNoDuplicateValues(values, enumName: enumName)
     }
 
     return EnumNode(name: enumName, values: values, options: options)
@@ -922,6 +929,34 @@ final class Parser {
     _ = state.expectSymbol(";")
 
     return EnumValueNode(name: valueName, number: valueNumber, options: options)
+  }
+
+  /// Checks that no two enum values share the same number.
+  ///
+  /// Reports the first duplicate found using the exact protoc error format:
+  /// `"<fqn>" uses the same enum value as "<fqn>". If this is intended, set
+  /// 'option allow_alias = true;' to the enum definition. The next available
+  /// enum value is N.`
+  private func validateEnumNoDuplicateValues(_ values: [EnumValueNode], enumName: String) {
+    var seenNumbers: [Int32: String] = [:]
+    for value in values {
+      if let originalName = seenNumbers[value.number] {
+        let pkg = state.currentPackage
+        let fqnDuplicate = pkg.map { "\($0).\(value.name)" } ?? value.name
+        let fqnOriginal = pkg.map { "\($0).\(originalName)" } ?? originalName
+        let maxValue = values.map { $0.number }.max() ?? 0
+        let nextValue = Int(maxValue) + 1
+        let message =
+          "\"\(fqnDuplicate)\" uses the same enum value as \"\(fqnOriginal)\". "
+          + "If this is intended, set 'option allow_alias = true;' to the enum definition. "
+          + "The next available enum value is \(nextValue)."
+        state.addError(
+          .duplicateEnumValue(message, line: state.currentPosition.line, column: state.currentPosition.column)
+        )
+        return
+      }
+      seenNumbers[value.number] = value.name
+    }
   }
 
   /// Parses a oneof declaration.
