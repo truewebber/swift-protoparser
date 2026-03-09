@@ -81,7 +81,8 @@ final class WellKnownTypesIntegrationTests: XCTestCase {
     guard FileManager.default.fileExists(atPath: pbURL.path) else {
       XCTFail(
         "Reference descriptor not found: \(pbURL.path). Run Scripts/generate_well_known_descriptors.sh",
-        file: file, line: line
+        file: file,
+        line: line
       )
       return
     }
@@ -90,7 +91,8 @@ final class WellKnownTypesIntegrationTests: XCTestCase {
     guard let referenceProto = referenceSet.file.first(where: { $0.name == protoRelativePath }) else {
       XCTFail(
         "Reference FileDescriptorSet does not contain \(protoRelativePath)",
-        file: file, line: line
+        file: file,
+        line: line
       )
       return
     }
@@ -107,7 +109,8 @@ final class WellKnownTypesIntegrationTests: XCTestCase {
     guard let actualProto = actualSet.file.first(where: { $0.name == protoRelativePath }) else {
       XCTFail(
         "SwiftProtoParser result does not contain \(protoRelativePath)",
-        file: file, line: line
+        file: file,
+        line: line
       )
       return
     }
@@ -134,7 +137,8 @@ final class WellKnownTypesIntegrationTests: XCTestCase {
       "Descriptor mismatch for \(protoRelativePath).\n"
         + "--- expected (protoc) ---\n\(refJSON)\n"
         + "--- actual (SwiftProtoParser) ---\n\(actualJSON)",
-      file: file, line: line
+      file: file,
+      line: line
     )
   }
 
@@ -168,7 +172,8 @@ final class WellKnownTypesIntegrationTests: XCTestCase {
   private func testResourceURL(for relativePath: String) -> URL {
     let thisFile = URL(fileURLWithPath: #file)
     // #file → …/Tests/SwiftProtoParserTests/ProductTests/WellKnownTypesIntegrationTests.swift
-    let projectRoot = thisFile
+    let projectRoot =
+      thisFile
       .deletingLastPathComponent()  // ProductTests
       .deletingLastPathComponent()  // SwiftProtoParserTests
       .deletingLastPathComponent()  // Tests
