@@ -12,6 +12,7 @@ struct EnumNode: Equatable {
   let options: [OptionNode]
 
   /// Reserved enum value numbers (stored as closed ranges).
+  ///
   /// Use `reserved 1 to max;` to reserve all values; `max` is represented by `ReservedNumberRange.maxSentinel`.
   let reservedRanges: [ReservedNumberRange]
 
@@ -19,6 +20,7 @@ struct EnumNode: Equatable {
   let reservedNames: [String]
 
   /// Backward-compatible expansion of reserved ranges into individual numbers.
+  ///
   /// Does not expand `max` ranges (returns only `start` for those).
   var reservedNumbers: [Int32] {
     reservedRanges.flatMap { r -> [Int32] in

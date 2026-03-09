@@ -23,9 +23,15 @@ struct ReservedNumberRange: Equatable {
   var endIsMax: Bool { end == Self.maxSentinel }
 
   /// Convenience initialiser for a single reserved number (`reserved N`).
-  init(_ value: Int32) { start = value; end = value }
+  init(_ value: Int32) {
+    start = value
+    end = value
+  }
 
-  init(start: Int32, end: Int32) { self.start = start; self.end = end }
+  init(start: Int32, end: Int32) {
+    self.start = start
+    self.end = end
+  }
 }
 
 // MARK: - ExtensionRangeNode
@@ -105,6 +111,7 @@ struct MessageNode: Equatable {
   let reservedNames: [String]
 
   /// Backward-compatible expansion of reserved ranges into individual numbers.
+  ///
   /// Avoids expanding `max` ranges; callers that only need individual numbers
   /// for small ranges should prefer this over directly iterating `reservedRanges`.
   var reservedNumbers: [Int32] {
