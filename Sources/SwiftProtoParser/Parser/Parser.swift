@@ -1022,6 +1022,17 @@ final class Parser {
           let field = try parseOneofField()
           fields.append(field)
 
+        case .required, .optional, .repeated:
+          // Labels are forbidden inside oneof in both proto2 and proto3
+          state.addError(.labeledFieldInOneof(line: token.position.line, column: token.position.column))
+          state.advance()
+          skipIgnorableTokens()
+          // Continue parsing the field so further errors can still be reported
+          if !state.isAtEnd && !state.checkSymbol("}") {
+            let field = try parseOneofField()
+            fields.append(field)
+          }
+
         default:
           // Other keywords are not valid oneof elements
           state.addError(.unexpectedToken(token, expected: "oneof element"))

@@ -56,6 +56,9 @@ enum ParserError: Error, Equatable {
   /// Extension range declared in a proto3 file (only valid in proto2).
   case extensionRangeInProto3(line: Int, column: Int)
 
+  /// Field inside a oneof block has a label (required / optional / repeated).
+  case labeledFieldInOneof(line: Int, column: Int)
+
   /// Internal parser error.
   case internalError(String)
 
@@ -79,7 +82,8 @@ enum ParserError: Error, Equatable {
       .missingFieldLabel(_, let line, _),
       .duplicateEnumValue(_, let line, _):
       return line
-    case .extensionRangeInProto3(let line, _):
+    case .extensionRangeInProto3(let line, _),
+      .labeledFieldInOneof(let line, _):
       return line
     case .unexpectedEndOfInput, .internalError:
       return 0
@@ -106,7 +110,8 @@ enum ParserError: Error, Equatable {
       .missingFieldLabel(_, _, let column),
       .duplicateEnumValue(_, _, let column):
       return column
-    case .extensionRangeInProto3(_, let column):
+    case .extensionRangeInProto3(_, let column),
+      .labeledFieldInOneof(_, let column):
       return column
     case .unexpectedEndOfInput, .internalError:
       return 0
@@ -169,6 +174,10 @@ enum ParserError: Error, Equatable {
 
     case .extensionRangeInProto3(let line, let column):
       return "Extension ranges are not allowed in proto3. at line \(line), column \(column)"
+
+    case .labeledFieldInOneof(let line, let column):
+      return
+        "Fields in oneofs must not have labels (required / optional / repeated). at line \(line), column \(column)"
 
     case .internalError(let message):
       return "Internal parser error: \(message)"

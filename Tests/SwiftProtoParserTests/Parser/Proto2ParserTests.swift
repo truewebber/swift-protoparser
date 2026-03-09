@@ -399,4 +399,155 @@ final class Proto2ParserTests: XCTestCase {
       XCTFail("Plain proto2 message must succeed, got: \(error.description)")
     }
   }
+
+  // MARK: - AC-13: Oneof label validation
+
+  func test_parse_proto3OneofWithOptionalLabel_producesExactError() {
+    let proto = """
+      syntax = "proto3";
+      message Msg {
+        oneof value {
+          optional string name = 1;
+        }
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    switch result {
+    case .success:
+      XCTFail("oneof field with 'optional' label must produce an error")
+    case .failure(let error):
+      XCTAssertTrue(
+        error.description.contains("Fields in oneofs must not have labels (required / optional / repeated)."),
+        "Expected exact protoc error message, got: \(error.description)"
+      )
+    }
+  }
+
+  func test_parse_proto3OneofWithRepeatedLabel_producesExactError() {
+    let proto = """
+      syntax = "proto3";
+      message Msg {
+        oneof value {
+          repeated string name = 1;
+        }
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    switch result {
+    case .success:
+      XCTFail("oneof field with 'repeated' label must produce an error")
+    case .failure(let error):
+      XCTAssertTrue(
+        error.description.contains("Fields in oneofs must not have labels (required / optional / repeated)."),
+        "Expected exact protoc error message, got: \(error.description)"
+      )
+    }
+  }
+
+  func test_parse_proto3OneofWithRequiredLabel_producesOneofError_notProto3Error() {
+    let proto = """
+      syntax = "proto3";
+      message Msg {
+        oneof value {
+          required string name = 1;
+        }
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    switch result {
+    case .success:
+      XCTFail("oneof field with 'required' label must produce an error")
+    case .failure(let error):
+      XCTAssertTrue(
+        error.description.contains("Fields in oneofs must not have labels (required / optional / repeated)."),
+        "Expected oneof-specific error, not proto3 required error. Got: \(error.description)"
+      )
+      XCTAssertFalse(
+        error.description.contains("Required fields are not allowed in proto3"),
+        "Should not produce proto3 required error for oneof context. Got: \(error.description)"
+      )
+    }
+  }
+
+  func test_parse_proto2OneofWithRequiredLabel_producesExactError() {
+    let proto = """
+      syntax = "proto2";
+      message Msg {
+        oneof value {
+          required string name = 1;
+        }
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    switch result {
+    case .success:
+      XCTFail("oneof field with 'required' label must produce an error in proto2")
+    case .failure(let error):
+      XCTAssertTrue(
+        error.description.contains("Fields in oneofs must not have labels (required / optional / repeated)."),
+        "Expected exact protoc error message, got: \(error.description)"
+      )
+    }
+  }
+
+  func test_parse_proto2OneofWithOptionalLabel_producesExactError() {
+    let proto = """
+      syntax = "proto2";
+      message Msg {
+        oneof value {
+          optional string name = 1;
+        }
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    switch result {
+    case .success:
+      XCTFail("oneof field with 'optional' label must produce an error in proto2")
+    case .failure(let error):
+      XCTAssertTrue(
+        error.description.contains("Fields in oneofs must not have labels (required / optional / repeated)."),
+        "Expected exact protoc error message, got: \(error.description)"
+      )
+    }
+  }
+
+  func test_parse_proto3ValidOneofWithoutLabels_succeeds() {
+    let proto = """
+      syntax = "proto3";
+      message Msg {
+        oneof value {
+          string name = 1;
+          int32 number = 2;
+        }
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    switch result {
+    case .success(let ast):
+      XCTAssertEqual(ast.messages[0].oneofGroups.count, 1)
+      XCTAssertEqual(ast.messages[0].oneofGroups[0].fields.count, 2)
+    case .failure(let error):
+      XCTFail("Valid oneof without labels must succeed, got: \(error.description)")
+    }
+  }
+
+  func test_parse_proto2ValidOneofWithoutLabels_succeeds() {
+    let proto = """
+      syntax = "proto2";
+      message Msg {
+        oneof value {
+          string name = 1;
+          int32 number = 2;
+        }
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    switch result {
+    case .success(let ast):
+      XCTAssertEqual(ast.messages[0].oneofGroups.count, 1)
+      XCTAssertEqual(ast.messages[0].oneofGroups[0].fields.count, 2)
+    case .failure(let error):
+      XCTFail("Valid proto2 oneof without labels must succeed, got: \(error.description)")
+    }
+  }
 }
