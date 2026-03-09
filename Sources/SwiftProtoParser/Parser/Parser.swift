@@ -693,16 +693,9 @@ final class Parser {
           bodyReservedNames.append(contentsOf: names)
 
         case .extensions:
-          if state.protoVersion == .proto3 {
-            let position = token.position
-            state.addError(.extensionRangeInProto3(line: position.line, column: position.column))
-            state.advance()
-            state.synchronize()
-          }
-          else {
-            let ranges = try parseExtensionRanges()
-            bodyExtensionRanges.append(contentsOf: ranges)
-          }
+          // Groups are proto2-only; extension ranges inside a group body are always valid.
+          let ranges = try parseExtensionRanges()
+          bodyExtensionRanges.append(contentsOf: ranges)
 
         case .extend:
           let nested = try parseExtendDeclaration()
@@ -1859,6 +1852,35 @@ final class Parser {
     return ServiceNode(name: serviceName, methods: methods, options: options)
   }
 
+  /// Parses a message-type name for an RPC input or output position.
+  ///
+  /// Returns the type name string, or `nil` and records an error when the
+  /// current token is not a valid type identifier (e.g. a scalar keyword).
+  private func parseRPCType(expected: String) throws -> String? {
+    guard let firstPart = state.identifierName else {
+      state.addError(
+        .unexpectedToken(
+          state.currentToken ?? Token(type: .eof, position: Token.Position(line: 0, column: 0)),
+          expected: expected
+        )
+      )
+      return nil
+    }
+    let fieldType = try parseQualifiedTypeName(firstPart: firstPart)
+    switch fieldType {
+    case .message(let typeName), .enumType(let typeName), .qualifiedType(let typeName):
+      return typeName
+    default:
+      state.addError(
+        .unexpectedToken(
+          state.currentToken ?? Token(type: .eof, position: Token.Position(line: 0, column: 0)),
+          expected: expected
+        )
+      )
+      return nil
+    }
+  }
+
   /// Parses an RPC method: rpc MethodName(RequestType) returns (ResponseType);.
   private func parseRPCMethod() throws -> RPCMethodNode {
     _ = state.expectKeyword(.rpc)
@@ -1886,31 +1908,7 @@ final class Parser {
       skipIgnorableTokens()
     }
 
-    // Parse input type - support qualified types like google.protobuf.Empty
-    let inputType: String
-    if let firstPart = state.identifierName {
-      // Use qualified type parsing logic to support google.protobuf.Empty
-      let fieldType = try parseQualifiedTypeName(firstPart: firstPart)
-      switch fieldType {
-      case .message(let typeName), .enumType(let typeName), .qualifiedType(let typeName):
-        inputType = typeName
-      default:
-        state.addError(
-          .unexpectedToken(
-            state.currentToken ?? Token(type: .eof, position: Token.Position(line: 0, column: 0)),
-            expected: "RPC input type"
-          )
-        )
-        return RPCMethodNode(name: methodName, inputType: "", outputType: "")
-      }
-    }
-    else {
-      state.addError(
-        .unexpectedToken(
-          state.currentToken ?? Token(type: .eof, position: Token.Position(line: 0, column: 0)),
-          expected: "RPC input type"
-        )
-      )
+    guard let inputType = try parseRPCType(expected: "RPC input type") else {
       return RPCMethodNode(name: methodName, inputType: "", outputType: "")
     }
     skipIgnorableTokens()
@@ -1928,31 +1926,7 @@ final class Parser {
       skipIgnorableTokens()
     }
 
-    // Parse output type - support qualified types like google.protobuf.Empty
-    let outputType: String
-    if let firstPart = state.identifierName {
-      // Use qualified type parsing logic to support google.protobuf.Empty
-      let fieldType = try parseQualifiedTypeName(firstPart: firstPart)
-      switch fieldType {
-      case .message(let typeName), .enumType(let typeName), .qualifiedType(let typeName):
-        outputType = typeName
-      default:
-        state.addError(
-          .unexpectedToken(
-            state.currentToken ?? Token(type: .eof, position: Token.Position(line: 0, column: 0)),
-            expected: "RPC output type"
-          )
-        )
-        return RPCMethodNode(name: methodName, inputType: inputType, outputType: "")
-      }
-    }
-    else {
-      state.addError(
-        .unexpectedToken(
-          state.currentToken ?? Token(type: .eof, position: Token.Position(line: 0, column: 0)),
-          expected: "RPC output type"
-        )
-      )
+    guard let outputType = try parseRPCType(expected: "RPC output type") else {
       return RPCMethodNode(name: methodName, inputType: inputType, outputType: "")
     }
     skipIgnorableTokens()
@@ -2093,7 +2067,7 @@ final class Parser {
     _ = state.expectSymbol("{")
 
     var fields: [FieldNode] = []
-    var options: [OptionNode] = []
+    let options: [OptionNode] = []
 
     // Parse extend body
     while !state.isAtEnd {
@@ -2109,8 +2083,11 @@ final class Parser {
       case .keyword(let keyword):
         switch keyword {
         case .option:
-          let option = try parseOptionDeclaration()
-          options.append(option)
+          // protoc error: "Expected 'required', 'optional', or 'repeated'."
+          // Standalone `option` declarations are not valid inside extend blocks.
+          state.addError(.unexpectedToken(token, expected: "field declaration"))
+          state.advance()
+          state.synchronize()
 
         case .optional, .repeated, .required:
           let field = try parseFieldDeclaration()

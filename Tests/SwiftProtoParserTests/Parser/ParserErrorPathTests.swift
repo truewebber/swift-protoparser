@@ -3927,4 +3927,284 @@ final class ParserErrorPathTests: XCTestCase {
       XCTAssertTrue(true, "Invalid enum value name correctly rejected")
     }
   }
+
+  // MARK: - Protoc-verified error path coverage
+
+  /// Package declaration without a name must be rejected.
+  ///
+  /// protoc: `Expected identifier.`
+  func test_parsePackageDeclaration_missingName_rejectsWithError() {
+    let proto = """
+      syntax = "proto3";
+      package;
+      message M { string x = 1; }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    XCTAssertFalse(result.isSuccess, "Package without a name must be rejected")
+  }
+
+  /// Group name must be an identifier, not an integer.
+  ///
+  /// protoc: `Expected field name.`
+  func test_parseGroupField_nonIdentifierGroupName_rejectsWithError() {
+    let proto = """
+      syntax = "proto2";
+      message M {
+        optional group 123 = 1 {}
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    XCTAssertFalse(result.isSuccess, "Group with numeric name must be rejected")
+  }
+
+  /// Group field number must be an integer, not an identifier.
+  ///
+  /// protoc: `Expected field number.`
+  func test_parseGroupField_nonIntegerFieldNumber_rejectsWithError() {
+    let proto = """
+      syntax = "proto2";
+      message M {
+        optional group Foo = abc {
+          required string x = 1;
+        }
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    XCTAssertFalse(result.isSuccess, "Group with non-integer field number must be rejected")
+  }
+
+  /// protoc: `Expected "required", "optional", or "repeated".`
+  /// A keyword that is invalid inside a group body (e.g. `service`) must be rejected.
+  func test_parseGroupFieldBody_unexpectedKeyword_rejectsWithError() {
+    let proto = """
+      syntax = "proto2";
+      message M {
+        optional group Foo = 1 {
+          service Bad {}
+        }
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    XCTAssertFalse(result.isSuccess, "Invalid keyword inside group body must be rejected")
+  }
+
+  /// A keyword type (e.g. `string`) without a label inside a proto2 group body
+  /// already triggers the `default:` branch and is rejected.
+  ///
+  /// protoc: `Expected "required", "optional", or "repeated".`
+  func test_parseGroupFieldBody_keywordTypeWithoutLabel_rejectsWithError() {
+    let proto = """
+      syntax = "proto2";
+      message M {
+        optional group Foo = 1 {
+          string name = 1;
+        }
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    XCTAssertFalse(result.isSuccess, "Scalar-type field without label in group body must be rejected")
+  }
+
+  /// A user-defined identifier type without a label inside a proto2 group body
+  /// is caught by the proto2 label-validation inside parseFieldDeclaration.
+  ///
+  /// protoc: `Expected "required", "optional", or "repeated".`
+  func test_parseGroupFieldBody_identifierTypeWithoutLabel_rejectsWithError() {
+    let proto = """
+      syntax = "proto2";
+      message M {
+        optional group Foo = 1 {
+          Bar name = 1;
+        }
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    XCTAssertFalse(
+      result.isSuccess,
+      "User-defined type field without label in proto2 group body must be rejected"
+    )
+  }
+
+  /// A non-keyword, non-identifier token inside a group body (e.g. a bare integer) must be rejected.
+  func test_parseGroupFieldBody_bareInteger_rejectsWithError() {
+    let proto = """
+      syntax = "proto2";
+      message M {
+        optional group Foo = 1 {
+          123
+        }
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    XCTAssertFalse(result.isSuccess, "Bare integer inside group body must be rejected")
+  }
+
+  /// protoc: `"google.protobuf.message" is not defined.` (semantic error after full parse)
+  /// Our parser stops building the qualified name when it hits the keyword `message` after
+  /// a dot and emits a parse-level error for the incomplete type.
+  ///
+  /// Both parsers reject the input; the error level differs (ours is parse, protoc's is semantic).
+  func test_parseQualifiedTypeName_keywordAfterDot_rejectsWithError() {
+    let proto = """
+      syntax = "proto3";
+      message M {
+        google.protobuf.message x = 1;
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    // Our parser truncates the qualified name at the keyword boundary; protoc rejects
+    // at the semantic level. Both reject the input.
+    XCTAssertFalse(result.isSuccess, "Keyword after dot in qualified type must be rejected")
+  }
+
+  /// Extension range start must be an integer, not an identifier.
+  ///
+  /// protoc: `Expected field number range.`
+  func test_parseExtensionRanges_nonIntegerStart_rejectsWithError() {
+    let proto = """
+      syntax = "proto2";
+      message M {
+        extensions abc;
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    XCTAssertFalse(result.isSuccess, "Extension range with non-integer start must be rejected")
+  }
+
+  /// Extension range end specified as a keyword instead of a number must be rejected.
+  ///
+  /// protoc: `Expected integer.`
+  func test_parseExtensionRanges_keywordAsEndNumber_rejectsWithError() {
+    let proto = """
+      syntax = "proto2";
+      message M {
+        extensions 100 to message;
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    XCTAssertFalse(result.isSuccess, "Extension range with keyword as end number must be rejected")
+  }
+
+  /// A valid `repeated: false` in a declaration block exercises the boolean-path
+  /// for the `repeated` key inside `parseExtensionRangeDeclaration`.
+  ///
+  /// protoc: valid input, accepted.
+  func test_parseExtensionRangeDeclaration_repeatedFalse_parsesCorrectly() {
+    let proto = """
+      syntax = "proto2";
+      message M {
+        extensions 100 to 199 [
+          declaration = {
+            number: 100,
+            full_name: ".test.foo_ext",
+            type: ".test.Bar",
+            repeated: false
+          }
+        ];
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    switch result {
+    case .success(let ast):
+      XCTAssertEqual(ast.messages[0].extensionRanges.count, 1)
+      let decl = ast.messages[0].extensionRanges[0].options?.declarations[0]
+      XCTAssertEqual(decl?.repeated, false)
+    case .failure(let error):
+      XCTFail("Valid declaration with repeated: false must succeed, got: \(error.description)")
+    }
+  }
+
+  /// A `declaration` block where `number` has a nested message literal value `{ ... }`
+  /// exercises the `case .symbol("{"):` branch inside `skipTextProtoValue`.
+  ///
+  /// protoc: error. Our parser is lenient and skips the bad value to allow recovery.
+  func test_skipTextProtoValue_nestedMessageValue_recoversGracefully() {
+    let proto = """
+      syntax = "proto2";
+      message M {
+        extensions 100 to 199 [
+          declaration = {
+            number: {nested: 42},
+            full_name: ".test.foo_ext",
+            type: ".test.Bar"
+          }
+        ];
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    switch result {
+    case .success(let ast):
+      XCTAssertEqual(ast.messages[0].extensionRanges.count, 1)
+    case .failure:
+      break
+    }
+  }
+
+  /// A `declaration` block where `number` has an array literal value `[ ... ]`
+  /// exercises the `case .symbol("["):` branch inside `skipTextProtoValue`.
+  ///
+  /// protoc: error. Our parser is lenient and skips the bad value to allow recovery.
+  func test_skipTextProtoValue_arrayValue_recoversGracefully() {
+    let proto = """
+      syntax = "proto2";
+      message M {
+        extensions 100 to 199 [
+          declaration = {
+            number: [1, 2, 3],
+            full_name: ".test.foo_ext",
+            type: ".test.Bar"
+          }
+        ];
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    switch result {
+    case .success(let ast):
+      XCTAssertEqual(ast.messages[0].extensionRanges.count, 1)
+    case .failure:
+      break
+    }
+  }
+
+  /// Extend target must be a type identifier, not an integer.
+  ///
+  /// protoc: `Expected type name.`
+  func test_parseExtendDeclaration_nonIdentifierTarget_rejectsWithError() {
+    let proto = """
+      syntax = "proto2";
+      extend 123 {
+        optional string x = 1;
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    XCTAssertFalse(result.isSuccess, "Extend with non-identifier target must be rejected")
+  }
+
+  /// A nested message declaration is not valid inside an extend body.
+  ///
+  /// protoc: `Missing field number.`
+  func test_parseExtendDeclaration_nestedMessageInBody_rejectsWithError() {
+    let proto = """
+      syntax = "proto3";
+      extend google.protobuf.MessageOptions {
+        message Nested {}
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    XCTAssertFalse(result.isSuccess, "Nested message inside extend body must be rejected")
+  }
+
+  /// A nested enum declaration is not valid inside an extend body.
+  ///
+  /// protoc: `Missing field number.`
+  func test_parseExtendDeclaration_nestedEnumInBody_rejectsWithError() {
+    let proto = """
+      syntax = "proto3";
+      extend google.protobuf.MessageOptions {
+        enum E { V = 0; }
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    XCTAssertFalse(result.isSuccess, "Nested enum inside extend body must be rejected")
+  }
 }

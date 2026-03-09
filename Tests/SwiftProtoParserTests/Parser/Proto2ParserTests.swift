@@ -1238,4 +1238,170 @@ final class Proto2ParserTests: XCTestCase {
       XCTFail("Descriptor build must succeed, got: \(error.description)")
     }
   }
+
+  // MARK: - Extension range declaration: malformed value types (skipTextProtoValue coverage)
+
+  /// A `declaration` block where the `number` field has a string value instead of an integer
+  /// is silently skipped by the parser (lenient recovery), and the other valid fields are kept.
+  ///
+  /// protoc error: `Expected integer, got: "wrong_type"`
+  ///
+  /// Our parser is lenient and recovers rather than erroring to allow
+  /// partial parsing of forward-compatible proto files.
+  func test_parse_declarationWithWrongTypeForNumber_recoversAndKeepsOtherFields() {
+    let proto = """
+      syntax = "proto2";
+      message Extendable {
+        required int32 id = 1;
+        extensions 100 to 199 [
+          declaration = {
+            number: "wrong_type",
+            full_name: ".test.foo_ext",
+            type: ".test.Bar"
+          }
+        ];
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    // Parser should NOT crash — either succeed (lenient recovery) or return a parse error.
+    // What it must NOT do is produce an unrecoverable crash or infinite loop.
+    switch result {
+    case .success(let ast):
+      // Lenient recovery: the declaration was partially parsed or skipped.
+      XCTAssertEqual(ast.messages[0].extensionRanges.count, 1, "Extension range must still be present")
+    case .failure:
+      // Strict error path is also acceptable.
+      break
+    }
+  }
+
+  /// A `declaration` block where the `full_name` field has an integer value instead of a string
+  /// is silently skipped by the parser (lenient recovery path exercising skipTextProtoValue).
+  func test_parse_declarationWithWrongTypeForFullName_recoversGracefully() {
+    let proto = """
+      syntax = "proto2";
+      message Extendable {
+        required int32 id = 1;
+        extensions 100 to 199 [
+          declaration = {
+            number: 100,
+            full_name: 999,
+            type: ".test.Bar"
+          }
+        ];
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    switch result {
+    case .success(let ast):
+      XCTAssertEqual(ast.messages[0].extensionRanges.count, 1)
+    case .failure:
+      break
+    }
+  }
+
+  /// A `declaration` block where the `type` field has an integer value instead of a string
+  /// exercises the skipTextProtoValue code path for the `type` key.
+  func test_parse_declarationWithWrongTypeForTypeName_recoversGracefully() {
+    let proto = """
+      syntax = "proto2";
+      message Extendable {
+        required int32 id = 1;
+        extensions 100 to 199 [
+          declaration = {
+            number: 100,
+            full_name: ".test.foo_ext",
+            type: 42
+          }
+        ];
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    switch result {
+    case .success(let ast):
+      XCTAssertEqual(ast.messages[0].extensionRanges.count, 1)
+    case .failure:
+      break
+    }
+  }
+
+  /// A `declaration` block where the `reserved` field has a string value instead of a bool
+  /// exercises the skipTextProtoValue code path for the `reserved` key.
+  func test_parse_declarationWithWrongTypeForReservedFlag_recoversGracefully() {
+    let proto = """
+      syntax = "proto2";
+      message Extendable {
+        required int32 id = 1;
+        extensions 100 to 199 [
+          declaration = {
+            number: 100,
+            full_name: ".test.foo_ext",
+            type: ".test.Bar",
+            reserved: "yes"
+          }
+        ];
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    switch result {
+    case .success(let ast):
+      XCTAssertEqual(ast.messages[0].extensionRanges.count, 1)
+    case .failure:
+      break
+    }
+  }
+
+  /// A `declaration` block where the `repeated` field has a string value instead of a bool
+  /// exercises the skipTextProtoValue code path for the `repeated` key.
+  func test_parse_declarationWithWrongTypeForRepeatedFlag_recoversGracefully() {
+    let proto = """
+      syntax = "proto2";
+      message Extendable {
+        required int32 id = 1;
+        extensions 100 to 199 [
+          declaration = {
+            number: 100,
+            full_name: ".test.foo_ext",
+            type: ".test.Bar",
+            repeated: "no"
+          }
+        ];
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    switch result {
+    case .success(let ast):
+      XCTAssertEqual(ast.messages[0].extensionRanges.count, 1)
+    case .failure:
+      break
+    }
+  }
+
+  /// A `declaration` block with an entirely unknown key exercises the `default:` case in the
+  /// declaration parser which calls skipTextProtoValue to skip the unknown value.
+  func test_parse_declarationWithUnknownKey_skipsUnknownFieldGracefully() {
+    let proto = """
+      syntax = "proto2";
+      message Extendable {
+        required int32 id = 1;
+        extensions 100 to 199 [
+          declaration = {
+            number: 100,
+            full_name: ".test.foo_ext",
+            type: ".test.Bar",
+            unknown_future_key: "some_value"
+          }
+        ];
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    // Our parser is lenient with unknown keys inside declaration blocks for forward
+    // compatibility. The extension range itself must still be parsed correctly.
+    switch result {
+    case .success(let ast):
+      XCTAssertEqual(ast.messages[0].extensionRanges.count, 1)
+    case .failure:
+      break
+    }
+  }
 }

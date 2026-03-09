@@ -385,6 +385,63 @@ final class CrossSyntaxValidationTests: XCTestCase {
     )
   }
 
+  // MARK: - extend block validation
+
+  /// A standalone `option` declaration inside an `extend` block must be rejected.
+  ///
+  /// protoc error: `Expected "required", "optional", or "repeated".`
+  ///
+  /// EXPECTED PASS.
+  func test_extend_standaloneOptionInsideBody_rejectsWithExpectedMessage() {
+    let proto = """
+      syntax = "proto2";
+      import "google/protobuf/descriptor.proto";
+      extend google.protobuf.MessageOptions {
+        option deprecated = true;
+        optional string my_opt = 50001;
+      }
+      """
+
+    let result = SwiftProtoParser.parseProtoString(proto)
+    guard case .failure(let error) = result else {
+      XCTFail(
+        "Expected parse failure for standalone option inside extend body, got success"
+      )
+      return
+    }
+    XCTAssertTrue(
+      error.localizedDescription.contains("field declaration"),
+      "Expected 'field declaration' in error, got: \(error.localizedDescription)"
+    )
+  }
+
+  /// An empty `extend` block targeting a proto3 message with no extension ranges
+  /// must be rejected because there are no fields to extend and no extension ranges declared.
+  ///
+  /// protoc error: `"test.SomeMsg" does not declare any extension numbers.`
+  ///
+  /// EXPECTED PASS.
+  func test_proto3_emptyExtendBlockOnLocalMessage_rejectsWithExpectedMessage() {
+    let proto = """
+      syntax = "proto3";
+      package test;
+      message SomeMsg {}
+      extend SomeMsg {}
+      """
+
+    let result = SwiftProtoParser.parseProtoString(proto)
+    guard case .failure(let error) = result else {
+      XCTFail(
+        "Expected parse failure for empty extend block on local proto3 message, got success"
+      )
+      return
+    }
+    XCTAssertTrue(
+      error.localizedDescription.contains("does not declare any extension numbers"),
+      "Expected 'does not declare any extension numbers' in error, got: \(error.localizedDescription)"
+    )
+  }
+
   /// With `allow_alias = true`, duplicate enum values must be accepted.
   ///
   /// EXPECTED PASS.
