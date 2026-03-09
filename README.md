@@ -91,7 +91,7 @@ case .failure(let error):
 
 ## Features
 
-- **Complete Proto3 Support**: All standard proto3 syntax and semantics
+- **Proto3 and Proto2 Support**: Both syntax versions fully supported, including `required` fields, `extensions`, `group` fields, and `default` values
 - **AST Generation**: Parse files into structured Abstract Syntax Tree
 - **Descriptor Building**: Generate `Google_Protobuf_FileDescriptorProto` compatible with SwiftProtobuf
 - **Map Fields**: Full support for map types with automatic synthetic entry message generation (protoc-compatible)
@@ -103,9 +103,9 @@ case .failure(let error):
 - **Incremental Parsing**: Only re-parse changed files in large projects
 - **Streaming Support**: Memory-efficient parsing of large files (>50MB)
 
-## Supported Proto3 Features
+## Supported Features
 
-The library supports the complete proto3 specification including:
+The library supports both the proto3 and proto2 specifications, including:
 
 ### Core Features
 ```protobuf

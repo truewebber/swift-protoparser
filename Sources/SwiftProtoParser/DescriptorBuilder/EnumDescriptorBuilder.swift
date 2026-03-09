@@ -5,7 +5,10 @@ import SwiftProtobuf
 struct EnumDescriptorBuilder {
 
   /// Convert EnumNode to EnumDescriptorProto.
-  static func build(from enumNode: EnumNode) throws -> Google_Protobuf_EnumDescriptorProto {
+  static func build(
+    from enumNode: EnumNode,
+    protoVersion: ProtoVersion = .proto3
+  ) throws -> Google_Protobuf_EnumDescriptorProto {
     var enumProto = Google_Protobuf_EnumDescriptorProto()
 
     // Set enum name
@@ -17,8 +20,8 @@ struct EnumDescriptorBuilder {
       enumProto.value.append(valueProto)
     }
 
-    // Validate that enum has a zero value (required in proto3)
-    if !enumNode.hasZeroValue {
+    // Zero value is required only in proto3
+    if protoVersion == .proto3 && !enumNode.hasZeroValue {
       throw DescriptorError.conversionFailed("Enum '\(enumNode.name)' must have a zero value in proto3")
     }
 

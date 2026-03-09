@@ -111,7 +111,7 @@ final class Lexer {
       try tokenizeIdentifierOrKeyword()
 
     // Symbols
-    case "{", "}", "[", "]", "(", ")", "=", ";", ",", ".", "<", ">", "+", "-":
+    case "{", "}", "[", "]", "(", ")", "=", ";", ",", ".", "<", ">", "+", "-", ":":
       try tokenizeSymbol()
 
     default:
@@ -292,6 +292,7 @@ final class Lexer {
     let startIndex = currentIndex
     let startLine = currentLine
     let startColumn = currentColumn
+    let position = Token.Position(line: startLine, column: startColumn)
 
     var isFloat = false
     var hasSign = false
@@ -300,6 +301,65 @@ final class Lexer {
     if currentCharacter() == "-" || currentCharacter() == "+" {
       hasSign = true
       advanceIndex()
+    }
+
+    // Detect hex literal: 0x or 0X
+    if !hasSign && !isAtEnd() && currentCharacter() == "0" {
+      let nextIndex = input.index(after: currentIndex)
+      if nextIndex < input.endIndex && (input[nextIndex] == "x" || input[nextIndex] == "X") {
+        advanceIndex()  // skip '0'
+        advanceIndex()  // skip 'x'/'X'
+        let hexStart = currentIndex
+        while !isAtEnd() && currentCharacter().isHexDigit {
+          advanceIndex()
+        }
+        let hexDigits = String(input[hexStart..<currentIndex])
+        if hexDigits.isEmpty {
+          throw LexerError.invalidIntegerLiteral(
+            String(input[startIndex..<currentIndex]),
+            line: startLine,
+            column: startColumn
+          )
+        }
+        if let value = Int64(hexDigits, radix: 16) {
+          tokens.append(Token(type: .integerLiteral(value), position: position))
+        }
+        else if let uvalue = UInt64(hexDigits, radix: 16) {
+          tokens.append(Token(type: .integerLiteral(Int64(bitPattern: uvalue)), position: position))
+        }
+        else {
+          throw LexerError.numberOutOfRange(
+            String(input[startIndex..<currentIndex]),
+            line: startLine,
+            column: startColumn
+          )
+        }
+        return
+      }
+    }
+
+    // Detect octal literal: 0 followed by octal digits
+    if !hasSign && !isAtEnd() && currentCharacter() == "0" {
+      let nextIndex = input.index(after: currentIndex)
+      if nextIndex < input.endIndex && input[nextIndex] >= "0" && input[nextIndex] <= "7" {
+        advanceIndex()  // skip leading '0'
+        let octStart = currentIndex
+        while !isAtEnd() && currentCharacter() >= "0" && currentCharacter() <= "7" {
+          advanceIndex()
+        }
+        let octDigits = String(input[octStart..<currentIndex])
+        if let value = Int64(octDigits, radix: 8) {
+          tokens.append(Token(type: .integerLiteral(value), position: position))
+        }
+        else {
+          throw LexerError.numberOutOfRange(
+            String(input[startIndex..<currentIndex]),
+            line: startLine,
+            column: startColumn
+          )
+        }
+        return
+      }
     }
 
     // Read integer part
@@ -356,8 +416,6 @@ final class Lexer {
     }
 
     let numberString = String(input[startIndex..<currentIndex])
-
-    let position = Token.Position(line: startLine, column: startColumn)
 
     if isFloat {
       if let floatValue = Double(numberString) {

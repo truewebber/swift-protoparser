@@ -356,7 +356,7 @@ final class Parser {
     return OptionNode(name: optionName, value: value, isCustom: isCustom)
   }
 
-  /// Parses an option value (string, number, boolean, or identifier).
+  /// Parses an option value (string, number, boolean, identifier, or message literal).
   private func parseOptionValue() throws -> OptionValue {
     guard let token = state.currentToken else {
       state.addError(.unexpectedEndOfInput(expected: "option value"))
@@ -381,6 +381,40 @@ final class Parser {
     case .identifier(let id):
       value = .identifier(id)
 
+    case .keyword(let kw):
+      // Keywords can appear as enum value identifiers (e.g. SPEED, RETENTION_RUNTIME)
+      value = .identifier(kw.rawValue)
+
+    case .symbol("{"):
+      // Message literal: { field: value, ... } — consume the whole block.
+      value = .identifier(consumeBalancedBlock(open: "{", close: "}"))
+      return value
+
+    case .symbol("["):
+      // Array literal: [ value, ... ] — consume the whole block.
+      value = .identifier(consumeBalancedBlock(open: "[", close: "]"))
+      return value
+
+    case .symbol("-"):
+      // Negative number
+      state.advance()
+      skipIgnorableTokens()
+      guard let next = state.currentToken else {
+        state.addError(.unexpectedEndOfInput(expected: "number after '-'"))
+        return .number(0)
+      }
+      switch next.type {
+      case .integerLiteral(let int):
+        state.advance()
+        return .number(-Double(int))
+      case .floatLiteral(let float):
+        state.advance()
+        return .number(-float)
+      default:
+        state.addError(.unexpectedToken(next, expected: "number after '-'"))
+        return .number(0)
+      }
+
     default:
       state.addError(.unexpectedToken(token, expected: "option value"))
       return .string("")
@@ -388,6 +422,42 @@ final class Parser {
 
     state.advance()
     return value
+  }
+
+  /// Consumes a balanced block starting with `open` up to the matching `close` and
+  /// returns the raw text content (for message-literal and array-literal option values).
+  private func consumeBalancedBlock(open: Character, close: Character) -> String {
+    var depth = 0
+    var text = ""
+    while !state.isAtEnd {
+      guard let token = state.currentToken else { break }
+      if case .symbol(let ch) = token.type {
+        if ch == open {
+          depth += 1
+          text.append(ch)
+          state.advance()
+          continue
+        }
+        if ch == close {
+          depth -= 1
+          text.append(ch)
+          state.advance()
+          if depth == 0 { break }
+          continue
+        }
+      }
+      if case .whitespace = token.type {
+        state.advance()
+        continue
+      }
+      if case .newline = token.type {
+        state.advance()
+        continue
+      }
+      text.append(contentsOf: token.type.description)
+      state.advance()
+    }
+    return text
   }
 
   /// Parses a message declaration.
@@ -1455,36 +1525,32 @@ final class Parser {
       state.advance()
       skipIgnorableTokens()
 
-      guard state.checkIdentifier() && state.identifierName == "to" else {
-        state.addError(
-          .unexpectedToken(
-            state.currentToken ?? Token(type: .eof, position: Token.Position(line: 0, column: 0)),
-            expected: "'to' keyword in extension range"
-          )
-        )
-        break
-      }
-
-      state.advance()  // consume "to"
-      skipIgnorableTokens()
-
       let exclusiveEnd: Int32
-      if state.checkIdentifier() && state.identifierName == "max" {
-        exclusiveEnd = Parser.extensionRangeMax
-        state.advance()
-      }
-      else if let endValue = state.integerLiteralValue {
-        exclusiveEnd = Int32(endValue) + 1
-        state.advance()
+      if state.checkIdentifier() && state.identifierName == "to" {
+        state.advance()  // consume "to"
+        skipIgnorableTokens()
+
+        if state.checkIdentifier() && state.identifierName == "max" {
+          exclusiveEnd = Parser.extensionRangeMax
+          state.advance()
+        }
+        else if let endValue = state.integerLiteralValue {
+          exclusiveEnd = Int32(endValue) + 1
+          state.advance()
+        }
+        else {
+          state.addError(
+            .unexpectedToken(
+              state.currentToken ?? Token(type: .eof, position: Token.Position(line: 0, column: 0)),
+              expected: "extension range end number or 'max'"
+            )
+          )
+          break
+        }
       }
       else {
-        state.addError(
-          .unexpectedToken(
-            state.currentToken ?? Token(type: .eof, position: Token.Position(line: 0, column: 0)),
-            expected: "extension range end number or 'max'"
-          )
-        )
-        break
+        // Single extension number: `extensions N;` — equivalent to `extensions N to N`
+        exclusiveEnd = start + 1
       }
 
       ranges.append(ExtensionRangeNode(start: start, end: exclusiveEnd))
@@ -1748,12 +1814,17 @@ final class Parser {
     let baseName = extendedTypeComponents.joined(separator: ".")
     let extendedType = hasLeadingDot ? ".\(baseName)" : baseName
 
-    // In proto3, only google.protobuf.* targets are allowed for custom options.
-    // In proto2, any message type may be extended (no restriction).
+    // Compute the FQN and determine the validation mode upfront.
+    // Error emission for "does not declare N as extension number" is deferred
+    // until after parsing the body so we can include the actual field number.
+    enum ExtendProto3Validation {
+      case valid
+      case noExtensionRanges(displayName: String)
+      case optionsOnly
+    }
+
+    let proto3Validation: ExtendProto3Validation
     if state.protoVersion == .proto3 {
-      // Compute FQN for validation.
-      // Simple names (no dots) are resolved against the current package.
-      // Multi-part names already carry their own package component.
       let fqn: String
       if extendedType.hasPrefix(".") {
         fqn = extendedType
@@ -1765,33 +1836,23 @@ final class Parser {
         fqn = ".\(extendedType)"
       }
 
-      if !fqn.hasPrefix(".google.protobuf.") {
-        // Distinguish two cases:
-        // 1. Simple local name (no dots in original) — the message has no extension
-        //    ranges because proto3 messages cannot declare them.
-        // 2. Qualified name (has dots or leading dot) — likely a proto2 import target
-        //    that may have extension ranges; extending it from proto3 is forbidden.
-        if !extendedType.contains(".") {
-          let pkg = state.currentPackage
-          let displayName = pkg.map { "\($0).\(extendedType)" } ?? extendedType
-          state.addError(
-            .invalidExtendTarget(
-              "\"\(displayName)\" does not declare any extension numbers.",
-              line: position.line,
-              column: position.column
-            )
-          )
-        }
-        else {
-          state.addError(
-            .invalidExtendTarget(
-              "Extensions in proto3 are only allowed for defining options.",
-              line: position.line,
-              column: position.column
-            )
-          )
-        }
+      if fqn.hasPrefix(".google.protobuf.") {
+        proto3Validation = .valid
       }
+      else if !extendedType.contains(".") {
+        // Simple local name: proto3 messages have no extension ranges.
+        // Defer error with per-field number (matches protoc exact message).
+        let pkg = state.currentPackage
+        let displayName = pkg.map { "\($0).\(extendedType)" } ?? extendedType
+        proto3Validation = .noExtensionRanges(displayName: displayName)
+      }
+      else {
+        // Qualified name — likely a proto2 import target with extension ranges.
+        proto3Validation = .optionsOnly
+      }
+    }
+    else {
+      proto3Validation = .valid
     }
 
     skipIgnorableTokens()
@@ -1800,7 +1861,7 @@ final class Parser {
     var fields: [FieldNode] = []
     var options: [OptionNode] = []
 
-    // Parse extend body - only custom option fields are allowed
+    // Parse extend body
     while !state.isAtEnd {
       skipIgnorableTokens()
 
@@ -1841,6 +1902,41 @@ final class Parser {
     _ = state.expectSymbol("}")
     if state.checkSymbol(";") { state.advance() }
 
+    // Emit deferred proto3 validation errors now that field numbers are known.
+    switch proto3Validation {
+    case .valid:
+      break
+    case .noExtensionRanges(let displayName):
+      if fields.isEmpty {
+        state.addError(
+          .invalidExtendTarget(
+            "\"\(displayName)\" does not declare any extension numbers.",
+            line: position.line,
+            column: position.column
+          )
+        )
+      }
+      else {
+        for field in fields {
+          state.addError(
+            .invalidExtendTarget(
+              "\"\(displayName)\" does not declare \(field.number) as an extension number.",
+              line: position.line,
+              column: position.column
+            )
+          )
+        }
+      }
+    case .optionsOnly:
+      state.addError(
+        .invalidExtendTarget(
+          "Extensions in proto3 are only allowed for defining options.",
+          line: position.line,
+          column: position.column
+        )
+      )
+    }
+
     return ExtendNode(
       extendedType: extendedType,
       fields: fields,
@@ -1868,15 +1964,9 @@ final class Parser {
   /// In Protocol Buffers, most keywords are allowed as field names.
   /// Only a very small set of keywords are truly reserved.
   private func isAllowedAsFieldName(_ keyword: ProtoKeyword) -> Bool {
-    switch keyword {
-    // Very few keywords are actually prohibited as field names in protobuf
-    // Most keywords like "message", "service", "enum" etc. can be used as field names
-    case .syntax, .package, .import:
-      return false
-    // All other keywords (including message, enum, service, etc.) can be field names
-    default:
-      return true
-    }
+    // In protobuf, all keywords are valid as field names; the language is
+    // not reserved-word restricted at the identifier level.
+    return true
   }
 }
 

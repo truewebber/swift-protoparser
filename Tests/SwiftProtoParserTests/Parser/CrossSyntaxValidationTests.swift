@@ -206,10 +206,33 @@ final class CrossSyntaxValidationTests: XCTestCase {
       )
       return
     }
+    // protoc 33.5 exact message: "pkg.SomeMsg" does not declare 1 as an extension number.
     XCTAssertTrue(
-      error.localizedDescription.contains("does not declare")
-        && error.localizedDescription.contains("extension number"),
-      "Expected 'does not declare N as an extension number', got: \(error.localizedDescription)"
+      error.localizedDescription.contains("\"pkg.SomeMsg\" does not declare 1 as an extension number"),
+      "Expected protoc-exact message, got: \(error.localizedDescription)"
+    )
+  }
+
+  func test_proto3_extendMessageWithNoExtensionRanges_multipleFields_rejectsEachFieldNumber() {
+    let proto = """
+      syntax = "proto3";
+      package pkg;
+      message SomeMsg {}
+      extend SomeMsg {
+        string val_a = 10;
+        string val_b = 20;
+      }
+      """
+
+    let result = SwiftProtoParser.parseProtoString(proto)
+    guard case .failure(let error) = result else {
+      XCTFail("Expected parse failure, got success")
+      return
+    }
+    // protoc emits one error per field
+    XCTAssertTrue(
+      error.localizedDescription.contains("does not declare 10 as an extension number"),
+      "Expected field number 10 in error, got: \(error.localizedDescription)"
     )
   }
 

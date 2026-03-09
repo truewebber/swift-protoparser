@@ -47,7 +47,7 @@ struct DescriptorBuilder {
 
     // Convert enums
     for enumNode in ast.enums {
-      let enumProto = try EnumDescriptorBuilder.build(from: enumNode)
+      let enumProto = try EnumDescriptorBuilder.build(from: enumNode, protoVersion: ast.syntax)
       fileProto.enumType.append(enumProto)
     }
 

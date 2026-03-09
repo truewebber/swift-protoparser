@@ -28,8 +28,8 @@ Create a fully native Swift library, similar to [go-protoparser](https://github.
 ### 3.1 Core Functionality
 - **Parse .proto files** into ProtoDescriptor structures
 - **Integration with [swift-protobuf](https://github.com/apple/swift-protobuf)** - use existing resources
-- **Support only Proto3** + officially deprecated features
-- **No Proto2 support** (explicit limitation)
+- **Support Proto3 and Proto2** syntax versions
+- **Proto2 support**: required/optional field labels, extensions, groups, default values, allow_alias
 
 ### 3.2 API Design
 - **Ease of use**: main `Parse()` function for basic usage

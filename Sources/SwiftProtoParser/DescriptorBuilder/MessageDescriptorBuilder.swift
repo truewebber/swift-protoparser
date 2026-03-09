@@ -62,7 +62,7 @@ struct MessageDescriptorBuilder {
 
     // Convert nested enums
     for nestedEnum in messageNode.nestedEnums {
-      let enumProto = try EnumDescriptorBuilder.build(from: nestedEnum)
+      let enumProto = try EnumDescriptorBuilder.build(from: nestedEnum, protoVersion: protoVersion)
       messageProto.enumType.append(enumProto)
     }
 

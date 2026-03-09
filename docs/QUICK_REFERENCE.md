@@ -99,13 +99,13 @@ if case .success(let set) = SwiftProtoParser.parseFile("service.proto") {
 ## Key Constraints
 
 - **Swift 5.10+** minimum
-- **Proto3 only** (no Proto2)
+- **Proto3 and Proto2** syntax versions supported
 - **No external dependencies** except SwiftProtobuf
 - **Thread-safe**: `parseFile` / `parseDirectory` are pure static functions
 
 ## Supported Features
 
-- Complete Proto3 syntax
+- Complete Proto3 and Proto2 syntax
 - `import` resolution with transitive dependencies
 - Circular dependency detection
 - `map<K, V>` fields with synthetic entry messages (protoc-compatible)
@@ -117,3 +117,4 @@ if case .success(let set) = SwiftProtoParser.parseFile("service.proto") {
 - `reserved` field numbers and names
 - Semantic type validation: unresolvable type references return `.semanticError` (protoc-compatible)
 - Protobuf C++ scoping rules for unqualified type names (inner message → package hierarchy → root)
+- Proto2: `required`/`optional` field labels, `extensions` ranges, `group` fields, `default` values, `allow_alias` enum option, `import public`/`import weak`
