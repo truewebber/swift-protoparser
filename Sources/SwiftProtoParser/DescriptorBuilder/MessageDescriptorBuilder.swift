@@ -5,15 +5,34 @@ import SwiftProtobuf
 struct MessageDescriptorBuilder {
 
   /// Convert MessageNode to DescriptorProto.
+  ///
+  /// - Parameters:
+  ///   - messageNode: The AST message node to convert.
+  ///   - packageName: Optional package name used for building fully-qualified type names.
+  ///   - parentTypePath: Accumulated dotted path of ancestor message names, without a leading dot
+  ///     (e.g. `"Outer.Inner"`). Used to compute correct `type_name` for group fields.
+  ///     Pass `""` (the default) for top-level messages.
+  ///   - protoVersion: The proto syntax version of the file.
   static func build(
     from messageNode: MessageNode,
     packageName: String? = nil,
+    parentTypePath: String = "",
     protoVersion: ProtoVersion = .proto2
   ) throws -> Google_Protobuf_DescriptorProto {
     var messageProto = Google_Protobuf_DescriptorProto()
 
     // Set message name
     messageProto.name = messageNode.name
+
+    // Compute the fully-qualified path of this message (without leading dot), used for group typeName.
+    let currentTypePath: String
+    if let pkg = packageName, !pkg.isEmpty {
+      currentTypePath =
+        parentTypePath.isEmpty ? "\(pkg).\(messageNode.name)" : "\(parentTypePath).\(messageNode.name)"
+    }
+    else {
+      currentTypePath = parentTypePath.isEmpty ? messageNode.name : "\(parentTypePath).\(messageNode.name)"
+    }
 
     // Convert fields
     for (index, fieldNode) in messageNode.fields.enumerated() {
@@ -32,7 +51,12 @@ struct MessageDescriptorBuilder {
 
     // Convert nested messages
     for nestedMessage in messageNode.nestedMessages {
-      let nestedProto = try build(from: nestedMessage, packageName: packageName, protoVersion: protoVersion)
+      let nestedProto = try build(
+        from: nestedMessage,
+        packageName: packageName,
+        parentTypePath: currentTypePath,
+        protoVersion: protoVersion
+      )
       messageProto.nestedType.append(nestedProto)
     }
 
@@ -58,6 +82,21 @@ struct MessageDescriptorBuilder {
       }
       let oneofProto = try buildOneof(from: oneofGroup)
       messageProto.oneofDecl.append(oneofProto)
+    }
+
+    // Convert group fields: each produces a FieldDescriptorProto (TYPE_GROUP) and a synthetic
+    // nested DescriptorProto whose name matches the original group name.
+    for groupField in messageNode.groupFields {
+      let groupFieldProto = buildGroupField(groupField, parentTypePath: currentTypePath)
+      messageProto.field.append(groupFieldProto)
+
+      let groupMessageProto = try buildGroupMessage(
+        groupField,
+        packageName: packageName,
+        parentTypePath: currentTypePath,
+        protoVersion: protoVersion
+      )
+      messageProto.nestedType.append(groupMessageProto)
     }
 
     // Convert extension ranges (proto2 only)
@@ -100,6 +139,68 @@ struct MessageDescriptorBuilder {
     }
 
     return messageProto
+  }
+
+  /// Build a `FieldDescriptorProto` for a proto2 group field.
+  ///
+  /// Per the protobuf spec the generated field has:
+  /// - `name`      = lowercase of the group name
+  /// - `type`      = `.group` (TYPE_GROUP = 10)
+  /// - `type_name` = `".<parentTypePath>.<groupName>"` (original capitalisation)
+  /// - `label`     = derived from the AST label
+  /// - `number`    = the field number declared in the source
+  ///
+  /// - Parameters:
+  ///   - groupField: The group field AST node.
+  ///   - parentTypePath: Fully-qualified path of the enclosing message, without leading dot
+  ///     (e.g. `"pkg.ParentMsg"`).
+  private static func buildGroupField(
+    _ groupField: GroupFieldNode,
+    parentTypePath: String
+  ) -> Google_Protobuf_FieldDescriptorProto {
+    var fieldProto = Google_Protobuf_FieldDescriptorProto()
+    fieldProto.name = groupField.groupName.lowercased()
+    fieldProto.number = groupField.fieldNumber
+    fieldProto.type = .group
+    fieldProto.typeName = ".\(parentTypePath).\(groupField.groupName)"
+
+    switch groupField.label {
+    case .optional:
+      fieldProto.label = .optional
+    case .required:
+      fieldProto.label = .required
+    case .repeated:
+      fieldProto.label = .repeated
+    case .singular:
+      fieldProto.label = .optional
+    }
+
+    return fieldProto
+  }
+
+  /// Build the synthetic `DescriptorProto` for a proto2 group field.
+  ///
+  /// The synthetic message has:
+  /// - `name`  = original capitalisation of the group name (e.g. `"SearchResult"`)
+  /// - `field` = all fields from the group body, built with the standard field builder
+  ///
+  /// - Parameters:
+  ///   - groupField: The group field AST node.
+  ///   - packageName: Optional package name forwarded to nested field builders.
+  ///   - parentTypePath: Fully-qualified path of the enclosing message.
+  ///   - protoVersion: Proto syntax version forwarded to nested builders.
+  private static func buildGroupMessage(
+    _ groupField: GroupFieldNode,
+    packageName: String?,
+    parentTypePath: String,
+    protoVersion: ProtoVersion
+  ) throws -> Google_Protobuf_DescriptorProto {
+    return try build(
+      from: groupField.body,
+      packageName: packageName,
+      parentTypePath: parentTypePath,
+      protoVersion: protoVersion
+    )
   }
 
   /// Build OneofDescriptorProto from OneofNode.
