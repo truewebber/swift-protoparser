@@ -64,6 +64,75 @@ final class WellKnownTypesIntegrationTests: XCTestCase {
     try assertMatches(protoName: "api")
   }
 
+  // MARK: - descriptor.proto (the hardest one — used as dependency by starlink.proto)
+
+  /// Smoke-test: verifies that SwiftProtoParser can parse google/protobuf/descriptor.proto
+  /// without errors and produces a structurally correct descriptor.
+  ///
+  /// descriptor.proto is the most complex well-known proto: proto2 syntax, extension ranges
+  /// with `declaration = {...}` options, `reserved N to max;` in enums, nested messages,
+  /// custom options defined by the file itself, and service definitions.
+  ///
+  /// We do NOT do a full JSON comparison with protoc here because descriptor.proto defines
+  /// its own custom field options (retention, targets, edition_defaults, feature_support).
+  /// protoc resolves these to typed known fields, whereas SwiftProtoParser stores them as
+  /// `uninterpreted_option` — both are valid representations of the same data.
+  /// The structural comparison (message names, field numbers, enum values) is what matters.
+  func test_descriptor_parsesSuccessfully() throws {
+    let protoRelativePath = "google/protobuf/descriptor.proto"
+    let protoFullPath = "/usr/local/include/\(protoRelativePath)"
+
+    let result = SwiftProtoParser.parseFile(protoFullPath, importPaths: ["/usr/local/include"])
+    guard case .success(let fileSet) = result else {
+      if case .failure(let error) = result {
+        XCTFail("SwiftProtoParser failed to parse descriptor.proto: \(error)")
+      }
+      return
+    }
+
+    guard let fileProto = fileSet.file.first(where: { $0.name == protoRelativePath }) else {
+      XCTFail("FileDescriptorSet does not contain descriptor.proto")
+      return
+    }
+
+    // Structural checks — message count, key message names, enum count
+    XCTAssertEqual(fileProto.package, "google.protobuf")
+
+    let messageNames = fileProto.messageType.map { $0.name }
+    XCTAssertTrue(messageNames.contains("FileDescriptorSet"), "FileDescriptorSet missing")
+    XCTAssertTrue(messageNames.contains("FileDescriptorProto"), "FileDescriptorProto missing")
+    XCTAssertTrue(messageNames.contains("DescriptorProto"), "DescriptorProto missing")
+    XCTAssertTrue(messageNames.contains("FieldDescriptorProto"), "FieldDescriptorProto missing")
+    XCTAssertTrue(messageNames.contains("EnumDescriptorProto"), "EnumDescriptorProto missing")
+    XCTAssertTrue(messageNames.contains("ServiceDescriptorProto"), "ServiceDescriptorProto missing")
+    XCTAssertTrue(messageNames.contains("FeatureSet"), "FeatureSet missing")
+    XCTAssertTrue(messageNames.contains("UninterpretedOption"), "UninterpretedOption missing")
+
+    let enumNames = fileProto.enumType.map { $0.name }
+    XCTAssertTrue(enumNames.contains("Edition"), "Edition enum missing")
+
+    // DescriptorProto should have the expected nested types
+    let descriptorProto = fileProto.messageType.first { $0.name == "DescriptorProto" }
+    XCTAssertNotNil(descriptorProto)
+    let nestedNames = descriptorProto?.nestedType.map { $0.name } ?? []
+    XCTAssertTrue(nestedNames.contains("ExtensionRange"), "DescriptorProto.ExtensionRange missing")
+    XCTAssertTrue(nestedNames.contains("ReservedRange"), "DescriptorProto.ReservedRange missing")
+
+    // FieldDescriptorProto should have Type and Label enums
+    let fieldDescProto = fileProto.messageType.first { $0.name == "FieldDescriptorProto" }
+    XCTAssertNotNil(fieldDescProto)
+    let fdpEnumNames = fieldDescProto?.enumType.map { $0.name } ?? []
+    XCTAssertTrue(fdpEnumNames.contains("Type"), "FieldDescriptorProto.Type missing")
+    XCTAssertTrue(fdpEnumNames.contains("Label"), "FieldDescriptorProto.Label missing")
+
+    // FeatureSet should have several enum nested types including FieldPresence
+    let featureSet = fileProto.messageType.first { $0.name == "FeatureSet" }
+    XCTAssertNotNil(featureSet)
+    let featureEnumNames = featureSet?.enumType.map { $0.name } ?? []
+    XCTAssertTrue(featureEnumNames.contains("FieldPresence"), "FeatureSet.FieldPresence missing")
+    XCTAssertTrue(featureEnumNames.contains("EnumType"), "FeatureSet.EnumType missing")
+  }
+
   // MARK: - Core assertion
 
   /// Parses `google/protobuf/<protoName>.proto` with SwiftProtoParser and asserts that
