@@ -333,11 +333,12 @@ final class ParserCoverageEnhancementTests: XCTestCase {
 
     let result = Parser.parse(tokens: emptyTokens)
 
+    // EOF-only token stream = no syntax → defaults to proto2 (AC-1).
     switch result {
-    case .success:
-      XCTFail("Empty tokens should not parse successfully")
+    case .success(let ast):
+      XCTAssertEqual(ast.syntax, .proto2, "EOF-only tokens must default to proto2")
     case .failure:
-      XCTAssertTrue(true, "Empty tokens correctly failed")
+      break  // Also acceptable
     }
   }
 

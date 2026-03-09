@@ -351,11 +351,12 @@ final class SwiftProtoParserExtensionTests: XCTestCase {
 
     let result = SwiftProtoParser.parseFile(tempFile.path)
 
+    // Empty file = no syntax → proto2 → must succeed (AC-1).
     switch result {
-    case .success:
-      XCTFail("Expected failure for empty file")
-    case .failure:
-      break
+    case .success(let set):
+      XCTAssertEqual(set.file[0].syntax, "", "Empty file descriptor syntax must be empty string (AC-1)")
+    case .failure(let error):
+      XCTFail("Empty file must succeed as no-syntax proto2 (AC-1): \(error)")
     }
   }
 

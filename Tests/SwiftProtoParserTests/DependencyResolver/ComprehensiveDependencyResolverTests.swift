@@ -384,33 +384,21 @@ final class ComprehensiveDependencyResolverTests: XCTestCase {
     XCTAssertEqual(result.allFiles.count, 1)
   }
 
-  func testResolveDependenciesInvalidSyntax() throws {
+  func testResolveDependenciesProto2Syntax() throws {
     let mainContent = """
       syntax = "proto2";
       package main;
 
       message MainMessage {
-          string name = 1;
+          optional string name = 1;
       }
       """
 
     let mainFile = tempDir.appendingPathComponent("main.proto")
     try mainContent.write(to: mainFile, atomically: true, encoding: .utf8)
 
-    // Should throw error due to proto2 syntax
-    XCTAssertThrowsError(try resolver.resolveDependencies(for: mainFile.path)) { error in
-      guard let resolverError = error as? ResolverError else {
-        XCTFail("Expected ResolverError")
-        return
-      }
-
-      if case .invalidSyntax(_, let expected) = resolverError {
-        XCTAssertEqual(expected, "proto3")
-      }
-      else {
-        XCTFail("Expected invalidSyntax error")
-      }
-    }
+    // proto2 syntax is now valid; resolution must succeed (AC-2).
+    XCTAssertNoThrow(try resolver.resolveDependencies(for: mainFile.path))
   }
 
   func testResolveDependenciesCircularDependency() throws {

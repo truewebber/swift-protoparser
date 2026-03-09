@@ -13,8 +13,9 @@ struct DescriptorBuilder {
     // Set file name
     fileProto.name = fileName
 
-    // Set syntax
-    fileProto.syntax = ast.syntax.rawValue
+    // Set syntax per protoc behaviour:
+    // proto3 → "proto3"; proto2 and no-syntax → "" (empty string).
+    fileProto.syntax = ast.syntax.descriptorSyntaxValue
 
     // Set package
     if let package = ast.package {

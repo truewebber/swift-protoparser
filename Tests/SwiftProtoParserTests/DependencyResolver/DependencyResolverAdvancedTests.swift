@@ -324,33 +324,21 @@ final class DependencyResolverAdvancedTests: XCTestCase {
     XCTAssertEqual(result.allFiles.count, 1)
   }
 
-  func testResolveDependenciesInvalidSyntax() throws {
+  func testResolveDependenciesProto2Syntax() throws {
     let mainContent = """
       syntax = "proto2";
       package main;
 
       message MainMessage {
-          string name = 1;
+          optional string name = 1;
       }
       """
 
     let mainFile = tempDir.appendingPathComponent("main.proto")
     try mainContent.write(to: mainFile, atomically: true, encoding: .utf8)
 
-    // Should throw error due to proto2 syntax
-    XCTAssertThrowsError(try resolver.resolveDependencies(for: mainFile.path)) { error in
-      guard let resolverError = error as? ResolverError else {
-        XCTFail("Expected ResolverError")
-        return
-      }
-
-      if case .invalidSyntax(_, let expected) = resolverError {
-        XCTAssertEqual(expected, "proto3")
-      }
-      else {
-        XCTFail("Expected invalidSyntax error")
-      }
-    }
+    // proto2 syntax is now valid; resolution must succeed (AC-2).
+    XCTAssertNoThrow(try resolver.resolveDependencies(for: mainFile.path))
   }
 
   func testResolveDependenciesCircularDependency() throws {
@@ -626,32 +614,25 @@ final class DependencyResolverAdvancedTests: XCTestCase {
     }
   }
 
-  /// Test missing syntax error (line 293).
+  /// Test no-syntax file resolves as proto2 (AC-1).
   func testMissingSyntaxError() throws {
-    // Create proto file without syntax declaration
-    let invalidProto = """
-      // No syntax declaration
+    let noSyntaxProto = """
+      // No syntax declaration — treated as proto2 per protoc 33.5
 
       message TestMessage {
-        string name = 1;
+        optional string name = 1;
       }
       """
 
-    let protoFile = tempDir.appendingPathComponent("invalid.proto")
-    try invalidProto.write(to: protoFile, atomically: true, encoding: .utf8)
+    let protoFile = tempDir.appendingPathComponent("nosyntax.proto")
+    try noSyntaxProto.write(to: protoFile, atomically: true, encoding: .utf8)
 
     let resolver = DependencyResolver(importPaths: [tempDir.path])
 
-    do {
-      let _ = try resolver.resolveDependencies(for: protoFile.path)
-      XCTFail("Expected missing syntax error")
-    }
-    catch ResolverError.missingSyntax {
-      // This should cover line 293
-      XCTAssertTrue(true)
-    }
-    catch {
-      XCTFail("Expected missing syntax error, got: \(error)")
-    }
+    // No syntax → proto2 → must succeed, no error (AC-1).
+    XCTAssertNoThrow(
+      try resolver.resolveDependencies(for: protoFile.path),
+      "No-syntax file must resolve successfully as proto2 (AC-1)"
+    )
   }
 }

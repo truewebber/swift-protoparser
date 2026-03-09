@@ -285,15 +285,18 @@ class DependencyResolver {
   }
 
   /// Validate proto file syntax.
+  ///
+  /// Accepts proto2, proto3, and no-syntax files.
+  /// No-syntax files are treated as proto2 per protoc 33.5 behaviour.
   private func validateFileSyntax(_ file: ResolvedProtoFile) throws {
-    // Check for syntax declaration
+    // nil means no syntax declaration — treated as proto2, valid per protoc 33.5
     guard let syntax = file.syntax else {
-      throw ResolverError.missingSyntax(file.filePath)
+      return
     }
 
-    // Only support proto3 for now
-    if syntax != "proto3" {
-      throw ResolverError.invalidSyntax(file.filePath, expected: "proto3")
+    let validValues: Set<String> = ["proto2", "proto3"]
+    if !validValues.contains(syntax) {
+      throw ResolverError.invalidSyntax(file.filePath, expected: "proto2 or proto3")
     }
   }
 

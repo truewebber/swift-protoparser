@@ -165,8 +165,7 @@ final class SwiftProtoParserTests: XCTestCase {
 
   // MARK: - Error Handling Tests
 
-  func testParseInvalidSyntax() {
-    // proto2 is not officially supported but the parser converts it to proto3 internally
+  func testParseProto2Syntax() {
     let path = writeTempProto(
       """
       syntax = "proto2";
@@ -177,12 +176,12 @@ final class SwiftProtoParserTests: XCTestCase {
 
     let result = SwiftProtoParser.parseFile(path)
 
-    // Should still parse (proto2 converted to proto3 internally)
+    // proto2 → FileDescriptorProto.syntax == "" per protoc 33.5 (AC-2).
     switch result {
     case .success(let set):
-      XCTAssertEqual(set.file[0].syntax, "proto3")
-    case .failure:
-      break  // Some parsers may reject proto2 — either outcome is acceptable
+      XCTAssertEqual(set.file[0].syntax, "", "proto2 descriptor syntax must be empty string (AC-2)")
+    case .failure(let error):
+      XCTFail("proto2 file must parse successfully (AC-2): \(error)")
     }
   }
 
@@ -210,7 +209,7 @@ final class SwiftProtoParserTests: XCTestCase {
     let path = writeTempProto(
       """
       message Test {
-          string name = 1;
+          optional string name = 1;
       }
       """
     )
@@ -218,11 +217,12 @@ final class SwiftProtoParserTests: XCTestCase {
 
     let result = SwiftProtoParser.parseFile(path)
 
+    // No syntax → proto2 → must succeed with empty syntax field (AC-1).
     switch result {
-    case .success:
-      XCTFail("Expected failure because syntax declaration is required")
-    case .failure:
-      break  // Any error is acceptable — DependencyResolver or parser may reject missing syntax
+    case .success(let set):
+      XCTAssertEqual(set.file[0].syntax, "", "No-syntax descriptor syntax must be empty string (AC-1)")
+    case .failure(let error):
+      XCTFail("No-syntax file must succeed as proto2 (AC-1): \(error)")
     }
   }
 
@@ -232,11 +232,12 @@ final class SwiftProtoParserTests: XCTestCase {
 
     let result = SwiftProtoParser.parseFile(path)
 
+    // Empty file = no syntax → proto2 → must succeed (AC-1).
     switch result {
-    case .success:
-      XCTFail("Expected failure for empty file")
-    case .failure:
-      break
+    case .success(let set):
+      XCTAssertEqual(set.file[0].syntax, "", "Empty file descriptor syntax must be empty string (AC-1)")
+    case .failure(let error):
+      XCTFail("Empty file must succeed as no-syntax proto2 (AC-1): \(error)")
     }
   }
 

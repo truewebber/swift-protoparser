@@ -346,21 +346,20 @@ final class ParserAdvancedTests: XCTestCase {
 
   // MARK: - Error Handling and Edge Cases
 
-  func testParseInvalidSyntax() {
+  func testParseProto2Syntax() {
     let protoContent = """
       syntax = "proto2";
 
       message TestMessage {
-          string name = 1;
+          optional string name = 1;
       }
       """
 
     let result = SwiftProtoParser.parseProtoString(protoContent)
-    // Should handle proto2 gracefully and convert to proto3
-    XCTAssertTrue(result.isSuccess)
+    XCTAssertTrue(result.isSuccess, "proto2 syntax must be parsed successfully (AC-2)")
 
     if case .success(let ast) = result {
-      XCTAssertEqual(ast.syntax, .proto3)  // Should be converted
+      XCTAssertEqual(ast.syntax, .proto2, "syntax = \"proto2\" must produce .proto2 (AC-2)")
     }
   }
 

@@ -65,7 +65,7 @@ final class Parser {
 
   /// Parses a complete .proto file.
   private func parseProtoFile() throws -> ProtoAST {
-    var syntax: ProtoVersion = .proto3  // Default
+    var syntax: ProtoVersion = .default
     var package: String?
     var imports: [String] = []
     var options: [OptionNode] = []
@@ -77,8 +77,11 @@ final class Parser {
     // Skip initial whitespace and comments
     skipIgnorableTokens()
 
-    // Parse syntax declaration (required)
-    syntax = try parseSyntaxDeclaration()
+    // Parse optional syntax declaration.
+    // Per protoc 33.5 behaviour: missing syntax → proto2 (no error, no warning).
+    if let token = state.currentToken, case .keyword(let kw) = token.type, kw == .syntax {
+      syntax = try parseSyntaxDeclaration()
+    }
 
     // Parse top-level elements
     while !state.isAtEnd {
@@ -154,7 +157,7 @@ final class Parser {
     )
   }
 
-  /// Parses the syntax declaration: syntax = "proto3";.
+  /// Parses the syntax declaration: `syntax = "proto2";` or `syntax = "proto3";`.
   private func parseSyntaxDeclaration() throws -> ProtoVersion {
     _ = state.expectKeyword(.syntax)
     skipIgnorableTokens()
@@ -170,28 +173,22 @@ final class Parser {
           expected: "syntax string"
         )
       )
-      return .proto3
+      return .default
     }
 
     state.advance()
     skipIgnorableTokens()
     _ = state.expectSymbol(";")
 
-    // Handle proto2 gracefully - convert to proto3 silently
-    if syntaxString == "proto2" {
-      // Note: We could log a warning here in a real implementation
-      return .proto3
-    }
-
     guard let version = ProtoVersion(rawValue: syntaxString) else {
       state.addError(
         .invalidSyntax(
-          "Unsupported syntax: \(syntaxString), defaulting to proto3",
+          "Unsupported syntax: \(syntaxString)",
           line: token.position.line,
           column: token.position.column
         )
       )
-      return .proto3
+      return .default
     }
 
     return version

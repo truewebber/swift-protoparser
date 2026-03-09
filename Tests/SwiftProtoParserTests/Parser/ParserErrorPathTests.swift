@@ -9,19 +9,17 @@ final class ParserErrorPathTests: XCTestCase {
   func testMissingSyntaxDeclaration() {
     let protoContent = """
       package test;
-      message Test { string name = 1; }
+      message Test { optional string name = 1; }
       """
 
     let result = SwiftProtoParser.parseProtoString(protoContent)
 
+    // Per protoc 33.5: no syntax declaration → treated as proto2, no error.
     switch result {
-    case .success:
-      XCTFail("Expected parsing to fail without syntax declaration")
+    case .success(let ast):
+      XCTAssertEqual(ast.syntax, .proto2, "No-syntax file must default to proto2")
     case .failure(let error):
-      XCTAssertTrue(
-        error.localizedDescription.contains("syntax") || error.localizedDescription.contains("expected"),
-        "Error should mention missing syntax: \(error)"
-      )
+      XCTFail("No-syntax file must succeed (AC-1): \(error)")
     }
   }
 
@@ -472,22 +470,24 @@ final class ParserErrorPathTests: XCTestCase {
   func testEmptyInput() {
     let result = SwiftProtoParser.parseProtoString("")
 
+    // Empty file = no syntax declaration → treated as proto2 per protoc 33.5 (AC-1).
     switch result {
-    case .success:
-      XCTFail("Empty input should fail")
-    case .failure:
-      XCTAssertTrue(true, "Empty input correctly failed")
+    case .success(let ast):
+      XCTAssertEqual(ast.syntax, .proto2, "Empty file must default to proto2")
+    case .failure(let error):
+      XCTFail("Empty file must succeed as no-syntax proto2 (AC-1): \(error)")
     }
   }
 
   func testWhitespaceOnlyInput() {
     let result = SwiftProtoParser.parseProtoString("   \n  \t  \n  ")
 
+    // Whitespace-only = no syntax declaration → treated as proto2 per protoc 33.5 (AC-1).
     switch result {
-    case .success:
-      XCTFail("Whitespace-only input should fail")
-    case .failure:
-      XCTAssertTrue(true, "Whitespace-only input correctly failed")
+    case .success(let ast):
+      XCTAssertEqual(ast.syntax, .proto2, "Whitespace-only file must default to proto2")
+    case .failure(let error):
+      XCTFail("Whitespace-only file must succeed as no-syntax proto2 (AC-1): \(error)")
     }
   }
 
@@ -500,11 +500,12 @@ final class ParserErrorPathTests: XCTestCase {
 
     let result = SwiftProtoParser.parseProtoString(protoContent)
 
+    // Comments-only = no syntax declaration → treated as proto2 per protoc 33.5 (AC-1).
     switch result {
-    case .success:
-      XCTFail("Comments-only input should fail")
-    case .failure:
-      XCTAssertTrue(true, "Comments-only input correctly failed")
+    case .success(let ast):
+      XCTAssertEqual(ast.syntax, .proto2, "Comments-only file must default to proto2")
+    case .failure(let error):
+      XCTFail("Comments-only file must succeed as no-syntax proto2 (AC-1): \(error)")
     }
   }
 
@@ -649,9 +650,6 @@ final class ParserErrorPathTests: XCTestCase {
   func testComprehensiveErrorHandling() {
     // Test various error scenarios that should trigger different error paths
     let errorInputs = [
-      // Missing syntax
-      "message Test { string name = 1; }",
-
       // Invalid syntax version
       "syntax = \"proto4\"; message Test { string name = 1; }",
 
@@ -2423,12 +2421,12 @@ final class ParserErrorPathTests: XCTestCase {
   func testEmptyTokenStream() {
     let tokens: [Token] = []
     let result = Parser.parse(tokens: tokens)
+    // Empty token stream = no syntax = proto2 default; either success or failure is acceptable.
     switch result {
-    case .success:
-      XCTFail("Expected failure")
+    case .success(let ast):
+      XCTAssertEqual(ast.syntax, .proto2, "Empty token stream must default to proto2")
     case .failure:
-      // Empty token stream should produce an error - exact message doesn't matter
-      XCTAssertTrue(true, "Empty token stream correctly produces error")
+      break  // Also acceptable
     }
   }
 
