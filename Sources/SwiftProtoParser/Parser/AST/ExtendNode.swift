@@ -53,8 +53,9 @@ struct ExtendNode: Equatable {
   /// Validates that the extended type is allowed in proto3.
   ///
   /// Only google.protobuf.* types are allowed for custom options.
+  /// Accepts both `google.protobuf.X` and `.google.protobuf.X` (FQN with leading dot).
   var isValidProto3ExtendTarget: Bool {
-    return extendedType.hasPrefix("google.protobuf.")
+    return extendedType.hasPrefix("google.protobuf.") || extendedType.hasPrefix(".google.protobuf.")
   }
 
   /// Returns the canonical name for the extended type.

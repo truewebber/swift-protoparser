@@ -551,6 +551,147 @@ final class Proto2ParserTests: XCTestCase {
     }
   }
 
+  // MARK: - AC-5: proto3 extend validation — FQN-based check
+
+  func test_parse_proto3ExtendNonGoogleTarget_producesError() {
+    let proto = """
+      syntax = "proto3";
+      extend SomeMessage {
+        string val = 1;
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    switch result {
+    case .success:
+      XCTFail("proto3 extend of non-google.protobuf target must produce an error")
+    case .failure:
+      break
+    }
+  }
+
+  func test_parse_proto3ExtendNonGoogleTarget_errorMessageMatchesProtoc() {
+    let proto = """
+      syntax = "proto3";
+      extend SomeMessage {
+        string val = 1;
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    switch result {
+    case .success:
+      XCTFail("proto3 extend of non-google.protobuf target must produce an error")
+    case .failure(let error):
+      XCTAssertTrue(
+        error.description.contains("Extensions in proto3 are only allowed for defining options."),
+        "Error must contain protoc-compatible message. Got: \(error.description)"
+      )
+    }
+  }
+
+  func test_parse_proto3ExtendGoogleProtobuf_fullName_succeeds() {
+    let proto = """
+      syntax = "proto3";
+      extend google.protobuf.FileOptions {
+        string my_opt = 50000;
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    switch result {
+    case .success:
+      break
+    case .failure(let error):
+      XCTFail("proto3 extend of google.protobuf.* must succeed, got: \(error.description)")
+    }
+  }
+
+  func test_parse_proto3ExtendGoogleProtobuf_dotPrefixed_succeeds() {
+    let proto = """
+      syntax = "proto3";
+      extend .google.protobuf.MessageOptions {
+        string my_opt = 50001;
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    switch result {
+    case .success:
+      break
+    case .failure(let error):
+      XCTFail("proto3 extend of .google.protobuf.* must succeed, got: \(error.description)")
+    }
+  }
+
+  func test_parse_proto3ExtendGoogleProtobuf_shortNameWithPackage_succeeds() {
+    let proto = """
+      syntax = "proto3";
+      package google.protobuf;
+      extend FileOptions {
+        string my_opt = 50002;
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    switch result {
+    case .success:
+      break
+    case .failure(let error):
+      XCTFail(
+        "proto3 extend with package google.protobuf and short name must succeed, got: \(error.description)"
+      )
+    }
+  }
+
+  func test_parse_proto2ExtendAnyTarget_succeeds() {
+    let proto = """
+      syntax = "proto2";
+      message Base {
+        required int32 id = 1;
+        extensions 100 to 199;
+      }
+      extend Base {
+        optional string extra = 100;
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    switch result {
+    case .success:
+      break
+    case .failure(let error):
+      XCTFail("proto2 extend of any target must succeed, got: \(error.description)")
+    }
+  }
+
+  func test_parse_proto2ExtendNonGoogleTarget_noError() {
+    let proto = """
+      syntax = "proto2";
+      extend SomeArbitraryMessage {
+        optional string val = 1;
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    switch result {
+    case .success:
+      break
+    case .failure(let error):
+      XCTFail("proto2 extend must not produce an error, got: \(error.description)")
+    }
+  }
+
+  func test_parse_proto3ExtendWithPackageAndNonGoogleTarget_producesError() {
+    let proto = """
+      syntax = "proto3";
+      package myapp;
+      extend SomeMessage {
+        string val = 1;
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    switch result {
+    case .success:
+      XCTFail("proto3 extend of non-google.protobuf target with package must produce an error")
+    case .failure:
+      break
+    }
+  }
+
   // MARK: - AC-16: Nested extend inside message
 
   func test_parse_nestedExtendInMessage_populatesNestedExtends() {

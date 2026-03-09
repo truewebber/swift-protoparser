@@ -1516,10 +1516,15 @@ final class Parser {
     _ = state.expectKeyword(.extend)
     skipIgnorableTokens()
 
-    // Parse extended type name (must be qualified, like google.protobuf.FileOptions)
-    var extendedTypeComponents: [String] = []
+    // Handle optional leading dot (explicit fully-qualified reference like .google.protobuf.X)
+    let hasLeadingDot = state.checkSymbol(".")
+    if hasLeadingDot {
+      state.advance()  // consume leading "."
+      skipIgnorableTokens()
+    }
 
-    // Parse the qualified type name (e.g., google.protobuf.FileOptions)
+    // Parse the qualified type name (e.g., google.protobuf.FileOptions or FileOptions)
+    var extendedTypeComponents: [String] = []
     repeat {
       guard let component = state.identifierName else {
         state.addError(
@@ -1544,18 +1549,35 @@ final class Parser {
       }
     } while !state.isAtEnd
 
-    let extendedType = extendedTypeComponents.joined(separator: ".")
+    let baseName = extendedTypeComponents.joined(separator: ".")
+    let extendedType = hasLeadingDot ? ".\(baseName)" : baseName
 
     // In proto3, only google.protobuf.* targets are allowed for custom options.
     // In proto2, any message type may be extended (no restriction).
-    if state.protoVersion == .proto3 && !extendedType.hasPrefix("google.protobuf.") {
-      state.addError(
-        .invalidExtendTarget(
-          "extend statements in proto3 are only allowed for google.protobuf.* types for custom options, got: \(extendedType)",
-          line: position.line,
-          column: position.column
+    if state.protoVersion == .proto3 {
+      // Compute FQN for validation.
+      // Simple names (no dots) are resolved against the current package.
+      // Multi-part names already carry their own package component.
+      let fqn: String
+      if extendedType.hasPrefix(".") {
+        fqn = extendedType
+      }
+      else if !extendedType.contains("."), let pkg = state.currentPackage, !pkg.isEmpty {
+        fqn = ".\(pkg).\(extendedType)"
+      }
+      else {
+        fqn = ".\(extendedType)"
+      }
+
+      if !fqn.hasPrefix(".google.protobuf.") {
+        state.addError(
+          .invalidExtendTarget(
+            "Extensions in proto3 are only allowed for defining options.",
+            line: position.line,
+            column: position.column
+          )
         )
-      )
+      }
     }
 
     skipIgnorableTokens()
