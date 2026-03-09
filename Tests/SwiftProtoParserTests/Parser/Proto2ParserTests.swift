@@ -1158,4 +1158,84 @@ final class Proto2ParserTests: XCTestCase {
       XCTFail("Nested enum with reserved must succeed, got: \(error.description)")
     }
   }
+
+  // MARK: - reserved-to-max support
+
+  func test_parse_messageWithReservedToMax_parsesRange() throws {
+    let proto = """
+      syntax = "proto2";
+      message Foo {
+        reserved 1 to max;
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    switch result {
+    case .success(let ast):
+      XCTAssertEqual(ast.messages[0].reservedRanges.count, 1)
+      let range = ast.messages[0].reservedRanges[0]
+      XCTAssertEqual(range.start, 1)
+      XCTAssertTrue(range.endIsMax, "End should be marked as max")
+    case .failure(let error):
+      XCTFail("reserved 1 to max must parse successfully, got: \(error.description)")
+    }
+  }
+
+  func test_parse_enumWithReservedToMax_parsesRange() throws {
+    let proto = """
+      syntax = "proto2";
+      enum Status {
+        STATUS_UNKNOWN = 0;
+        reserved 1 to max;
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    switch result {
+    case .success(let ast):
+      XCTAssertEqual(ast.enums[0].reservedRanges.count, 1)
+      let range = ast.enums[0].reservedRanges[0]
+      XCTAssertEqual(range.start, 1)
+      XCTAssertTrue(range.endIsMax, "End should be marked as max")
+    case .failure(let error):
+      XCTFail("enum reserved 1 to max must parse successfully, got: \(error.description)")
+    }
+  }
+
+  func test_parse_messageWithReservedToMax_descriptorUsesExclusiveEnd() throws {
+    let proto = """
+      syntax = "proto2";
+      message Foo {
+        reserved 1 to max;
+      }
+      """
+    let result = SwiftProtoParser.parseProtoStringToDescriptors(proto)
+    switch result {
+    case .success(let fileProto):
+      XCTAssertEqual(fileProto.messageType[0].reservedRange.count, 1)
+      let range = fileProto.messageType[0].reservedRange[0]
+      XCTAssertEqual(range.start, 1)
+      XCTAssertEqual(range.end, 536_870_912, "Message reserved max should map to exclusive end 536870912")
+    case .failure(let error):
+      XCTFail("Descriptor build must succeed, got: \(error.description)")
+    }
+  }
+
+  func test_parse_enumWithReservedToMax_descriptorUsesInt32Max() throws {
+    let proto = """
+      syntax = "proto2";
+      enum Status {
+        STATUS_UNKNOWN = 0;
+        reserved 1 to max;
+      }
+      """
+    let result = SwiftProtoParser.parseProtoStringToDescriptors(proto)
+    switch result {
+    case .success(let fileProto):
+      XCTAssertEqual(fileProto.enumType[0].reservedRange.count, 1)
+      let range = fileProto.enumType[0].reservedRange[0]
+      XCTAssertEqual(range.start, 1)
+      XCTAssertEqual(range.end, Int32.max, "Enum reserved max should map to inclusive Int32.max")
+    case .failure(let error):
+      XCTFail("Descriptor build must succeed, got: \(error.description)")
+    }
+  }
 }

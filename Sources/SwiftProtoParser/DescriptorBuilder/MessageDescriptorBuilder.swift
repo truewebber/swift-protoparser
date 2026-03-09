@@ -126,9 +126,9 @@ struct MessageDescriptorBuilder {
       messageProto.extension = nestedExtensionFields
     }
 
-    // Convert reserved numbers to reserved ranges
-    if !messageNode.reservedNumbers.isEmpty {
-      messageProto.reservedRange = try buildReservedRanges(from: messageNode.reservedNumbers)
+    // Convert reserved ranges
+    if !messageNode.reservedRanges.isEmpty {
+      messageProto.reservedRange = buildReservedRanges(from: messageNode.reservedRanges)
     }
 
     // Convert reserved names
@@ -266,51 +266,20 @@ struct MessageDescriptorBuilder {
     return opts
   }
 
-  /// Build reserved ranges from reserved numbers.
-  private static func buildReservedRanges(from reservedNumbers: [Int32]) throws -> [Google_Protobuf_DescriptorProto
-    .ReservedRange]
-  {
-    var ranges: [Google_Protobuf_DescriptorProto.ReservedRange] = []
-
-    // Sort numbers to create ranges
-    let sortedNumbers = reservedNumbers.sorted()
-
-    var rangeStart: Int32?
-    var rangeEnd: Int32?
-
-    for number in sortedNumbers {
-      if let start = rangeStart, let end = rangeEnd {
-        if number == end + 1 {
-          // Extend current range
-          rangeEnd = number
-        }
-        else {
-          // Close current range and start new one
-          var range = Google_Protobuf_DescriptorProto.ReservedRange()
-          range.start = start
-          range.end = end + 1  // end is exclusive in protobuf
-          ranges.append(range)
-
-          rangeStart = number
-          rangeEnd = number
-        }
-      }
-      else {
-        // Start first range
-        rangeStart = number
-        rangeEnd = number
-      }
-    }
-
-    // Close last range
-    if let start = rangeStart, let end = rangeEnd {
+  /// Build descriptor reserved ranges from AST `ReservedNumberRange` values.
+  ///
+  /// `DescriptorProto.ReservedRange.end` is **exclusive** (protoc convention).
+  /// For the `max` sentinel, the exclusive end is 536_870_912 (one past the
+  /// maximum valid field number 536_870_911).
+  private static func buildReservedRanges(
+    from reservedRanges: [ReservedNumberRange]
+  ) -> [Google_Protobuf_DescriptorProto.ReservedRange] {
+    reservedRanges.map { r in
       var range = Google_Protobuf_DescriptorProto.ReservedRange()
-      range.start = start
-      range.end = end + 1  // end is exclusive in protobuf
-      ranges.append(range)
+      range.start = r.start
+      range.end = r.endIsMax ? 536_870_912 : r.end + 1
+      return range
     }
-
-    return ranges
   }
 
   /// Build MessageOptions from AST options.

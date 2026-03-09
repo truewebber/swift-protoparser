@@ -224,7 +224,7 @@ struct EnumFieldTypeResolver {
       nestedEnums: message.nestedEnums,
       oneofGroups: resolvedOneofGroups,
       options: message.options,
-      reservedNumbers: message.reservedNumbers,
+      reservedRanges: message.reservedRanges,
       reservedNames: message.reservedNames,
       extensionRanges: message.extensionRanges,
       nestedExtends: resolvedNestedExtends,

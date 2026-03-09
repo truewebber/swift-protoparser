@@ -1,5 +1,33 @@
 import Foundation
 
+// MARK: - ReservedNumberRange
+
+/// A closed range of reserved field/enum-value numbers as written in a `.proto` file.
+///
+/// Examples:
+/// - `reserved 5;` → `ReservedNumberRange(start: 5, end: 5)`
+/// - `reserved 1 to 10;` → `ReservedNumberRange(start: 1, end: 10)`
+/// - `reserved 1 to max;` → `ReservedNumberRange(start: 1, end: ReservedNumberRange.maxSentinel)`
+struct ReservedNumberRange: Equatable {
+  /// Sentinel value stored in `end` when the `max` keyword is used.
+  /// Chosen so that descriptor builders can handle message and enum cases correctly:
+  /// - Message descriptor (exclusive end): `end = 536_870_912`
+  /// - Enum descriptor (inclusive end): `end = Int32.max = 2_147_483_647`
+  static let maxSentinel: Int32 = Int32.max
+
+  let start: Int32
+  /// Inclusive end value; `Int32.max` means the `max` keyword was written.
+  let end: Int32
+
+  /// `true` when the `max` keyword was used as the range end.
+  var endIsMax: Bool { end == Self.maxSentinel }
+
+  /// Convenience initialiser for a single reserved number (`reserved N`).
+  init(_ value: Int32) { start = value; end = value }
+
+  init(start: Int32, end: Int32) { self.start = start; self.end = end }
+}
+
 // MARK: - ExtensionRangeNode
 
 /// A single `declaration = { ... }` entry inside an extension range options block.
@@ -72,9 +100,19 @@ struct MessageNode: Equatable {
   /// Message-specific options.
   let options: [OptionNode]
 
-  /// Reserved field numbers and names.
-  let reservedNumbers: [Int32]
+  /// Reserved field numbers (stored as closed ranges) and names.
+  let reservedRanges: [ReservedNumberRange]
   let reservedNames: [String]
+
+  /// Backward-compatible expansion of reserved ranges into individual numbers.
+  /// Avoids expanding `max` ranges; callers that only need individual numbers
+  /// for small ranges should prefer this over directly iterating `reservedRanges`.
+  var reservedNumbers: [Int32] {
+    reservedRanges.flatMap { r -> [Int32] in
+      guard !r.endIsMax else { return [r.start] }
+      return Array(r.start...r.end)
+    }
+  }
 
   /// Extension ranges declared inside this message (proto2 only).
   let extensionRanges: [ExtensionRangeNode]
@@ -99,7 +137,7 @@ struct MessageNode: Equatable {
     nestedEnums: [EnumNode] = [],
     oneofGroups: [OneofNode] = [],
     options: [OptionNode] = [],
-    reservedNumbers: [Int32] = [],
+    reservedRanges: [ReservedNumberRange] = [],
     reservedNames: [String] = [],
     extensionRanges: [ExtensionRangeNode] = [],
     nestedExtends: [ExtendNode] = [],
@@ -111,7 +149,7 @@ struct MessageNode: Equatable {
     self.nestedEnums = nestedEnums
     self.oneofGroups = oneofGroups
     self.options = options
-    self.reservedNumbers = reservedNumbers
+    self.reservedRanges = reservedRanges
     self.reservedNames = reservedNames
     self.extensionRanges = extensionRanges
     self.nestedExtends = nestedExtends

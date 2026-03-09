@@ -857,7 +857,7 @@ final class Proto2DescriptorTests: XCTestCase {
     let enumNode = EnumNode(
       name: "Utf8Validation",
       values: [EnumValueNode(name: "UTF8_VALIDATION_UNKNOWN", number: 0)],
-      reservedNumbers: [1]
+      reservedRanges: [ReservedNumberRange(1)]
     )
 
     let descriptor = try EnumDescriptorBuilder.build(from: enumNode, protoVersion: .proto3)
@@ -872,21 +872,21 @@ final class Proto2DescriptorTests: XCTestCase {
     let enumNode = EnumNode(
       name: "Status",
       values: [EnumValueNode(name: "UNKNOWN", number: 0)],
-      reservedNumbers: [4, 5, 6]
+      reservedRanges: [ReservedNumberRange(start: 4, end: 6)]
     )
 
     let descriptor = try EnumDescriptorBuilder.build(from: enumNode, protoVersion: .proto3)
 
     XCTAssertEqual(descriptor.reservedRange.count, 1)
     XCTAssertEqual(descriptor.reservedRange[0].start, 4)
-    XCTAssertEqual(descriptor.reservedRange[0].end, 6, "Consecutive numbers merged, end is inclusive")
+    XCTAssertEqual(descriptor.reservedRange[0].end, 6, "End is inclusive")
   }
 
   func test_build_enumWithNonConsecutiveReservedNumbers_createsMultipleRanges() throws {
     let enumNode = EnumNode(
       name: "Status",
       values: [EnumValueNode(name: "UNKNOWN", number: 0)],
-      reservedNumbers: [1, 3, 5]
+      reservedRanges: [ReservedNumberRange(1), ReservedNumberRange(3), ReservedNumberRange(5)]
     )
 
     let descriptor = try EnumDescriptorBuilder.build(from: enumNode, protoVersion: .proto3)
@@ -917,7 +917,7 @@ final class Proto2DescriptorTests: XCTestCase {
     let enumNode = EnumNode(
       name: "Status",
       values: [EnumValueNode(name: "UNKNOWN", number: 0)],
-      reservedNumbers: [10, 11],
+      reservedRanges: [ReservedNumberRange(start: 10, end: 11)],
       reservedNames: ["OLD_NAME"]
     )
 

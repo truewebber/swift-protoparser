@@ -122,25 +122,26 @@ class MessageDescriptorBuilderTests: XCTestCase {
   // MARK: - Tests for New Functionality
 
   func testBuildMessageWithReservedNumbers() throws {
-    // Create message with reserved numbers
     let field = FieldNode(name: "id", type: .int32, number: 1)
     let message = MessageNode(
       name: "MessageWithReserved",
       fields: [field],
-      reservedNumbers: [5, 6, 7, 10, 15, 16, 17]
+      reservedRanges: [
+        ReservedNumberRange(start: 5, end: 7),
+        ReservedNumberRange(10),
+        ReservedNumberRange(start: 15, end: 17),
+      ]
     )
 
     let descriptor = try MessageDescriptorBuilder.build(from: message)
 
     XCTAssertEqual(descriptor.name, "MessageWithReserved")
     XCTAssertEqual(descriptor.field.count, 1)
+    XCTAssertEqual(descriptor.reservedRange.count, 3)
 
-    // Check reserved ranges (numbers should be converted to ranges)
-    XCTAssertTrue(descriptor.reservedRange.count > 0)
-
-    // Verify ranges: [5,8), [10,11), [15,18)
+    // Verify ranges (end is exclusive in DescriptorProto.ReservedRange)
     XCTAssertEqual(descriptor.reservedRange[0].start, 5)
-    XCTAssertEqual(descriptor.reservedRange[0].end, 8)  // end is exclusive
+    XCTAssertEqual(descriptor.reservedRange[0].end, 8)
     XCTAssertEqual(descriptor.reservedRange[1].start, 10)
     XCTAssertEqual(descriptor.reservedRange[1].end, 11)
     XCTAssertEqual(descriptor.reservedRange[2].start, 15)
@@ -224,12 +225,11 @@ class MessageDescriptorBuilderTests: XCTestCase {
   }
 
   func testBuildMessageWithSingleReservedNumber() throws {
-    // Test single reserved number
     let field = FieldNode(name: "id", type: .int32, number: 1)
     let message = MessageNode(
       name: "MessageWithSingleReserved",
       fields: [field],
-      reservedNumbers: [42]
+      reservedRanges: [ReservedNumberRange(42)]
     )
 
     let descriptor = try MessageDescriptorBuilder.build(from: message)
@@ -240,17 +240,21 @@ class MessageDescriptorBuilderTests: XCTestCase {
   }
 
   func testBuildMessageWithComplexReservedRanges() throws {
-    // Test complex reserved numbers that should create multiple ranges
     let field = FieldNode(name: "id", type: .int32, number: 1)
     let message = MessageNode(
       name: "MessageWithComplexReserved",
       fields: [field],
-      reservedNumbers: [5, 7, 8, 9, 15, 20, 21, 22, 100]
+      reservedRanges: [
+        ReservedNumberRange(5),
+        ReservedNumberRange(start: 7, end: 9),
+        ReservedNumberRange(15),
+        ReservedNumberRange(start: 20, end: 22),
+        ReservedNumberRange(100),
+      ]
     )
 
     let descriptor = try MessageDescriptorBuilder.build(from: message)
 
-    // Should create ranges: [5,6), [7,10), [15,16), [20,23), [100,101)
     XCTAssertEqual(descriptor.reservedRange.count, 5)
 
     XCTAssertEqual(descriptor.reservedRange[0].start, 5)

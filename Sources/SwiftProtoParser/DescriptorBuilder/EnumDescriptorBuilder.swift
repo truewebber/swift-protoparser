@@ -30,9 +30,9 @@ struct EnumDescriptorBuilder {
       enumProto.options = try buildEnumOptions(from: enumNode.options)
     }
 
-    // Convert reserved numbers → EnumReservedRange (end is inclusive, unlike DescriptorProto.ReservedRange)
-    if !enumNode.reservedNumbers.isEmpty {
-      enumProto.reservedRange = buildEnumReservedRanges(from: enumNode.reservedNumbers)
+    // Convert reserved ranges → EnumReservedRange (end is inclusive)
+    if !enumNode.reservedRanges.isEmpty {
+      enumProto.reservedRange = buildEnumReservedRanges(from: enumNode.reservedRanges)
     }
 
     // Convert reserved names
@@ -43,42 +43,20 @@ struct EnumDescriptorBuilder {
     return enumProto
   }
 
-  /// Groups sorted reserved numbers into `EnumReservedRange` entries.
+  /// Converts AST `ReservedNumberRange` values into `EnumReservedRange` descriptors.
   ///
-  /// Consecutive numbers (e.g. [4, 5, 6]) are merged into a single range.
-  /// `EnumReservedRange.end` is **inclusive** (unlike `DescriptorProto.ReservedRange` where end is exclusive).
+  /// `EnumReservedRange.end` is **inclusive**.
+  /// For the `max` sentinel, the inclusive end is `Int32.max` (2_147_483_647),
+  /// which matches protoc's output for `reserved N to max;` inside an enum.
   private static func buildEnumReservedRanges(
-    from reservedNumbers: [Int32]
+    from reservedRanges: [ReservedNumberRange]
   ) -> [Google_Protobuf_EnumDescriptorProto.EnumReservedRange] {
-    var ranges: [Google_Protobuf_EnumDescriptorProto.EnumReservedRange] = []
-    let sorted = reservedNumbers.sorted()
-    var rangeStart: Int32?
-    var rangeEnd: Int32?
-
-    for number in sorted {
-      if let end = rangeEnd, number == end + 1 {
-        rangeEnd = number
-      }
-      else {
-        if let start = rangeStart, let end = rangeEnd {
-          var r = Google_Protobuf_EnumDescriptorProto.EnumReservedRange()
-          r.start = start
-          r.end = end
-          ranges.append(r)
-        }
-        rangeStart = number
-        rangeEnd = number
-      }
+    reservedRanges.map { r in
+      var range = Google_Protobuf_EnumDescriptorProto.EnumReservedRange()
+      range.start = r.start
+      range.end = r.endIsMax ? Int32.max : r.end
+      return range
     }
-
-    if let start = rangeStart, let end = rangeEnd {
-      var r = Google_Protobuf_EnumDescriptorProto.EnumReservedRange()
-      r.start = start
-      r.end = end
-      ranges.append(r)
-    }
-
-    return ranges
   }
 
   /// Build EnumValueDescriptorProto from EnumValueNode.

@@ -15,7 +15,7 @@ final class MessageNodeTests: XCTestCase {
     XCTAssertTrue(message.nestedEnums.isEmpty)
     XCTAssertTrue(message.oneofGroups.isEmpty)
     XCTAssertTrue(message.options.isEmpty)
-    XCTAssertTrue(message.reservedNumbers.isEmpty)
+    XCTAssertTrue(message.reservedRanges.isEmpty)
     XCTAssertTrue(message.reservedNames.isEmpty)
 
     XCTAssertTrue(message.usedFieldNumbers.isEmpty)
@@ -45,7 +45,9 @@ final class MessageNodeTests: XCTestCase {
       nestedEnums: [nestedEnum],
       oneofGroups: [oneofGroup],
       options: [option],
-      reservedNumbers: [5, 6, 7],
+      reservedRanges: [
+        ReservedNumberRange(start: 5, end: 7)
+      ],
       reservedNames: ["old_field1", "old_field2"]
     )
 
@@ -55,7 +57,7 @@ final class MessageNodeTests: XCTestCase {
     XCTAssertEqual(message.nestedEnums.count, 1)
     XCTAssertEqual(message.oneofGroups.count, 1)
     XCTAssertEqual(message.options.count, 1)
-    XCTAssertEqual(message.reservedNumbers, [5, 6, 7])
+    XCTAssertEqual(message.reservedNumbers, [5, 6, 7])  // backward-compat computed property
     XCTAssertEqual(message.reservedNames, ["old_field1", "old_field2"])
   }
 
@@ -171,7 +173,7 @@ final class MessageNodeTests: XCTestCase {
       name: "TestMessage",
       fields: [field],
       options: [option],
-      reservedNumbers: [5],
+      reservedRanges: [ReservedNumberRange(5)],
       reservedNames: ["old_field"]
     )
 
@@ -179,7 +181,7 @@ final class MessageNodeTests: XCTestCase {
       name: "TestMessage",
       fields: [field],
       options: [option],
-      reservedNumbers: [5],
+      reservedRanges: [ReservedNumberRange(5)],
       reservedNames: ["old_field"]
     )
 
@@ -187,7 +189,7 @@ final class MessageNodeTests: XCTestCase {
       name: "DifferentMessage",
       fields: [field],
       options: [option],
-      reservedNumbers: [5],
+      reservedRanges: [ReservedNumberRange(5)],
       reservedNames: ["old_field"]
     )
 
@@ -224,7 +226,7 @@ final class MessageNodeTests: XCTestCase {
     let message = MessageNode(
       name: "MessageWithReserved",
       fields: [field],
-      reservedNumbers: [5, 6, 7]
+      reservedRanges: [ReservedNumberRange(start: 5, end: 7)]
     )
 
     let description = message.description
@@ -394,7 +396,7 @@ final class MessageNodeTests: XCTestCase {
       nestedEnums: [nestedEnum],
       oneofGroups: [oneofGroup],
       options: [messageOption],
-      reservedNumbers: [3, 4, 5],
+      reservedRanges: [ReservedNumberRange(start: 3, end: 5)],
       reservedNames: ["old_name", "legacy_field"]
     )
 
@@ -453,7 +455,7 @@ final class MessageNodeTests: XCTestCase {
       nestedEnums: [nestedEnum],
       oneofGroups: [oneofGroup],
       options: [option],
-      reservedNumbers: [5],
+      reservedRanges: [ReservedNumberRange(5)],
       reservedNames: ["old_field"]
     )
 

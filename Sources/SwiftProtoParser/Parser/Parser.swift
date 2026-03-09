@@ -484,7 +484,7 @@ final class Parser {
     var nestedEnums: [EnumNode] = []
     var oneofGroups: [OneofNode] = []
     var options: [OptionNode] = []
-    var reservedNumbers: [Int32] = []
+    var reservedRanges: [ReservedNumberRange] = []
     var reservedNames: [String] = []
     var extensionRanges: [ExtensionRangeNode] = []
     var nestedExtends: [ExtendNode] = []
@@ -520,8 +520,8 @@ final class Parser {
           options.append(option)
 
         case .reserved:
-          let (numbers, names) = try parseReservedDeclaration()
-          reservedNumbers.append(contentsOf: numbers)
+          let (ranges, names) = try parseReservedDeclaration()
+          reservedRanges.append(contentsOf: ranges)
           reservedNames.append(contentsOf: names)
 
         case .extensions:
@@ -585,7 +585,7 @@ final class Parser {
       nestedEnums: nestedEnums,
       oneofGroups: oneofGroups,
       options: options,
-      reservedNumbers: reservedNumbers,
+      reservedRanges: reservedRanges,
       reservedNames: reservedNames,
       extensionRanges: extensionRanges,
       nestedExtends: nestedExtends,
@@ -657,7 +657,7 @@ final class Parser {
     var bodyNestedEnums: [EnumNode] = []
     var bodyOneofGroups: [OneofNode] = []
     var bodyOptions: [OptionNode] = []
-    var bodyReservedNumbers: [Int32] = []
+    var bodyReservedRanges: [ReservedNumberRange] = []
     var bodyReservedNames: [String] = []
     var bodyExtensionRanges: [ExtensionRangeNode] = []
     var bodyNestedExtends: [ExtendNode] = []
@@ -688,8 +688,8 @@ final class Parser {
           bodyOptions.append(option)
 
         case .reserved:
-          let (numbers, names) = try parseReservedDeclaration()
-          bodyReservedNumbers.append(contentsOf: numbers)
+          let (ranges, names) = try parseReservedDeclaration()
+          bodyReservedRanges.append(contentsOf: ranges)
           bodyReservedNames.append(contentsOf: names)
 
         case .extensions:
@@ -748,7 +748,7 @@ final class Parser {
       nestedEnums: bodyNestedEnums,
       oneofGroups: bodyOneofGroups,
       options: bodyOptions,
-      reservedNumbers: bodyReservedNumbers,
+      reservedRanges: bodyReservedRanges,
       reservedNames: bodyReservedNames,
       extensionRanges: bodyExtensionRanges,
       nestedExtends: bodyNestedExtends,
@@ -1129,7 +1129,7 @@ final class Parser {
 
     var values: [EnumValueNode] = []
     var options: [OptionNode] = []
-    var reservedNumbers: [Int32] = []
+    var reservedRanges: [ReservedNumberRange] = []
     var reservedNames: [String] = []
 
     // Parse enum body
@@ -1151,8 +1151,8 @@ final class Parser {
         options.append(option)
 
       case .keyword(.reserved):
-        let (numbers, names) = try parseReservedDeclaration()
-        reservedNumbers.append(contentsOf: numbers)
+        let (ranges, names) = try parseReservedDeclaration()
+        reservedRanges.append(contentsOf: ranges)
         reservedNames.append(contentsOf: names)
 
       case .identifier:
@@ -1184,7 +1184,7 @@ final class Parser {
       name: enumName,
       values: values,
       options: options,
-      reservedNumbers: reservedNumbers,
+      reservedRanges: reservedRanges,
       reservedNames: reservedNames
     )
   }
@@ -1422,11 +1422,11 @@ final class Parser {
   }
 
   /// Parses a reserved declaration: reserved 1, 2, 3 to 5, "field1", "field2";.
-  private func parseReservedDeclaration() throws -> ([Int32], [String]) {
+  private func parseReservedDeclaration() throws -> ([ReservedNumberRange], [String]) {
     _ = state.expectKeyword(.reserved)
     skipIgnorableTokens()
 
-    var numbers: [Int32] = []
+    var ranges: [ReservedNumberRange] = []
     var names: [String] = []
 
     repeat {
@@ -1444,42 +1444,46 @@ final class Parser {
         skipIgnorableTokens()
 
         if state.checkIdentifier() && state.identifierName == "to" {
-          // Range: start to end
+          // Range: start to end (or "max")
           state.advance()  // consume "to"
           skipIgnorableTokens()
 
-          guard let endValue = state.integerLiteralValue else {
-            state.addError(
-              .unexpectedToken(
-                state.currentToken ?? Token(type: .eof, position: Token.Position(line: 0, column: 0)),
-                expected: "end range number"
-              )
-            )
-            break
+          if state.checkIdentifier() && state.identifierName == "max" {
+            // "reserved N to max" — store using the sentinel value
+            state.advance()  // consume "max"
+            ranges.append(ReservedNumberRange(start: startNumber, end: ReservedNumberRange.maxSentinel))
+            skipIgnorableTokens()
           }
+          else if let endValue = state.integerLiteralValue {
+            let endNumber = Int32(endValue)
+            state.advance()
+            skipIgnorableTokens()
 
-          let endNumber = Int32(endValue)
-          state.advance()
-          skipIgnorableTokens()
-
-          // Add all numbers in range
-          if startNumber <= endNumber {
-            for num in startNumber...endNumber {
-              numbers.append(num)
+            if startNumber <= endNumber {
+              ranges.append(ReservedNumberRange(start: startNumber, end: endNumber))
+            }
+            else {
+              state.addError(
+                .unexpectedToken(
+                  state.currentToken ?? Token(type: .eof, position: Token.Position(line: 0, column: 0)),
+                  expected: "valid range (start <= end)"
+                )
+              )
             }
           }
           else {
             state.addError(
               .unexpectedToken(
                 state.currentToken ?? Token(type: .eof, position: Token.Position(line: 0, column: 0)),
-                expected: "valid range (start <= end)"
+                expected: "end range number or 'max'"
               )
             )
+            break
           }
         }
         else {
           // Single number
-          numbers.append(startNumber)
+          ranges.append(ReservedNumberRange(startNumber))
         }
       }
       else {
@@ -1503,7 +1507,7 @@ final class Parser {
 
     _ = state.expectSymbol(";")
 
-    return (numbers, names)
+    return (ranges, names)
   }
 
   /// The exclusive upper bound used when `max` appears in an extension range.
