@@ -44,6 +44,12 @@ struct MessageNode: Equatable {
   /// Extension ranges declared inside this message (proto2 only).
   let extensionRanges: [ExtensionRangeNode]
 
+  /// Extend blocks declared inside this message body (nested extends).
+  ///
+  /// Fields from these extend blocks go into `DescriptorProto.extension` of this message,
+  /// not into `FileDescriptorProto.extension`.
+  let nestedExtends: [ExtendNode]
+
   init(
     name: String,
     fields: [FieldNode] = [],
@@ -53,7 +59,8 @@ struct MessageNode: Equatable {
     options: [OptionNode] = [],
     reservedNumbers: [Int32] = [],
     reservedNames: [String] = [],
-    extensionRanges: [ExtensionRangeNode] = []
+    extensionRanges: [ExtensionRangeNode] = [],
+    nestedExtends: [ExtendNode] = []
   ) {
     self.name = name
     self.fields = fields
@@ -64,6 +71,7 @@ struct MessageNode: Equatable {
     self.reservedNumbers = reservedNumbers
     self.reservedNames = reservedNames
     self.extensionRanges = extensionRanges
+    self.nestedExtends = nestedExtends
   }
 
   /// Returns all field numbers used in this message (including oneof fields).

@@ -404,4 +404,178 @@ final class Proto2DescriptorTests: XCTestCase {
       XCTFail("proto2 field with default must succeed, got: \(error.description)")
     }
   }
+
+  // MARK: - AC-16: Nested extend inside message → DescriptorProto.extension
+
+  func test_build_nestedExtendInMessage_populatesMessageExtension() {
+    let proto = """
+      syntax = "proto2";
+      message Foo {
+        required int32 id = 1;
+        extensions 100 to 199;
+      }
+      message Bar {
+        extend Foo {
+          optional string extra = 100;
+        }
+      }
+      """
+    let result = SwiftProtoParser.parseProtoStringToDescriptors(proto)
+    switch result {
+    case .success(let fileDescriptor):
+      XCTAssertEqual(fileDescriptor.messageType.count, 2, "Expected 2 message types (Foo, Bar)")
+      guard fileDescriptor.messageType.count >= 2 else { return }
+      let barDescriptor = fileDescriptor.messageType[1]
+      XCTAssertEqual(barDescriptor.name, "Bar")
+      XCTAssertEqual(barDescriptor.extension.count, 1, "Bar.extension must have 1 field from nested extend")
+      guard barDescriptor.extension.count >= 1 else { return }
+      XCTAssertEqual(barDescriptor.extension[0].name, "extra")
+      XCTAssertEqual(barDescriptor.extension[0].number, 100)
+    case .failure(let error):
+      XCTFail("nested extend must succeed, got: \(error.description)")
+    }
+  }
+
+  func test_build_nestedExtendInMessage_extendeeIsFullyQualified() {
+    let proto = """
+      syntax = "proto2";
+      message Foo {
+        required int32 id = 1;
+        extensions 100 to 199;
+      }
+      message Bar {
+        extend Foo {
+          optional string extra = 100;
+        }
+      }
+      """
+    let result = SwiftProtoParser.parseProtoStringToDescriptors(proto)
+    switch result {
+    case .success(let fileDescriptor):
+      XCTAssertEqual(fileDescriptor.messageType.count, 2, "Expected 2 message types (Foo, Bar)")
+      guard fileDescriptor.messageType.count >= 2 else { return }
+      XCTAssertEqual(fileDescriptor.messageType[1].extension.count, 1, "Bar.extension must have 1 field")
+      guard fileDescriptor.messageType[1].extension.count >= 1 else { return }
+      let extendee = fileDescriptor.messageType[1].extension[0].extendee
+      XCTAssertTrue(
+        extendee.hasPrefix("."),
+        "extendee must be fully qualified (start with '.'). Got: \(extendee)"
+      )
+      XCTAssertEqual(extendee, ".Foo")
+    case .failure(let error):
+      XCTFail("nested extend must succeed, got: \(error.description)")
+    }
+  }
+
+  func test_build_nestedExtendInMessage_doesNotPopulateFileExtension() {
+    let proto = """
+      syntax = "proto2";
+      message Foo {
+        required int32 id = 1;
+        extensions 100 to 199;
+      }
+      message Bar {
+        extend Foo {
+          optional string extra = 100;
+        }
+      }
+      """
+    let result = SwiftProtoParser.parseProtoStringToDescriptors(proto)
+    switch result {
+    case .success(let fileDescriptor):
+      XCTAssertTrue(
+        fileDescriptor.extension.isEmpty,
+        "Nested extend must NOT populate FileDescriptorProto.extension. Got: \(fileDescriptor.extension)"
+      )
+    case .failure(let error):
+      XCTFail("nested extend must succeed, got: \(error.description)")
+    }
+  }
+
+  func test_build_nestedExtendInMessage_multipleFields_allPopulated() {
+    let proto = """
+      syntax = "proto2";
+      message Foo {
+        required int32 id = 1;
+        extensions 100 to 199;
+      }
+      message Bar {
+        extend Foo {
+          optional string label = 100;
+          optional bool   hidden = 101;
+        }
+      }
+      """
+    let result = SwiftProtoParser.parseProtoStringToDescriptors(proto)
+    switch result {
+    case .success(let fileDescriptor):
+      XCTAssertEqual(fileDescriptor.messageType.count, 2, "Expected 2 message types")
+      guard fileDescriptor.messageType.count >= 2 else { return }
+      let barDescriptor = fileDescriptor.messageType[1]
+      XCTAssertEqual(barDescriptor.extension.count, 2)
+      guard barDescriptor.extension.count >= 2 else { return }
+      XCTAssertEqual(barDescriptor.extension[0].name, "label")
+      XCTAssertEqual(barDescriptor.extension[1].name, "hidden")
+    case .failure(let error):
+      XCTFail("nested extend with multiple fields must succeed, got: \(error.description)")
+    }
+  }
+
+  func test_build_topLevelExtend_doesNotPopulateMessageExtension() {
+    let proto = """
+      syntax = "proto2";
+      message Foo {
+        required int32 id = 1;
+        extensions 100 to 199;
+      }
+      message Bar {
+        required int32 x = 1;
+      }
+      extend Foo {
+        optional string extra = 100;
+      }
+      """
+    let result = SwiftProtoParser.parseProtoStringToDescriptors(proto)
+    switch result {
+    case .success(let fileDescriptor):
+      XCTAssertEqual(fileDescriptor.extension.count, 1, "Top-level extend must populate FileDescriptorProto.extension")
+      XCTAssertEqual(fileDescriptor.messageType.count, 2, "Expected 2 message types")
+      guard fileDescriptor.messageType.count >= 2 else { return }
+      let barDescriptor = fileDescriptor.messageType[1]
+      XCTAssertTrue(
+        barDescriptor.extension.isEmpty,
+        "Top-level extend must NOT populate Bar (DescriptorProto).extension"
+      )
+    case .failure(let error):
+      XCTFail("Top-level extend must succeed, got: \(error.description)")
+    }
+  }
+
+  func test_build_nestedExtendInMessage_withPackage_extendeeIncludesPackage() {
+    let proto = """
+      syntax = "proto2";
+      package myapp;
+      message Foo {
+        required int32 id = 1;
+        extensions 100 to 199;
+      }
+      message Bar {
+        extend Foo {
+          optional string extra = 100;
+        }
+      }
+      """
+    let result = SwiftProtoParser.parseProtoStringToDescriptors(proto)
+    switch result {
+    case .success(let fileDescriptor):
+      XCTAssertEqual(fileDescriptor.messageType.count, 2, "Expected 2 message types")
+      guard fileDescriptor.messageType.count >= 2 else { return }
+      XCTAssertEqual(fileDescriptor.messageType[1].extension.count, 1, "Bar.extension must have 1 field")
+      guard fileDescriptor.messageType[1].extension.count >= 1 else { return }
+      let extendee = fileDescriptor.messageType[1].extension[0].extendee
+      XCTAssertEqual(extendee, ".myapp.Foo")
+    case .failure(let error):
+      XCTFail("nested extend with package must succeed, got: \(error.description)")
+    }
+  }
 }

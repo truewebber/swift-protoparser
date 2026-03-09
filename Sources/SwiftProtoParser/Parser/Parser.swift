@@ -411,6 +411,7 @@ final class Parser {
     var reservedNumbers: [Int32] = []
     var reservedNames: [String] = []
     var extensionRanges: [ExtensionRangeNode] = []
+    var nestedExtends: [ExtendNode] = []
 
     // Parse message body
     while !state.isAtEnd {
@@ -460,6 +461,10 @@ final class Parser {
             extensionRanges.append(contentsOf: ranges)
           }
 
+        case .extend:
+          let nestedExtend = try parseExtendDeclaration()
+          nestedExtends.append(nestedExtend)
+
         case .repeated, .optional, .required:
           let field = try parseFieldDeclaration()
           fields.append(field)
@@ -499,7 +504,8 @@ final class Parser {
       options: options,
       reservedNumbers: reservedNumbers,
       reservedNames: reservedNames,
-      extensionRanges: extensionRanges
+      extensionRanges: extensionRanges,
+      nestedExtends: nestedExtends
     )
   }
 

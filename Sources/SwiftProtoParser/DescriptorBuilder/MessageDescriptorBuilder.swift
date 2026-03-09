@@ -65,6 +65,25 @@ struct MessageDescriptorBuilder {
       messageProto.extensionRange = buildExtensionRanges(from: messageNode.extensionRanges)
     }
 
+    // Convert nested extend blocks → DescriptorProto.extension
+    var nestedExtensionFields: [Google_Protobuf_FieldDescriptorProto] = []
+    for extendNode in messageNode.nestedExtends {
+      let extendee = buildFullyQualifiedExtendee(extendNode.extendedType, packageName: packageName)
+      for fieldNode in extendNode.fields {
+        var fieldProto = try FieldDescriptorBuilder.build(
+          from: fieldNode,
+          index: 0,
+          packageName: packageName,
+          protoVersion: protoVersion
+        )
+        fieldProto.extendee = extendee
+        nestedExtensionFields.append(fieldProto)
+      }
+    }
+    if !nestedExtensionFields.isEmpty {
+      messageProto.extension = nestedExtensionFields
+    }
+
     // Convert reserved numbers to reserved ranges
     if !messageNode.reservedNumbers.isEmpty {
       messageProto.reservedRange = try buildReservedRanges(from: messageNode.reservedNumbers)
@@ -392,5 +411,16 @@ struct MessageDescriptorBuilder {
     else {
       return ".\(typeName)"
     }
+  }
+
+  /// Returns the fully-qualified extendee name, always beginning with `.`.
+  private static func buildFullyQualifiedExtendee(_ name: String, packageName: String?) -> String {
+    if name.hasPrefix(".") {
+      return name
+    }
+    if let package = packageName, !package.isEmpty {
+      return ".\(package).\(name)"
+    }
+    return ".\(name)"
   }
 }

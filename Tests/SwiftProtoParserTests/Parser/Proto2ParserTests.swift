@@ -550,4 +550,35 @@ final class Proto2ParserTests: XCTestCase {
       XCTFail("Valid proto2 oneof without labels must succeed, got: \(error.description)")
     }
   }
+
+  // MARK: - AC-16: Nested extend inside message
+
+  func test_parse_nestedExtendInMessage_populatesNestedExtends() {
+    let proto = """
+      syntax = "proto2";
+      message Foo {
+        required int32 id = 1;
+        extensions 100 to 199;
+      }
+      message Bar {
+        extend Foo {
+          optional string extra = 100;
+        }
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    switch result {
+    case .success(let ast):
+      XCTAssertEqual(ast.messages.count, 2)
+      guard ast.messages.count >= 2 else { return }
+      let bar = ast.messages[1]
+      XCTAssertEqual(bar.name, "Bar")
+      XCTAssertEqual(bar.nestedExtends.count, 1, "Bar must have 1 nested extend")
+      guard bar.nestedExtends.count >= 1 else { return }
+      XCTAssertEqual(bar.nestedExtends[0].extendedType, "Foo")
+      XCTAssertEqual(bar.nestedExtends[0].fields.count, 1)
+    case .failure(let error):
+      XCTFail("Proto2 nested extend must parse successfully, got: \(error.description)")
+    }
+  }
 }

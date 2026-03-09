@@ -208,6 +208,9 @@ struct EnumFieldTypeResolver {
       resolveMessage(nestedMessage, scope: currentScope)
     }
 
+    // Resolve field types in nested extend declarations
+    let resolvedNestedExtends = message.nestedExtends.map { resolveExtend($0) }
+
     // Return new message with resolved fields
     return MessageNode(
       name: message.name,
@@ -218,7 +221,8 @@ struct EnumFieldTypeResolver {
       options: message.options,
       reservedNumbers: message.reservedNumbers,
       reservedNames: message.reservedNames,
-      extensionRanges: message.extensionRanges
+      extensionRanges: message.extensionRanges,
+      nestedExtends: resolvedNestedExtends
     )
   }
 
