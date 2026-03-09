@@ -1,0 +1,9 @@
+// No syntax declaration — protoc treats this as proto2 by default.
+
+package fixtures.proto2;
+
+message LegacyMessage {
+  required string id    = 1;
+  optional string label = 2;
+  repeated int32  values = 3;
+}

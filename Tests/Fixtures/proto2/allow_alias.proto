@@ -1,0 +1,19 @@
+syntax = "proto2";
+
+package fixtures.proto2;
+
+enum Direction {
+  option allow_alias = true;
+
+  NORTH = 0;
+  UP    = 0;
+  SOUTH = 1;
+  DOWN  = 1;
+  EAST  = 2;
+  WEST  = 3;
+}
+
+message Movement {
+  required Direction direction = 1;
+  optional int32     steps     = 2 [default = 1];
+}

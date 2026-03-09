@@ -1,0 +1,23 @@
+syntax = "proto2";
+
+package fixtures.proto2;
+
+message BaseMessage {
+  required string name = 1;
+
+  extensions 100 to 199;
+  extensions 200 to 299;
+  extensions 1000 to max;
+}
+
+extend BaseMessage {
+  optional string extra_label  = 100;
+  optional int32  extra_count  = 200;
+}
+
+message ExtensionHolder {
+  extend BaseMessage {
+    optional bool   nested_flag   = 101;
+    optional double nested_value  = 201;
+  }
+}

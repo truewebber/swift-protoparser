@@ -1,0 +1,17 @@
+syntax = "proto2";
+
+package fixtures.proto2;
+
+message SearchResponse {
+  repeated group Result = 1 {
+    required string url   = 2;
+    optional string title = 3;
+    repeated string snippet = 4;
+  }
+}
+
+message Outer {
+  optional group Inner = 1 {
+    required int32 value = 2;
+  }
+}
