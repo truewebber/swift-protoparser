@@ -1,5 +1,22 @@
 import Foundation
 
+// MARK: - ExtensionRangeNode
+
+/// Represents a single extension range declaration inside a proto2 message.
+///
+/// Extension ranges allow external `.proto` files to add fields to a message
+/// using the `extend` keyword. The `end` value is stored **exclusive** (as
+/// required by the protobuf descriptor format), i.e. the parsed `M` in
+/// `extensions N to M` is stored as `M + 1`, and `max` maps to `536870912`.
+struct ExtensionRangeNode: Equatable {
+  /// The first field number in the range (inclusive).
+  let start: Int32
+  /// One past the last field number in the range (exclusive), matching the descriptor format.
+  let end: Int32
+}
+
+// MARK: - MessageNode
+
 /// Represents a protobuf message definition.
 struct MessageNode: Equatable {
   /// The message name.
@@ -24,6 +41,9 @@ struct MessageNode: Equatable {
   let reservedNumbers: [Int32]
   let reservedNames: [String]
 
+  /// Extension ranges declared inside this message (proto2 only).
+  let extensionRanges: [ExtensionRangeNode]
+
   init(
     name: String,
     fields: [FieldNode] = [],
@@ -32,7 +52,8 @@ struct MessageNode: Equatable {
     oneofGroups: [OneofNode] = [],
     options: [OptionNode] = [],
     reservedNumbers: [Int32] = [],
-    reservedNames: [String] = []
+    reservedNames: [String] = [],
+    extensionRanges: [ExtensionRangeNode] = []
   ) {
     self.name = name
     self.fields = fields
@@ -42,6 +63,7 @@ struct MessageNode: Equatable {
     self.options = options
     self.reservedNumbers = reservedNumbers
     self.reservedNames = reservedNames
+    self.extensionRanges = extensionRanges
   }
 
   /// Returns all field numbers used in this message (including oneof fields).

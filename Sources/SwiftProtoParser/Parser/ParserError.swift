@@ -53,6 +53,9 @@ enum ParserError: Error, Equatable {
   /// Duplicate enum value without allow_alias = true.
   case duplicateEnumValue(String, line: Int, column: Int)
 
+  /// Extension range declared in a proto3 file (only valid in proto2).
+  case extensionRangeInProto3(line: Int, column: Int)
+
   /// Internal parser error.
   case internalError(String)
 
@@ -75,6 +78,8 @@ enum ParserError: Error, Equatable {
       .invalidExtendTarget(_, let line, _),
       .missingFieldLabel(_, let line, _),
       .duplicateEnumValue(_, let line, _):
+      return line
+    case .extensionRangeInProto3(let line, _):
       return line
     case .unexpectedEndOfInput, .internalError:
       return 0
@@ -100,6 +105,8 @@ enum ParserError: Error, Equatable {
       .invalidExtendTarget(_, _, let column),
       .missingFieldLabel(_, _, let column),
       .duplicateEnumValue(_, _, let column):
+      return column
+    case .extensionRangeInProto3(_, let column):
       return column
     case .unexpectedEndOfInput, .internalError:
       return 0
@@ -159,6 +166,9 @@ enum ParserError: Error, Equatable {
 
     case .duplicateEnumValue(let message, _, _):
       return message
+
+    case .extensionRangeInProto3(let line, let column):
+      return "Extension ranges are not allowed in proto3. at line \(line), column \(column)"
 
     case .internalError(let message):
       return "Internal parser error: \(message)"

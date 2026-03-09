@@ -47,6 +47,11 @@ struct MessageDescriptorBuilder {
       messageProto.oneofDecl.append(oneofProto)
     }
 
+    // Convert extension ranges (proto2 only)
+    if !messageNode.extensionRanges.isEmpty {
+      messageProto.extensionRange = buildExtensionRanges(from: messageNode.extensionRanges)
+    }
+
     // Convert reserved numbers to reserved ranges
     if !messageNode.reservedNumbers.isEmpty {
       messageProto.reservedRange = try buildReservedRanges(from: messageNode.reservedNumbers)
@@ -77,6 +82,21 @@ struct MessageDescriptorBuilder {
     }
 
     return oneofProto
+  }
+
+  /// Build extension ranges from AST ExtensionRangeNodes.
+  ///
+  /// The `end` value in each `ExtensionRangeNode` is already exclusive (stored as written M + 1,
+  /// or 536870912 for `max`), so it is copied directly into the descriptor without adjustment.
+  private static func buildExtensionRanges(
+    from ranges: [ExtensionRangeNode]
+  ) -> [Google_Protobuf_DescriptorProto.ExtensionRange] {
+    return ranges.map { rangeNode in
+      var extensionRange = Google_Protobuf_DescriptorProto.ExtensionRange()
+      extensionRange.start = rangeNode.start
+      extensionRange.end = rangeNode.end
+      return extensionRange
+    }
   }
 
   /// Build reserved ranges from reserved numbers.

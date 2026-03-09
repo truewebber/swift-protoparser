@@ -217,7 +217,8 @@ struct EnumFieldTypeResolver {
       oneofGroups: resolvedOneofGroups,
       options: message.options,
       reservedNumbers: message.reservedNumbers,
-      reservedNames: message.reservedNames
+      reservedNames: message.reservedNames,
+      extensionRanges: message.extensionRanges
     )
   }
 

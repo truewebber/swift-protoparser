@@ -410,6 +410,7 @@ final class Parser {
     var options: [OptionNode] = []
     var reservedNumbers: [Int32] = []
     var reservedNames: [String] = []
+    var extensionRanges: [ExtensionRangeNode] = []
 
     // Parse message body
     while !state.isAtEnd {
@@ -444,6 +445,20 @@ final class Parser {
           let (numbers, names) = try parseReservedDeclaration()
           reservedNumbers.append(contentsOf: numbers)
           reservedNames.append(contentsOf: names)
+
+        case .extensions:
+          if state.protoVersion == .proto3 {
+            let position = token.position
+            state.addError(
+              .extensionRangeInProto3(line: position.line, column: position.column)
+            )
+            state.advance()
+            state.synchronize()
+          }
+          else {
+            let ranges = try parseExtensionRanges()
+            extensionRanges.append(contentsOf: ranges)
+          }
 
         case .repeated, .optional, .required:
           let field = try parseFieldDeclaration()
@@ -483,7 +498,8 @@ final class Parser {
       oneofGroups: oneofGroups,
       options: options,
       reservedNumbers: reservedNumbers,
-      reservedNames: reservedNames
+      reservedNames: reservedNames,
+      extensionRanges: extensionRanges
     )
   }
 
@@ -1192,6 +1208,87 @@ final class Parser {
     _ = state.expectSymbol(";")
 
     return (numbers, names)
+  }
+
+  /// The exclusive upper bound used when `max` appears in an extension range.
+  ///
+  /// Matches protoc behaviour: `extensions N to max` → `extensionRange {start: N, end: 536870912}`.
+  private static let extensionRangeMax: Int32 = 536_870_912
+
+  /// Parses one or more comma-separated extension ranges after the `extensions` keyword.
+  ///
+  /// Grammar: `extensions N to M [, N to M]* ;`
+  /// where `M` may be `max`. End values are stored **exclusive** (M + 1 / 536870912 for max).
+  private func parseExtensionRanges() throws -> [ExtensionRangeNode] {
+    _ = state.expectKeyword(.extensions)
+    skipIgnorableTokens()
+
+    var ranges: [ExtensionRangeNode] = []
+
+    repeat {
+      skipIgnorableTokens()
+
+      guard let startValue = state.integerLiteralValue else {
+        state.addError(
+          .unexpectedToken(
+            state.currentToken ?? Token(type: .eof, position: Token.Position(line: 0, column: 0)),
+            expected: "extension range start number"
+          )
+        )
+        break
+      }
+
+      let start = Int32(startValue)
+      state.advance()
+      skipIgnorableTokens()
+
+      guard state.checkIdentifier() && state.identifierName == "to" else {
+        state.addError(
+          .unexpectedToken(
+            state.currentToken ?? Token(type: .eof, position: Token.Position(line: 0, column: 0)),
+            expected: "'to' keyword in extension range"
+          )
+        )
+        break
+      }
+
+      state.advance()  // consume "to"
+      skipIgnorableTokens()
+
+      let exclusiveEnd: Int32
+      if state.checkIdentifier() && state.identifierName == "max" {
+        exclusiveEnd = Parser.extensionRangeMax
+        state.advance()
+      }
+      else if let endValue = state.integerLiteralValue {
+        exclusiveEnd = Int32(endValue) + 1
+        state.advance()
+      }
+      else {
+        state.addError(
+          .unexpectedToken(
+            state.currentToken ?? Token(type: .eof, position: Token.Position(line: 0, column: 0)),
+            expected: "extension range end number or 'max'"
+          )
+        )
+        break
+      }
+
+      ranges.append(ExtensionRangeNode(start: start, end: exclusiveEnd))
+      skipIgnorableTokens()
+
+      if state.checkSymbol(",") {
+        state.advance()  // consume ","
+        skipIgnorableTokens()
+      }
+      else {
+        break
+      }
+    } while !state.isAtEnd
+
+    _ = state.expectSymbol(";")
+
+    return ranges
   }
 
   /// Parses a service declaration.

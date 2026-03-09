@@ -275,4 +275,128 @@ final class Proto2ParserTests: XCTestCase {
       )
     }
   }
+
+  // MARK: - AC-4: Extension ranges (proto2 only)
+
+  func test_parse_proto2ExtensionRangeSingle_succeeds() {
+    let proto = """
+      syntax = "proto2";
+      message Extendable {
+        required int32 id = 1;
+        extensions 100 to 199;
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    switch result {
+    case .success(let ast):
+      XCTAssertEqual(ast.messages.count, 1)
+      let msg = ast.messages[0]
+      XCTAssertEqual(msg.extensionRanges.count, 1)
+      XCTAssertEqual(msg.extensionRanges[0].start, 100)
+      XCTAssertEqual(msg.extensionRanges[0].end, 200, "End must be stored exclusive (199 + 1 = 200)")
+    case .failure(let error):
+      XCTFail("proto2 single extension range must succeed, got: \(error.description)")
+    }
+  }
+
+  func test_parse_proto2ExtensionRangeMax_succeeds() {
+    let proto = """
+      syntax = "proto2";
+      message Extendable {
+        required int32 id = 1;
+        extensions 1000 to max;
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    switch result {
+    case .success(let ast):
+      XCTAssertEqual(ast.messages.count, 1)
+      let msg = ast.messages[0]
+      XCTAssertEqual(msg.extensionRanges.count, 1)
+      XCTAssertEqual(msg.extensionRanges[0].start, 1000)
+      XCTAssertEqual(msg.extensionRanges[0].end, 536_870_912, "'max' must map to exclusive end 536870912")
+    case .failure(let error):
+      XCTFail("proto2 extension range to max must succeed, got: \(error.description)")
+    }
+  }
+
+  func test_parse_proto2ExtensionRangeCommaSeparated_yieldsThreeRanges() {
+    let proto = """
+      syntax = "proto2";
+      message Extendable {
+        required int32 id = 1;
+        extensions 100 to 199, 300 to 399, 500 to max;
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    switch result {
+    case .success(let ast):
+      let ranges = ast.messages[0].extensionRanges
+      XCTAssertEqual(ranges.count, 3)
+      XCTAssertEqual(ranges[0].start, 100)
+      XCTAssertEqual(ranges[0].end, 200)
+      XCTAssertEqual(ranges[1].start, 300)
+      XCTAssertEqual(ranges[1].end, 400)
+      XCTAssertEqual(ranges[2].start, 500)
+      XCTAssertEqual(ranges[2].end, 536_870_912)
+    case .failure(let error):
+      XCTFail("Comma-separated extension ranges must succeed, got: \(error.description)")
+    }
+  }
+
+  func test_parse_proto3ExtensionRange_producesExactError() {
+    let proto = """
+      syntax = "proto3";
+      message Extendable {
+        int32 id = 1;
+        extensions 100 to 199;
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    switch result {
+    case .success:
+      XCTFail("proto3 with extension ranges must produce an error")
+    case .failure(let error):
+      XCTAssertTrue(
+        error.description.contains("Extension ranges are not allowed in proto3."),
+        "Expected exact protoc error, got: \(error.description)"
+      )
+    }
+  }
+
+  func test_parse_proto2ExtensionRangeSingleNumber_succeeds() {
+    let proto = """
+      syntax = "proto2";
+      message Extendable {
+        required int32 id = 1;
+        extensions 100 to 100;
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    switch result {
+    case .success(let ast):
+      let ranges = ast.messages[0].extensionRanges
+      XCTAssertEqual(ranges.count, 1)
+      XCTAssertEqual(ranges[0].start, 100)
+      XCTAssertEqual(ranges[0].end, 101, "Single-number range end is exclusive (100 + 1 = 101)")
+    case .failure(let error):
+      XCTFail("Single-number extension range must succeed, got: \(error.description)")
+    }
+  }
+
+  func test_parse_proto2MessageNoExtensionRanges_returnsEmpty() {
+    let proto = """
+      syntax = "proto2";
+      message Plain {
+        required int32 id = 1;
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    switch result {
+    case .success(let ast):
+      XCTAssertEqual(ast.messages[0].extensionRanges.count, 0)
+    case .failure(let error):
+      XCTFail("Plain proto2 message must succeed, got: \(error.description)")
+    }
+  }
 }
