@@ -211,6 +211,11 @@ struct EnumFieldTypeResolver {
     // Resolve field types in nested extend declarations
     let resolvedNestedExtends = message.nestedExtends.map { resolveExtend($0) }
 
+    // Resolve group field bodies (each body is an implicit nested message)
+    let resolvedGroupFields = message.groupFields.map { groupField in
+      resolveGroupField(groupField, scope: currentScope)
+    }
+
     // Return new message with resolved fields
     return MessageNode(
       name: message.name,
@@ -222,7 +227,24 @@ struct EnumFieldTypeResolver {
       reservedNumbers: message.reservedNumbers,
       reservedNames: message.reservedNames,
       extensionRanges: message.extensionRanges,
-      nestedExtends: resolvedNestedExtends
+      nestedExtends: resolvedNestedExtends,
+      groupFields: resolvedGroupFields
+    )
+  }
+
+  /// Resolves field types inside a group field's inline message body.
+  ///
+  /// - Parameters:
+  ///   - groupField: The group field to resolve.
+  ///   - scope: Current scope as array of parent message names.
+  /// - Returns: A new group field with resolved body field types.
+  private func resolveGroupField(_ groupField: GroupFieldNode, scope: [String]) -> GroupFieldNode {
+    let resolvedBody = resolveMessage(groupField.body, scope: scope)
+    return GroupFieldNode(
+      label: groupField.label,
+      groupName: groupField.groupName,
+      fieldNumber: groupField.fieldNumber,
+      body: resolvedBody
     )
   }
 

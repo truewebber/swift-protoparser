@@ -50,6 +50,13 @@ struct MessageNode: Equatable {
   /// not into `FileDescriptorProto.extension`.
   let nestedExtends: [ExtendNode]
 
+  /// Group field declarations inside this message (proto2 only).
+  ///
+  /// Each `GroupFieldNode` carries both the field descriptor (label, number) and the
+  /// inline nested message body. The DescriptorBuilder is responsible for expanding
+  /// these into a regular field + synthetic nested message.
+  let groupFields: [GroupFieldNode]
+
   init(
     name: String,
     fields: [FieldNode] = [],
@@ -60,7 +67,8 @@ struct MessageNode: Equatable {
     reservedNumbers: [Int32] = [],
     reservedNames: [String] = [],
     extensionRanges: [ExtensionRangeNode] = [],
-    nestedExtends: [ExtendNode] = []
+    nestedExtends: [ExtendNode] = [],
+    groupFields: [GroupFieldNode] = []
   ) {
     self.name = name
     self.fields = fields
@@ -72,9 +80,10 @@ struct MessageNode: Equatable {
     self.reservedNames = reservedNames
     self.extensionRanges = extensionRanges
     self.nestedExtends = nestedExtends
+    self.groupFields = groupFields
   }
 
-  /// Returns all field numbers used in this message (including oneof fields).
+  /// Returns all field numbers used in this message (including oneof and group fields).
   var usedFieldNumbers: Set<Int32> {
     var numbers = Set(fields.map { $0.number })
 
@@ -82,15 +91,23 @@ struct MessageNode: Equatable {
       numbers.formUnion(Set(oneof.fields.map { $0.number }))
     }
 
+    for group in groupFields {
+      numbers.insert(group.fieldNumber)
+    }
+
     return numbers
   }
 
-  /// Returns all field names used in this message (including oneof fields).
+  /// Returns all field names used in this message (including oneof and group fields).
   var usedFieldNames: Set<String> {
     var names = Set(fields.map { $0.name })
 
     for oneof in oneofGroups {
       names.formUnion(Set(oneof.fields.map { $0.name }))
+    }
+
+    for group in groupFields {
+      names.insert(group.groupName.lowercased())
     }
 
     return names

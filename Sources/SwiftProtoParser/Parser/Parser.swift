@@ -412,6 +412,7 @@ final class Parser {
     var reservedNames: [String] = []
     var extensionRanges: [ExtensionRangeNode] = []
     var nestedExtends: [ExtendNode] = []
+    var groupFields: [GroupFieldNode] = []
 
     // Parse message body
     while !state.isAtEnd {
@@ -466,8 +467,14 @@ final class Parser {
           nestedExtends.append(nestedExtend)
 
         case .repeated, .optional, .required:
-          let field = try parseFieldDeclaration()
-          fields.append(field)
+          if state.peekNextNonIgnorableToken?.isKeyword(.group) == true {
+            let groupField = try parseGroupField(label: keyword)
+            groupFields.append(groupField)
+          }
+          else {
+            let field = try parseFieldDeclaration()
+            fields.append(field)
+          }
 
         case .map:
           // Map field type
@@ -505,8 +512,174 @@ final class Parser {
       reservedNumbers: reservedNumbers,
       reservedNames: reservedNames,
       extensionRanges: extensionRanges,
-      nestedExtends: nestedExtends
+      nestedExtends: nestedExtends,
+      groupFields: groupFields
     )
+  }
+
+  /// Parses a group field declaration: `label group Name = number { ... }`.
+  ///
+  /// Must only be called when the current token is a field label keyword (optional/required/repeated)
+  /// and the next non-ignorable token is the `group` keyword.
+  private func parseGroupField(label keyword: ProtoKeyword) throws -> GroupFieldNode {
+    let labelPosition = state.currentPosition
+
+    if state.protoVersion == .proto3 {
+      state.addError(.groupInProto3(line: labelPosition.line, column: labelPosition.column))
+      state.advance()
+      state.synchronize()
+      return GroupFieldNode(label: .optional, groupName: "", fieldNumber: 0, body: MessageNode(name: ""))
+    }
+
+    let label: FieldLabel
+    switch keyword {
+    case .repeated:
+      label = .repeated
+    case .required:
+      label = .required
+    default:
+      label = .optional
+    }
+    state.advance()
+    skipIgnorableTokens()
+
+    _ = state.expectKeyword(.group)
+    skipIgnorableTokens()
+
+    guard let groupName = state.identifierName else {
+      state.addError(
+        .unexpectedToken(
+          state.currentToken ?? Token(type: .eof, position: Token.Position(line: 0, column: 0)),
+          expected: "group name"
+        )
+      )
+      return GroupFieldNode(label: label, groupName: "", fieldNumber: 0, body: MessageNode(name: ""))
+    }
+    state.advance()
+    skipIgnorableTokens()
+
+    _ = state.expectSymbol("=")
+    skipIgnorableTokens()
+
+    guard let fieldNumberInt = state.integerLiteralValue else {
+      state.addError(
+        .unexpectedToken(
+          state.currentToken ?? Token(type: .eof, position: Token.Position(line: 0, column: 0)),
+          expected: "field number"
+        )
+      )
+      return GroupFieldNode(label: label, groupName: groupName, fieldNumber: 0, body: MessageNode(name: groupName))
+    }
+    let fieldNumber = Int32(fieldNumberInt)
+    state.advance()
+    skipIgnorableTokens()
+
+    _ = state.expectSymbol("{")
+
+    var bodyFields: [FieldNode] = []
+    var bodyNestedMessages: [MessageNode] = []
+    var bodyNestedEnums: [EnumNode] = []
+    var bodyOneofGroups: [OneofNode] = []
+    var bodyOptions: [OptionNode] = []
+    var bodyReservedNumbers: [Int32] = []
+    var bodyReservedNames: [String] = []
+    var bodyExtensionRanges: [ExtensionRangeNode] = []
+    var bodyNestedExtends: [ExtendNode] = []
+    var bodyGroupFields: [GroupFieldNode] = []
+
+    while !state.isAtEnd {
+      skipIgnorableTokens()
+      if state.checkSymbol("}") { break }
+      guard let token = state.currentToken else { break }
+
+      switch token.type {
+      case .keyword(let kw):
+        switch kw {
+        case .message:
+          let nested = try parseMessageDeclaration()
+          bodyNestedMessages.append(nested)
+
+        case .enum:
+          let nested = try parseEnumDeclaration()
+          bodyNestedEnums.append(nested)
+
+        case .oneof:
+          let oneof = try parseOneofDeclaration()
+          bodyOneofGroups.append(oneof)
+
+        case .option:
+          let option = try parseOptionDeclaration()
+          bodyOptions.append(option)
+
+        case .reserved:
+          let (numbers, names) = try parseReservedDeclaration()
+          bodyReservedNumbers.append(contentsOf: numbers)
+          bodyReservedNames.append(contentsOf: names)
+
+        case .extensions:
+          if state.protoVersion == .proto3 {
+            let position = token.position
+            state.addError(.extensionRangeInProto3(line: position.line, column: position.column))
+            state.advance()
+            state.synchronize()
+          }
+          else {
+            let ranges = try parseExtensionRanges()
+            bodyExtensionRanges.append(contentsOf: ranges)
+          }
+
+        case .extend:
+          let nested = try parseExtendDeclaration()
+          bodyNestedExtends.append(nested)
+
+        case .repeated, .optional, .required:
+          if state.peekNextNonIgnorableToken?.isKeyword(.group) == true {
+            let nested = try parseGroupField(label: kw)
+            bodyGroupFields.append(nested)
+          }
+          else {
+            let field = try parseFieldDeclaration()
+            bodyFields.append(field)
+          }
+
+        case .map:
+          let field = try parseFieldDeclaration()
+          bodyFields.append(field)
+
+        default:
+          state.addError(.unexpectedToken(token, expected: "group body element"))
+          state.advance()
+          state.synchronize()
+        }
+
+      case .identifier:
+        let field = try parseFieldDeclaration()
+        bodyFields.append(field)
+
+      default:
+        state.addError(.unexpectedToken(token, expected: "group body element"))
+        state.synchronize()
+      }
+    }
+
+    _ = state.expectSymbol("}")
+    if state.checkSymbol(";") { state.advance() }
+
+    let body = MessageNode(
+      name: groupName,
+      fields: bodyFields,
+      nestedMessages: bodyNestedMessages,
+      nestedEnums: bodyNestedEnums,
+      oneofGroups: bodyOneofGroups,
+      options: bodyOptions,
+      reservedNumbers: bodyReservedNumbers,
+      reservedNames: bodyReservedNames,
+      extensionRanges: bodyExtensionRanges,
+      nestedExtends: bodyNestedExtends,
+      groupFields: bodyGroupFields
+    )
+
+    return GroupFieldNode(label: label, groupName: groupName, fieldNumber: fieldNumber, body: body)
   }
 
   /// Parses a field declaration.

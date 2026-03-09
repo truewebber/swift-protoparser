@@ -59,6 +59,9 @@ enum ParserError: Error, Equatable {
   /// Field inside a oneof block has a label (required / optional / repeated).
   case labeledFieldInOneof(line: Int, column: Int)
 
+  /// Group field used in a proto3 file (only valid in proto2).
+  case groupInProto3(line: Int, column: Int)
+
   /// Internal parser error.
   case internalError(String)
 
@@ -83,7 +86,8 @@ enum ParserError: Error, Equatable {
       .duplicateEnumValue(_, let line, _):
       return line
     case .extensionRangeInProto3(let line, _),
-      .labeledFieldInOneof(let line, _):
+      .labeledFieldInOneof(let line, _),
+      .groupInProto3(let line, _):
       return line
     case .unexpectedEndOfInput, .internalError:
       return 0
@@ -111,7 +115,8 @@ enum ParserError: Error, Equatable {
       .duplicateEnumValue(_, _, let column):
       return column
     case .extensionRangeInProto3(_, let column),
-      .labeledFieldInOneof(_, let column):
+      .labeledFieldInOneof(_, let column),
+      .groupInProto3(_, let column):
       return column
     case .unexpectedEndOfInput, .internalError:
       return 0
@@ -178,6 +183,9 @@ enum ParserError: Error, Equatable {
     case .labeledFieldInOneof(let line, let column):
       return
         "Fields in oneofs must not have labels (required / optional / repeated). at line \(line), column \(column)"
+
+    case .groupInProto3(let line, let column):
+      return "Groups are not supported in proto3 syntax. at line \(line), column \(column)"
 
     case .internalError(let message):
       return "Internal parser error: \(message)"

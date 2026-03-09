@@ -53,6 +53,21 @@ struct ParserState {
     return tokens[currentIndex + 1]
   }
 
+  /// Returns the first non-ignorable token after the current position, without advancing.
+  ///
+  /// Used to look past the current keyword (e.g. a field label) to detect what follows it,
+  /// such as the `group` keyword after `optional`/`required`/`repeated`.
+  var peekNextNonIgnorableToken: Token? {
+    var i = currentIndex + 1
+    while i < tokens.count {
+      if !tokens[i].isIgnorable {
+        return tokens[i]
+      }
+      i += 1
+    }
+    return nil
+  }
+
   /// Returns true if we're at the end of input.
   var isAtEnd: Bool {
     return currentIndex >= tokens.count

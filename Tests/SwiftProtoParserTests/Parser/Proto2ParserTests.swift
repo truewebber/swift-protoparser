@@ -692,6 +692,219 @@ final class Proto2ParserTests: XCTestCase {
     }
   }
 
+  // MARK: - AC-6: Group fields (proto2 only)
+
+  func test_parse_proto2GroupField_optionalLabel_succeeds() {
+    let proto = """
+      syntax = "proto2";
+      message SearchRequest {
+        optional group SearchResult = 1 {
+          required string url = 2;
+        }
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    switch result {
+    case .success(let ast):
+      XCTAssertEqual(ast.messages.count, 1)
+      let msg = ast.messages[0]
+      XCTAssertEqual(msg.groupFields.count, 1, "Expected 1 group field")
+    case .failure(let error):
+      XCTFail("proto2 optional group field must succeed, got: \(error.description)")
+    }
+  }
+
+  func test_parse_proto2GroupField_requiredLabel_succeeds() {
+    let proto = """
+      syntax = "proto2";
+      message SearchRequest {
+        required group SearchResult = 1 {
+          required string url = 2;
+        }
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    switch result {
+    case .success(let ast):
+      XCTAssertEqual(ast.messages[0].groupFields.count, 1)
+      XCTAssertEqual(ast.messages[0].groupFields[0].label, .required)
+    case .failure(let error):
+      XCTFail("proto2 required group field must succeed, got: \(error.description)")
+    }
+  }
+
+  func test_parse_proto2GroupField_repeatedLabel_succeeds() {
+    let proto = """
+      syntax = "proto2";
+      message SearchRequest {
+        repeated group Result = 1 {
+          required string url = 2;
+        }
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    switch result {
+    case .success(let ast):
+      XCTAssertEqual(ast.messages[0].groupFields.count, 1)
+      XCTAssertEqual(ast.messages[0].groupFields[0].label, .repeated)
+    case .failure(let error):
+      XCTFail("proto2 repeated group field must succeed, got: \(error.description)")
+    }
+  }
+
+  func test_parse_proto2GroupField_groupNamePreservedWithOriginalCase() {
+    let proto = """
+      syntax = "proto2";
+      message SearchRequest {
+        optional group SearchResult = 1 {
+          required string url = 2;
+        }
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    switch result {
+    case .success(let ast):
+      XCTAssertEqual(
+        ast.messages[0].groupFields[0].groupName,
+        "SearchResult",
+        "groupName must preserve original capitalisation"
+      )
+    case .failure(let error):
+      XCTFail("proto2 group field must succeed, got: \(error.description)")
+    }
+  }
+
+  func test_parse_proto2GroupField_fieldNumber_isCorrect() {
+    let proto = """
+      syntax = "proto2";
+      message SearchRequest {
+        optional group SearchResult = 42 {
+          required string url = 1;
+        }
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    switch result {
+    case .success(let ast):
+      XCTAssertEqual(ast.messages[0].groupFields[0].fieldNumber, 42)
+    case .failure(let error):
+      XCTFail("proto2 group field must succeed, got: \(error.description)")
+    }
+  }
+
+  func test_parse_proto2GroupField_bodyFields_areParsed() {
+    let proto = """
+      syntax = "proto2";
+      message SearchRequest {
+        optional group SearchResult = 1 {
+          required string url = 2;
+          optional string title = 3;
+          optional int32 snippets_count = 4;
+        }
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    switch result {
+    case .success(let ast):
+      let body = ast.messages[0].groupFields[0].body
+      XCTAssertEqual(body.fields.count, 3, "Group body must contain 3 fields")
+      XCTAssertEqual(body.fields[0].name, "url")
+      XCTAssertEqual(body.fields[1].name, "title")
+      XCTAssertEqual(body.fields[2].name, "snippets_count")
+    case .failure(let error):
+      XCTFail("proto2 group with body fields must succeed, got: \(error.description)")
+    }
+  }
+
+  func test_parse_proto2GroupField_bodyHasGroupName() {
+    let proto = """
+      syntax = "proto2";
+      message SearchRequest {
+        optional group SearchResult = 1 {
+          required string url = 2;
+        }
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    switch result {
+    case .success(let ast):
+      let body = ast.messages[0].groupFields[0].body
+      XCTAssertEqual(
+        body.name,
+        "SearchResult",
+        "Group body message name must equal the original group name"
+      )
+    case .failure(let error):
+      XCTFail("proto2 group field must succeed, got: \(error.description)")
+    }
+  }
+
+  func test_parse_proto2MultipleGroupFields_inOneMessage_succeeds() {
+    let proto = """
+      syntax = "proto2";
+      message Search {
+        optional group ResultA = 1 {
+          required string url = 2;
+        }
+        repeated group ResultB = 3 {
+          optional int32 rank = 4;
+        }
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    switch result {
+    case .success(let ast):
+      XCTAssertEqual(ast.messages[0].groupFields.count, 2)
+      XCTAssertEqual(ast.messages[0].groupFields[0].groupName, "ResultA")
+      XCTAssertEqual(ast.messages[0].groupFields[1].groupName, "ResultB")
+    case .failure(let error):
+      XCTFail("Multiple proto2 group fields must succeed, got: \(error.description)")
+    }
+  }
+
+  func test_parse_proto3GroupField_producesExactError() {
+    let proto = """
+      syntax = "proto3";
+      message SearchRequest {
+        optional group SearchResult = 1 {
+          string url = 2;
+        }
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    switch result {
+    case .success:
+      XCTFail("proto3 group field must produce an error")
+    case .failure(let error):
+      XCTAssertTrue(
+        error.description.contains("Groups are not supported in proto3 syntax."),
+        "Error must contain exact protoc error message. Got: \(error.description)"
+      )
+    }
+  }
+
+  func test_parse_proto2GroupField_mixedWithRegularFields_succeeds() {
+    let proto = """
+      syntax = "proto2";
+      message SearchRequest {
+        required string query = 1;
+        optional group Result = 2 {
+          required string url = 3;
+        }
+        optional int32 page = 4;
+      }
+      """
+    let result = SwiftProtoParser.parseProtoString(proto)
+    switch result {
+    case .success(let ast):
+      let msg = ast.messages[0]
+      XCTAssertEqual(msg.fields.count, 2, "Must have 2 regular fields")
+      XCTAssertEqual(msg.groupFields.count, 1, "Must have 1 group field")
+    case .failure(let error):
+      XCTFail("Mixed fields and group fields must succeed, got: \(error.description)")
+    }
+  }
+
   // MARK: - AC-16: Nested extend inside message
 
   func test_parse_nestedExtendInMessage_populatesNestedExtends() {
