@@ -5,8 +5,11 @@ import SwiftProtobuf
 struct MessageDescriptorBuilder {
 
   /// Convert MessageNode to DescriptorProto.
-  static func build(from messageNode: MessageNode, packageName: String? = nil) throws -> Google_Protobuf_DescriptorProto
-  {
+  static func build(
+    from messageNode: MessageNode,
+    packageName: String? = nil,
+    protoVersion: ProtoVersion = .proto2
+  ) throws -> Google_Protobuf_DescriptorProto {
     var messageProto = Google_Protobuf_DescriptorProto()
 
     // Set message name
@@ -14,7 +17,12 @@ struct MessageDescriptorBuilder {
 
     // Convert fields
     for (index, fieldNode) in messageNode.fields.enumerated() {
-      let fieldProto = try FieldDescriptorBuilder.build(from: fieldNode, index: Int32(index), packageName: packageName)
+      let fieldProto = try FieldDescriptorBuilder.build(
+        from: fieldNode,
+        index: Int32(index),
+        packageName: packageName,
+        protoVersion: protoVersion
+      )
       messageProto.field.append(fieldProto)
     }
 
@@ -24,7 +32,7 @@ struct MessageDescriptorBuilder {
 
     // Convert nested messages
     for nestedMessage in messageNode.nestedMessages {
-      let nestedProto = try build(from: nestedMessage, packageName: packageName)
+      let nestedProto = try build(from: nestedMessage, packageName: packageName, protoVersion: protoVersion)
       messageProto.nestedType.append(nestedProto)
     }
 
@@ -39,7 +47,12 @@ struct MessageDescriptorBuilder {
     // pointing at the corresponding entry in oneofDecl.
     for (oneofIdx, oneofGroup) in messageNode.oneofGroups.enumerated() {
       for fieldNode in oneofGroup.fields {
-        var fieldProto = try FieldDescriptorBuilder.build(from: fieldNode, index: 0, packageName: packageName)
+        var fieldProto = try FieldDescriptorBuilder.build(
+          from: fieldNode,
+          index: 0,
+          packageName: packageName,
+          protoVersion: protoVersion
+        )
         fieldProto.oneofIndex = Int32(oneofIdx)
         messageProto.field.append(fieldProto)
       }

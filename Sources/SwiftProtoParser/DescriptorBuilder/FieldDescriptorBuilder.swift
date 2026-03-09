@@ -5,9 +5,12 @@ import SwiftProtobuf
 struct FieldDescriptorBuilder {
 
   /// Convert FieldNode to FieldDescriptorProto.
-  static func build(from fieldNode: FieldNode, index: Int32, packageName: String? = nil) throws
-    -> Google_Protobuf_FieldDescriptorProto
-  {
+  static func build(
+    from fieldNode: FieldNode,
+    index: Int32,
+    packageName: String? = nil,
+    protoVersion: ProtoVersion = .proto2
+  ) throws -> Google_Protobuf_FieldDescriptorProto {
     var fieldProto = Google_Protobuf_FieldDescriptorProto()
 
     // Set basic field properties
@@ -29,12 +32,57 @@ struct FieldDescriptorBuilder {
     // Convert field type
     try setFieldType(fieldProto: &fieldProto, fieldType: fieldNode.type, packageName: packageName)
 
-    // Convert field options
-    if !fieldNode.options.isEmpty {
-      fieldProto.options = try buildFieldOptions(from: fieldNode.options)
+    // Extract and handle the [default = ...] option separately from other field options
+    let (defaultOption, remainingOptions) = partitionDefaultOption(from: fieldNode.options)
+    if let defaultOption = defaultOption {
+      if protoVersion == .proto3 {
+        throw DescriptorError.conversionFailed("Explicit default values are not allowed in proto3.")
+      }
+      fieldProto.defaultValue = defaultValueString(from: defaultOption.value)
+    }
+
+    // Convert remaining field options (default is never forwarded to uninterpreted_option)
+    if !remainingOptions.isEmpty {
+      fieldProto.options = try buildFieldOptions(from: remainingOptions)
     }
 
     return fieldProto
+  }
+
+  /// Splits the options array into the `default` option (if present) and the rest.
+  private static func partitionDefaultOption(
+    from options: [OptionNode]
+  ) -> (defaultOption: OptionNode?, remaining: [OptionNode]) {
+    var defaultOption: OptionNode?
+    var remaining: [OptionNode] = []
+    for option in options {
+      if option.name == "default" {
+        defaultOption = option
+      }
+      else {
+        remaining.append(option)
+      }
+    }
+    return (defaultOption, remaining)
+  }
+
+  /// Converts an `OptionValue` to the exact `defaultValue` string format used by protoc.
+  private static func defaultValueString(from value: OptionValue) -> String {
+    switch value {
+    case .string(let str):
+      return str
+    case .number(let num):
+      if num.truncatingRemainder(dividingBy: 1) == 0 {
+        return String(Int(num))
+      }
+      else {
+        return String(num)
+      }
+    case .boolean(let bool):
+      return bool ? "true" : "false"
+    case .identifier(let id):
+      return id
+    }
   }
 
   /// Set field type in FieldDescriptorProto with proper type enum mapping.

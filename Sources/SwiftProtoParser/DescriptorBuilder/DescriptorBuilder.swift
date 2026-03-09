@@ -27,7 +27,11 @@ struct DescriptorBuilder {
 
     // Convert messages
     for messageNode in ast.messages {
-      let messageProto = try MessageDescriptorBuilder.build(from: messageNode, packageName: ast.package)
+      let messageProto = try MessageDescriptorBuilder.build(
+        from: messageNode,
+        packageName: ast.package,
+        protoVersion: ast.syntax
+      )
       fileProto.messageType.append(messageProto)
     }
 
@@ -50,7 +54,8 @@ struct DescriptorBuilder {
         var fieldProto = try FieldDescriptorBuilder.build(
           from: fieldNode,
           index: 0,
-          packageName: ast.package
+          packageName: ast.package,
+          protoVersion: ast.syntax
         )
         fieldProto.extendee = extendee
         fileProto.extension.append(fieldProto)

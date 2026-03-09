@@ -273,4 +273,135 @@ final class Proto2DescriptorTests: XCTestCase {
       XCTFail("Multi-field top-level extend must succeed, got: \(error.description)")
     }
   }
+
+  // MARK: - AC-7: Field default values
+
+  func test_build_proto2FieldWithIntegerDefault_setsDefaultValue() {
+    let proto = """
+      syntax = "proto2";
+      message Msg {
+        optional int32 value = 1 [default = 42];
+      }
+      """
+    let result = SwiftProtoParser.parseProtoStringToDescriptors(proto)
+    switch result {
+    case .success(let fileDescriptor):
+      let field = fileDescriptor.messageType[0].field[0]
+      XCTAssertEqual(field.defaultValue, "42")
+    case .failure(let error):
+      XCTFail("proto2 field with integer default must succeed, got: \(error.description)")
+    }
+  }
+
+  func test_build_proto2FieldWithStringDefault_setsDefaultValue() {
+    let proto = """
+      syntax = "proto2";
+      message Msg {
+        optional string value = 1 [default = "hello"];
+      }
+      """
+    let result = SwiftProtoParser.parseProtoStringToDescriptors(proto)
+    switch result {
+    case .success(let fileDescriptor):
+      let field = fileDescriptor.messageType[0].field[0]
+      XCTAssertEqual(field.defaultValue, "hello")
+    case .failure(let error):
+      XCTFail("proto2 field with string default must succeed, got: \(error.description)")
+    }
+  }
+
+  func test_build_proto2FieldWithBoolDefault_setsDefaultValue() {
+    let proto = """
+      syntax = "proto2";
+      message Msg {
+        optional bool value = 1 [default = true];
+      }
+      """
+    let result = SwiftProtoParser.parseProtoStringToDescriptors(proto)
+    switch result {
+    case .success(let fileDescriptor):
+      let field = fileDescriptor.messageType[0].field[0]
+      XCTAssertEqual(field.defaultValue, "true")
+    case .failure(let error):
+      XCTFail("proto2 field with bool default must succeed, got: \(error.description)")
+    }
+  }
+
+  func test_build_proto2FieldWithFloatDefault_setsDefaultValue() {
+    let proto = """
+      syntax = "proto2";
+      message Msg {
+        optional double value = 1 [default = 3.14];
+      }
+      """
+    let result = SwiftProtoParser.parseProtoStringToDescriptors(proto)
+    switch result {
+    case .success(let fileDescriptor):
+      let field = fileDescriptor.messageType[0].field[0]
+      XCTAssertEqual(field.defaultValue, "3.14")
+    case .failure(let error):
+      XCTFail("proto2 field with float default must succeed, got: \(error.description)")
+    }
+  }
+
+  func test_build_proto2FieldWithEnumDefault_setsDefaultValue() {
+    let proto = """
+      syntax = "proto2";
+      enum Status {
+        UNKNOWN = 0;
+        GREEN = 1;
+        RED = 2;
+      }
+      message Msg {
+        optional Status value = 1 [default = GREEN];
+      }
+      """
+    let result = SwiftProtoParser.parseProtoStringToDescriptors(proto)
+    switch result {
+    case .success(let fileDescriptor):
+      let field = fileDescriptor.messageType[0].field[0]
+      XCTAssertEqual(field.defaultValue, "GREEN")
+    case .failure(let error):
+      XCTFail("proto2 field with enum default must succeed, got: \(error.description)")
+    }
+  }
+
+  func test_build_proto3FieldWithDefault_producesExactError() {
+    let proto = """
+      syntax = "proto3";
+      message Msg {
+        string value = 1 [default = "hello"];
+      }
+      """
+    let result = SwiftProtoParser.parseProtoStringToDescriptors(proto)
+    switch result {
+    case .success:
+      XCTFail("proto3 field with default value must produce an error")
+    case .failure(let error):
+      XCTAssertTrue(
+        error.description.contains("Explicit default values are not allowed in proto3."),
+        "Expected exact protoc error, got: \(error.description)"
+      )
+    }
+  }
+
+  func test_build_proto2FieldWithDefault_notInUninterpretedOptions() {
+    let proto = """
+      syntax = "proto2";
+      message Msg {
+        optional int32 value = 1 [default = 42];
+      }
+      """
+    let result = SwiftProtoParser.parseProtoStringToDescriptors(proto)
+    switch result {
+    case .success(let fileDescriptor):
+      let field = fileDescriptor.messageType[0].field[0]
+      let hasDefaultInUninterpreted = field.options.uninterpretedOption.contains { opt in
+        opt.name.contains { $0.namePart == "default" }
+      }
+      XCTAssertFalse(hasDefaultInUninterpreted, "default must not be forwarded to uninterpreted_option")
+    case .failure(let error):
+      XCTFail("proto2 field with default must succeed, got: \(error.description)")
+    }
+  }
 }
