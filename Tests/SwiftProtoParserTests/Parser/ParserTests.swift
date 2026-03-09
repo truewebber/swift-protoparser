@@ -167,7 +167,7 @@ final class ParserTests: XCTestCase {
     switch result {
     case .success(let ast):
       XCTAssertEqual(ast.imports.count, 1)
-      XCTAssertEqual(ast.imports[0], "google/protobuf/timestamp.proto")
+      XCTAssertEqual(ast.imports[0].path, "google/protobuf/timestamp.proto")
 
     case .failure(let errors):
       XCTFail("Parser failed with errors: \(errors.errors)")
@@ -392,9 +392,9 @@ final class ParserTests: XCTestCase {
 
     if case .success(let ast) = result {
       XCTAssertEqual(ast.imports.count, 3)
-      XCTAssertTrue(ast.imports.contains("google/protobuf/timestamp.proto"))
-      XCTAssertTrue(ast.imports.contains("common/types.proto"))
-      XCTAssertTrue(ast.imports.contains("deprecated/old.proto"))
+      XCTAssertTrue(ast.imports.contains { $0.path == "google/protobuf/timestamp.proto" })
+      XCTAssertTrue(ast.imports.contains { $0.path == "common/types.proto" })
+      XCTAssertTrue(ast.imports.contains { $0.path == "deprecated/old.proto" })
     }
   }
 
@@ -889,5 +889,94 @@ final class ParserTests: XCTestCase {
     case .failure(let error):
       XCTFail("Failed to parse oneof with qualified types: \(error)")
     }
+  }
+
+  // MARK: - ImportNode modifier tests
+
+  func test_parse_importWithNoModifier_setsModifierNone() {
+    let proto = """
+      syntax = "proto3";
+      import "standard.proto";
+      """
+
+    let result = SwiftProtoParser.parseProtoString(proto)
+    guard case .success(let ast) = result else {
+      XCTFail("Expected success")
+      return
+    }
+    XCTAssertEqual(ast.imports.count, 1)
+    XCTAssertEqual(ast.imports[0].path, "standard.proto")
+    XCTAssertEqual(ast.imports[0].modifier, .none)
+  }
+
+  func test_parse_importPublic_setsModifierPublic() {
+    let proto = """
+      syntax = "proto3";
+      import public "public.proto";
+      """
+
+    let result = SwiftProtoParser.parseProtoString(proto)
+    guard case .success(let ast) = result else {
+      XCTFail("Expected success")
+      return
+    }
+    XCTAssertEqual(ast.imports.count, 1)
+    XCTAssertEqual(ast.imports[0].path, "public.proto")
+    XCTAssertEqual(ast.imports[0].modifier, .public)
+  }
+
+  func test_parse_importWeak_setsModifierWeak() {
+    let proto = """
+      syntax = "proto3";
+      import weak "weak.proto";
+      """
+
+    let result = SwiftProtoParser.parseProtoString(proto)
+    guard case .success(let ast) = result else {
+      XCTFail("Expected success")
+      return
+    }
+    XCTAssertEqual(ast.imports.count, 1)
+    XCTAssertEqual(ast.imports[0].path, "weak.proto")
+    XCTAssertEqual(ast.imports[0].modifier, .weak)
+  }
+
+  func test_parse_mixedImportModifiers_allModifiersCaptured() {
+    let proto = """
+      syntax = "proto3";
+      import "standard.proto";
+      import public "public.proto";
+      import weak "weak.proto";
+      """
+
+    let result = SwiftProtoParser.parseProtoString(proto)
+    guard case .success(let ast) = result else {
+      XCTFail("Expected success")
+      return
+    }
+    XCTAssertEqual(ast.imports.count, 3)
+    XCTAssertEqual(ast.imports[0].path, "standard.proto")
+    XCTAssertEqual(ast.imports[0].modifier, .none)
+    XCTAssertEqual(ast.imports[1].path, "public.proto")
+    XCTAssertEqual(ast.imports[1].modifier, .public)
+    XCTAssertEqual(ast.imports[2].path, "weak.proto")
+    XCTAssertEqual(ast.imports[2].modifier, .weak)
+  }
+
+  func test_parse_importModifiers_proto2_alsoSupported() {
+    let proto = """
+      syntax = "proto2";
+      import public "public.proto";
+      import weak "weak.proto";
+      """
+
+    let result = SwiftProtoParser.parseProtoString(proto)
+    guard case .success(let ast) = result else {
+      XCTFail("Expected success")
+      return
+    }
+    XCTAssertEqual(ast.imports.count, 2)
+    XCTAssertEqual(ast.imports[0].modifier, .public)
+    XCTAssertEqual(ast.imports[1].modifier, .weak)
   }
 }

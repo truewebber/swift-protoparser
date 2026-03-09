@@ -67,7 +67,7 @@ final class Parser {
   private func parseProtoFile() throws -> ProtoAST {
     var syntax: ProtoVersion = .default
     var package: String?
-    var imports: [String] = []
+    var imports: [ImportNode] = []
     var options: [OptionNode] = []
     var messages: [MessageNode] = []
     var enums: [EnumNode] = []
@@ -106,8 +106,8 @@ final class Parser {
           }
 
         case .import:
-          let importPath = try parseImportDeclaration()
-          imports.append(importPath)
+          let importNode = try parseImportDeclaration()
+          imports.append(importNode)
 
         case .option:
           let option = try parseOptionDeclaration()
@@ -245,14 +245,20 @@ final class Parser {
     return packageComponents.joined(separator: ".")
   }
 
-  /// Parses an import declaration: import "path/to/file.proto";.
-  private func parseImportDeclaration() throws -> String {
+  /// Parses an import declaration: import ["public"|"weak"] "path/to/file.proto";.
+  private func parseImportDeclaration() throws -> ImportNode {
     _ = state.expectKeyword(.import)
     skipIgnorableTokens()
 
-    // Handle optional "public" or "weak" modifiers
-    if state.checkKeyword(.public) || state.checkKeyword(.weak) {
-      state.advance()  // Skip modifier for now
+    var modifier: ImportModifier = .none
+    if state.checkKeyword(.public) {
+      modifier = .public
+      state.advance()
+      skipIgnorableTokens()
+    }
+    else if state.checkKeyword(.weak) {
+      modifier = .weak
+      state.advance()
       skipIgnorableTokens()
     }
 
@@ -263,14 +269,14 @@ final class Parser {
           expected: "import path string"
         )
       )
-      return ""
+      return ImportNode(path: "", modifier: modifier)
     }
 
     state.advance()
     skipIgnorableTokens()
     _ = state.expectSymbol(";")
 
-    return importPath
+    return ImportNode(path: importPath, modifier: modifier)
   }
 
   /// Parses an option declaration: option java_package = "com.example";.

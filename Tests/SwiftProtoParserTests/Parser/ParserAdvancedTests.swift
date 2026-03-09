@@ -519,10 +519,10 @@ final class ParserAdvancedTests: XCTestCase {
 
     if case .success(let ast) = result {
       XCTAssertEqual(ast.imports.count, 4)
-      XCTAssertTrue(ast.imports.contains("google/protobuf/timestamp.proto"))
-      XCTAssertTrue(ast.imports.contains("google/protobuf/duration.proto"))
-      XCTAssertTrue(ast.imports.contains("google/protobuf/empty.proto"))
-      XCTAssertTrue(ast.imports.contains("custom/types.proto"))
+      XCTAssertTrue(ast.imports.contains { $0.path == "google/protobuf/timestamp.proto" })
+      XCTAssertTrue(ast.imports.contains { $0.path == "google/protobuf/duration.proto" })
+      XCTAssertTrue(ast.imports.contains { $0.path == "google/protobuf/empty.proto" })
+      XCTAssertTrue(ast.imports.contains { $0.path == "custom/types.proto" })
     }
   }
 
@@ -1121,9 +1121,9 @@ final class ParserAdvancedTests: XCTestCase {
 
     if case .success(let ast) = result {
       XCTAssertEqual(ast.imports.count, 3)
-      XCTAssertTrue(ast.imports.contains("standard.proto"))
-      XCTAssertTrue(ast.imports.contains("public.proto"))
-      XCTAssertTrue(ast.imports.contains("weak.proto"))
+      XCTAssertTrue(ast.imports.contains { $0.path == "standard.proto" })
+      XCTAssertTrue(ast.imports.contains { $0.path == "public.proto" })
+      XCTAssertTrue(ast.imports.contains { $0.path == "weak.proto" })
     }
   }
 

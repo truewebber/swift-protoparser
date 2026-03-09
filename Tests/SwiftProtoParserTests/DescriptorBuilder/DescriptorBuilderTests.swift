@@ -10,7 +10,7 @@ class DescriptorBuilderTests: XCTestCase {
     let ast = ProtoAST(
       syntax: .proto3,
       package: "test.package",
-      imports: ["google/protobuf/empty.proto"],
+      imports: [ImportNode(path: "google/protobuf/empty.proto")],
       options: [],
       messages: [],
       enums: [],
@@ -138,7 +138,7 @@ class DescriptorBuilderTests: XCTestCase {
     let ast = ProtoAST(
       syntax: .proto3,
       package: "complex.test",
-      imports: ["google/protobuf/empty.proto", "other.proto"],
+      imports: [ImportNode(path: "google/protobuf/empty.proto"), ImportNode(path: "other.proto")],
       options: [],
       messages: [message],
       enums: [enumNode],
@@ -206,7 +206,7 @@ class DescriptorBuilderTests: XCTestCase {
     let ast = ProtoAST(
       syntax: .proto3,
       package: "example.service",
-      imports: ["api/user.proto", "common/base.proto"]
+      imports: [ImportNode(path: "api/user.proto"), ImportNode(path: "common/base.proto")]
     )
 
     let descriptor = try DescriptorBuilder.buildFileDescriptor(
@@ -247,7 +247,7 @@ class DescriptorBuilderTests: XCTestCase {
     let ast = ProtoAST(
       syntax: .proto3,
       package: "nested.v1",
-      imports: ["common/base.proto"],
+      imports: [ImportNode(path: "common/base.proto")],
       options: [],
       messages: [message],
       enums: [],
@@ -271,7 +271,7 @@ class DescriptorBuilderTests: XCTestCase {
     let ast = ProtoAST(
       syntax: .proto3,
       package: "nested.v1",
-      imports: ["common/base.proto"],
+      imports: [ImportNode(path: "common/base.proto")],
       options: [],
       messages: [message],
       enums: [],
@@ -317,5 +317,75 @@ class DescriptorBuilderTests: XCTestCase {
       ".nested.v1.GetItemRequest",
       "local (same-package) type must get current file package prepended"
     )
+  }
+
+  // MARK: - publicDependency / weakDependency Tests
+
+  func test_buildFileDescriptor_publicImport_populatesPublicDependency() throws {
+    let ast = ProtoAST(
+      syntax: .proto3,
+      imports: [
+        ImportNode(path: "standard.proto", modifier: .none),
+        ImportNode(path: "public.proto", modifier: .public),
+        ImportNode(path: "other.proto", modifier: .none),
+      ]
+    )
+
+    let descriptor = try DescriptorBuilder.buildFileDescriptor(from: ast, fileName: "test.proto")
+
+    XCTAssertEqual(descriptor.dependency, ["standard.proto", "public.proto", "other.proto"])
+    XCTAssertEqual(descriptor.publicDependency, [1])
+    XCTAssertTrue(descriptor.weakDependency.isEmpty)
+  }
+
+  func test_buildFileDescriptor_weakImport_populatesWeakDependency() throws {
+    let ast = ProtoAST(
+      syntax: .proto3,
+      imports: [
+        ImportNode(path: "standard.proto", modifier: .none),
+        ImportNode(path: "weak.proto", modifier: .weak),
+      ]
+    )
+
+    let descriptor = try DescriptorBuilder.buildFileDescriptor(from: ast, fileName: "test.proto")
+
+    XCTAssertEqual(descriptor.dependency, ["standard.proto", "weak.proto"])
+    XCTAssertTrue(descriptor.publicDependency.isEmpty)
+    XCTAssertEqual(descriptor.weakDependency, [1])
+  }
+
+  func test_buildFileDescriptor_mixedImports_populatesBothFields() throws {
+    let ast = ProtoAST(
+      syntax: .proto3,
+      imports: [
+        ImportNode(path: "a.proto", modifier: .none),
+        ImportNode(path: "b.proto", modifier: .public),
+        ImportNode(path: "c.proto", modifier: .weak),
+        ImportNode(path: "d.proto", modifier: .public),
+        ImportNode(path: "e.proto", modifier: .none),
+      ]
+    )
+
+    let descriptor = try DescriptorBuilder.buildFileDescriptor(from: ast, fileName: "test.proto")
+
+    XCTAssertEqual(descriptor.dependency, ["a.proto", "b.proto", "c.proto", "d.proto", "e.proto"])
+    XCTAssertEqual(descriptor.publicDependency, [1, 3])
+    XCTAssertEqual(descriptor.weakDependency, [2])
+  }
+
+  func test_buildFileDescriptor_noModifiedImports_bothFieldsEmpty() throws {
+    let ast = ProtoAST(
+      syntax: .proto3,
+      imports: [
+        ImportNode(path: "a.proto", modifier: .none),
+        ImportNode(path: "b.proto", modifier: .none),
+      ]
+    )
+
+    let descriptor = try DescriptorBuilder.buildFileDescriptor(from: ast, fileName: "test.proto")
+
+    XCTAssertEqual(descriptor.dependency, ["a.proto", "b.proto"])
+    XCTAssertTrue(descriptor.publicDependency.isEmpty)
+    XCTAssertTrue(descriptor.weakDependency.isEmpty)
   }
 }

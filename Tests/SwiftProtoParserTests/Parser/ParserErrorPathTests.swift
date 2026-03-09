@@ -134,7 +134,7 @@ final class ParserErrorPathTests: XCTestCase {
     case .success(let ast):
       // If parser allows empty import, check it's recorded
       XCTAssertTrue(
-        ast.imports.contains("") || ast.imports.isEmpty,
+        ast.imports.contains { $0.path == "" } || ast.imports.isEmpty,
         "Empty import should be handled consistently"
       )
     case .failure:
@@ -1992,7 +1992,7 @@ final class ParserErrorPathTests: XCTestCase {
     switch result {
     case .success(let ast):
       // Should successfully parse with weak modifier
-      XCTAssertTrue(ast.imports.contains("test.proto"))
+      XCTAssertTrue(ast.imports.contains { $0.path == "test.proto" })
     case .failure:
       // May not support weak modifier, which is acceptable
       XCTAssertTrue(true, "Weak modifier handling")

@@ -636,7 +636,7 @@ final class DescriptorBuilderComprehensiveTests: XCTestCase {
     let ast = ProtoAST(
       syntax: .proto3,
       package: "example.complete",
-      imports: ["google/protobuf/empty.proto"],
+      imports: [ImportNode(path: "google/protobuf/empty.proto")],
       options: options,
       messages: [message],
       enums: [enumNode],

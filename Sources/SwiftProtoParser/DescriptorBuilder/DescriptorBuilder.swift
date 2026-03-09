@@ -22,8 +22,18 @@ struct DescriptorBuilder {
       fileProto.package = package
     }
 
-    // Set imports
-    fileProto.dependency.append(contentsOf: ast.imports)
+    // Set imports: populate dependency, publicDependency, and weakDependency.
+    for (index, importNode) in ast.imports.enumerated() {
+      fileProto.dependency.append(importNode.path)
+      switch importNode.modifier {
+      case .public:
+        fileProto.publicDependency.append(Int32(index))
+      case .weak:
+        fileProto.weakDependency.append(Int32(index))
+      case .none:
+        break
+      }
+    }
 
     // Convert messages
     for messageNode in ast.messages {

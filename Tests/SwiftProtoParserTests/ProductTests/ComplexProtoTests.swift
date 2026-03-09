@@ -237,10 +237,10 @@ final class ComplexProtoTests: XCTestCase {
       XCTAssertEqual(ast.syntax, .proto3)
 
       // Verify imports (Google Well-Known Types)
-      XCTAssertTrue(ast.imports.contains("google/protobuf/any.proto"))
-      XCTAssertTrue(ast.imports.contains("google/protobuf/timestamp.proto"))
-      XCTAssertTrue(ast.imports.contains("google/protobuf/duration.proto"))
-      XCTAssertTrue(ast.imports.contains("google/protobuf/struct.proto"))
+      XCTAssertTrue(ast.imports.contains { $0.path == "google/protobuf/any.proto" })
+      XCTAssertTrue(ast.imports.contains { $0.path == "google/protobuf/timestamp.proto" })
+      XCTAssertTrue(ast.imports.contains { $0.path == "google/protobuf/duration.proto" })
+      XCTAssertTrue(ast.imports.contains { $0.path == "google/protobuf/struct.proto" })
 
       // Verify main API Gateway service
       let apiGateway = ast.services.first { $0.name == "APIGateway" }
@@ -320,13 +320,13 @@ final class ComplexProtoTests: XCTestCase {
 
       // Verify all Google Well-Known Types imports (7 imports)
       XCTAssertEqual(ast.imports.count, 7, "Should have 7 Google Well-Known Types imports")
-      XCTAssertTrue(ast.imports.contains("google/protobuf/any.proto"))
-      XCTAssertTrue(ast.imports.contains("google/protobuf/duration.proto"))
-      XCTAssertTrue(ast.imports.contains("google/protobuf/empty.proto"))
-      XCTAssertTrue(ast.imports.contains("google/protobuf/field_mask.proto"))
-      XCTAssertTrue(ast.imports.contains("google/protobuf/struct.proto"))
-      XCTAssertTrue(ast.imports.contains("google/protobuf/timestamp.proto"))
-      XCTAssertTrue(ast.imports.contains("google/protobuf/wrappers.proto"))
+      XCTAssertTrue(ast.imports.contains { $0.path == "google/protobuf/any.proto" })
+      XCTAssertTrue(ast.imports.contains { $0.path == "google/protobuf/duration.proto" })
+      XCTAssertTrue(ast.imports.contains { $0.path == "google/protobuf/empty.proto" })
+      XCTAssertTrue(ast.imports.contains { $0.path == "google/protobuf/field_mask.proto" })
+      XCTAssertTrue(ast.imports.contains { $0.path == "google/protobuf/struct.proto" })
+      XCTAssertTrue(ast.imports.contains { $0.path == "google/protobuf/timestamp.proto" })
+      XCTAssertTrue(ast.imports.contains { $0.path == "google/protobuf/wrappers.proto" })
 
       // Verify messages count (1 main + 8 request/response messages = 9 total)
       XCTAssertEqual(ast.messages.count, 9, "Should have 9 messages total")
@@ -536,9 +536,9 @@ final class ComplexProtoTests: XCTestCase {
 
       // Verify Google Well-Known Types imports (3 critical imports)
       XCTAssertEqual(ast.imports.count, 3, "Should have 3 Google imports")
-      XCTAssertTrue(ast.imports.contains("google/protobuf/empty.proto"))
-      XCTAssertTrue(ast.imports.contains("google/protobuf/timestamp.proto"))
-      XCTAssertTrue(ast.imports.contains("google/protobuf/field_mask.proto"))
+      XCTAssertTrue(ast.imports.contains { $0.path == "google/protobuf/empty.proto" })
+      XCTAssertTrue(ast.imports.contains { $0.path == "google/protobuf/timestamp.proto" })
+      XCTAssertTrue(ast.imports.contains { $0.path == "google/protobuf/field_mask.proto" })
 
       // Verify main UserManagementService with 9 methods
       XCTAssertEqual(ast.services.count, 1, "Should have exactly 1 service")

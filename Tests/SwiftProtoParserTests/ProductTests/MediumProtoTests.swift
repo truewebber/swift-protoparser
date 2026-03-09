@@ -397,7 +397,7 @@ final class MediumProtoTests: XCTestCase {
 
       // Verify imports
       XCTAssertEqual(ast.imports.count, 1)
-      XCTAssertEqual(ast.imports[0], "google/protobuf/descriptor.proto")
+      XCTAssertEqual(ast.imports[0].path, "google/protobuf/descriptor.proto")
 
       // CRITICAL: Verify extend statements are parsed
       XCTAssertEqual(ast.extends.count, 6, "Must parse all 6 extend statements")
@@ -702,7 +702,7 @@ final class MediumProtoTests: XCTestCase {
 
       // Verify import
       XCTAssertEqual(ast.imports.count, 1)
-      XCTAssertTrue(ast.imports.contains("google/protobuf/descriptor.proto"))
+      XCTAssertTrue(ast.imports.contains { $0.path == "google/protobuf/descriptor.proto" })
 
       // Verify FieldOptionsMessage with comprehensive field types (8 regular fields + 1 oneof)
       let fieldOptionsMessage = ast.messages.first { $0.name == "FieldOptionsMessage" }

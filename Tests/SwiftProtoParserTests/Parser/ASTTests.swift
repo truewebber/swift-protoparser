@@ -32,7 +32,7 @@ final class ASTTests: XCTestCase {
     let ast = ProtoAST(
       syntax: .proto3,
       package: "com.example",
-      imports: ["test.proto"],
+      imports: [ImportNode(path: "test.proto")],
       options: [option]
     )
 
@@ -551,7 +551,7 @@ final class ASTTests: XCTestCase {
     let ast = ProtoAST(
       syntax: .proto3,
       package: "com.example.user",
-      imports: ["google/protobuf/timestamp.proto"],
+      imports: [ImportNode(path: "google/protobuf/timestamp.proto")],
       options: [option],
       messages: [message],
       enums: [enumNode],
@@ -749,7 +749,7 @@ final class ASTTests: XCTestCase {
     let ast = ProtoAST(
       syntax: .proto3,
       package: "com.example.test",
-      imports: ["google/protobuf/timestamp.proto", "common/types.proto"],
+      imports: [ImportNode(path: "google/protobuf/timestamp.proto"), ImportNode(path: "common/types.proto")],
       options: [
         OptionNode(name: "java_package", value: .string("com.example.test")),
         OptionNode(name: "optimize_for", value: .identifier("SPEED")),

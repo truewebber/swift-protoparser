@@ -9,7 +9,7 @@ struct ProtoAST {
   let package: String?
 
   /// Import statements.
-  let imports: [String]
+  let imports: [ImportNode]
 
   /// Top-level options.
   let options: [OptionNode]
@@ -29,7 +29,7 @@ struct ProtoAST {
   init(
     syntax: ProtoVersion,
     package: String? = nil,
-    imports: [String] = [],
+    imports: [ImportNode] = [],
     options: [OptionNode] = [],
     messages: [MessageNode] = [],
     enums: [EnumNode] = [],
@@ -67,8 +67,8 @@ extension ProtoAST: CustomStringConvertible {
       components.append("package \(package);")
     }
 
-    for importPath in imports {
-      components.append("import \"\(importPath)\";")
+    for importNode in imports {
+      components.append(importNode.description)
     }
 
     for option in options {

@@ -753,7 +753,7 @@ final class SimpleProtoProductTestsFixed: XCTestCase {
 
       // Verify import
       XCTAssertEqual(ast.imports.count, 1)
-      XCTAssertEqual(ast.imports[0], "basic_message.proto")
+      XCTAssertEqual(ast.imports[0].path, "basic_message.proto")
 
       // Verify ExtendedMessage
       XCTAssertEqual(ast.messages.count, 1)
