@@ -46,7 +46,34 @@ struct FieldDescriptorBuilder {
       fieldProto.options = try buildFieldOptions(from: remainingOptions)
     }
 
+    // Set json_name: protoc always sets this to the lowerCamelCase version of the field name.
+    fieldProto.jsonName = jsonName(from: fieldNode.name)
+
     return fieldProto
+  }
+
+  /// Converts a proto field name (snake_case) to lowerCamelCase for use as `json_name`.
+  ///
+  /// Algorithm matches protoc's behaviour:
+  /// - Split by `_`, capitalise the first letter of each subsequent word.
+  /// - Leading `_` causes the next character to be uppercased (leading underscore is consumed).
+  /// - Trailing `_` is dropped.
+  static func jsonName(from fieldName: String) -> String {
+    var result = ""
+    var capitalizeNext = false
+    for ch in fieldName {
+      if ch == "_" {
+        capitalizeNext = true
+      }
+      else if capitalizeNext {
+        result.append(contentsOf: ch.uppercased())
+        capitalizeNext = false
+      }
+      else {
+        result.append(ch)
+      }
+    }
+    return result
   }
 
   /// Splits the options array into the `default` option (if present) and the rest.

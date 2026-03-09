@@ -46,7 +46,10 @@ struct MessageDescriptorBuilder {
     }
 
     // Generate synthetic map entry messages for map fields
-    let mapEntryMessages = try generateMapEntryMessages(from: messageNode.fields, packageName: packageName)
+    let mapEntryMessages = try generateMapEntryMessages(
+      from: messageNode.fields,
+      packageName: packageName
+    )
     messageProto.nestedType.append(contentsOf: mapEntryMessages)
 
     // Convert nested messages
@@ -440,6 +443,7 @@ struct MessageDescriptorBuilder {
       keyField.name = "key"
       keyField.number = 1
       keyField.label = .optional
+      keyField.jsonName = FieldDescriptorBuilder.jsonName(from: "key")
       try setFieldTypeAndName(&keyField, fieldType: keyType, packageName: packageName)
 
       // Create value field (field number 2)
@@ -447,6 +451,7 @@ struct MessageDescriptorBuilder {
       valueField.name = "value"
       valueField.number = 2
       valueField.label = .optional
+      valueField.jsonName = FieldDescriptorBuilder.jsonName(from: "value")
       try setFieldTypeAndName(&valueField, fieldType: valueType, packageName: packageName)
 
       // Add fields to entry message

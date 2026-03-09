@@ -152,8 +152,9 @@ extension SwiftProtoParser {
 
     switch UnresolvedTypeValidator.validate(set) {
     case .success(let validated):
-      let processed = EnumTypePostProcessor.process(validated)
-      return .success(processed)
+      let enumFixed = EnumTypePostProcessor.process(validated)
+      let mapFixed = MapEntryTypeFixup.process(enumFixed)
+      return .success(mapFixed)
     case .failure(let error):
       return .failure(error)
     }

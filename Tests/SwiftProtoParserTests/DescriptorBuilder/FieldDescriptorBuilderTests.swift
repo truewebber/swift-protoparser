@@ -558,4 +558,43 @@ final class FieldDescriptorBuilderTests: XCTestCase {
 
     XCTAssertEqual(fieldProto.typeName, "MEntry")
   }
+
+  // MARK: - json_name Tests (protoc-compatible camelCase)
+
+  func test_build_snakeCaseField_setsJsonNameAsCamelCase() throws {
+    let fieldNode = FieldNode(name: "type_url", type: .string, number: 1)
+    let fieldProto = try FieldDescriptorBuilder.build(from: fieldNode, index: 1)
+    XCTAssertEqual(fieldProto.jsonName, "typeUrl")
+  }
+
+  func test_build_singleWordField_setsJsonNameUnchanged() throws {
+    let fieldNode = FieldNode(name: "seconds", type: .int64, number: 1)
+    let fieldProto = try FieldDescriptorBuilder.build(from: fieldNode, index: 1)
+    XCTAssertEqual(fieldProto.jsonName, "seconds")
+  }
+
+  func test_build_multipleUnderscoreField_setsJsonNameAsCamelCase() throws {
+    let fieldNode = FieldNode(name: "file_descriptor_set", type: .string, number: 1)
+    let fieldProto = try FieldDescriptorBuilder.build(from: fieldNode, index: 1)
+    XCTAssertEqual(fieldProto.jsonName, "fileDescriptorSet")
+  }
+
+  func test_build_alreadyCamelCaseField_setsJsonNameUnchanged() throws {
+    let fieldNode = FieldNode(name: "value", type: .string, number: 1)
+    let fieldProto = try FieldDescriptorBuilder.build(from: fieldNode, index: 1)
+    XCTAssertEqual(fieldProto.jsonName, "value")
+  }
+
+  func test_build_fieldWithLeadingUnderscore_setsJsonNameSkippingUnderscore() throws {
+    // Proto spec: leading underscore is kept, capitalizing next char
+    let fieldNode = FieldNode(name: "_foo", type: .string, number: 1)
+    let fieldProto = try FieldDescriptorBuilder.build(from: fieldNode, index: 1)
+    XCTAssertEqual(fieldProto.jsonName, "Foo")
+  }
+
+  func test_build_fieldWithTrailingUnderscore_stripsTrailingUnderscore() throws {
+    let fieldNode = FieldNode(name: "foo_", type: .string, number: 1)
+    let fieldProto = try FieldDescriptorBuilder.build(from: fieldNode, index: 1)
+    XCTAssertEqual(fieldProto.jsonName, "foo")
+  }
 }
