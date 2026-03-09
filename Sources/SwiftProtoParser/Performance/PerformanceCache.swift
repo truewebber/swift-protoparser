@@ -22,6 +22,7 @@ final class PerformanceCache {
     let createdAt: Date
     let accessCount: Int
     let lastAccessed: Date
+    let insertionOrder: Int
   }
 
   /// Cache entry for file descriptors.
@@ -33,6 +34,7 @@ final class PerformanceCache {
     let createdAt: Date
     let accessCount: Int
     let lastAccessed: Date
+    let insertionOrder: Int
   }
 
   /// Cache entry for dependency resolution results.
@@ -42,6 +44,7 @@ final class PerformanceCache {
     let createdAt: Date
     let accessCount: Int
     let lastAccessed: Date
+    let insertionOrder: Int
   }
 
   // MARK: - Configuration
@@ -102,6 +105,8 @@ final class PerformanceCache {
   private var astCache: [String: ASTCacheEntry] = [:]
   private var descriptorCache: [String: DescriptorCacheEntry] = [:]
   private var dependencyCache: [String: DependencyCacheEntry] = [:]
+
+  private var insertionSequence: Int = 0
 
   private let configuration: Configuration
   private let queue = DispatchQueue(label: "com.swiftprotoparser.cache", attributes: .concurrent)
@@ -202,7 +207,8 @@ final class PerformanceCache {
         parseTime: entry.parseTime,
         createdAt: entry.createdAt,
         accessCount: entry.accessCount + 1,
-        lastAccessed: Date()
+        lastAccessed: Date(),
+        insertionOrder: entry.insertionOrder
       )
       astCache[filePath] = updatedEntry
 
@@ -246,8 +252,10 @@ final class PerformanceCache {
       parseTime: parseTime,
       createdAt: Date(),
       accessCount: 1,
-      lastAccessed: Date()
+      lastAccessed: Date(),
+      insertionOrder: insertionSequence
     )
+    insertionSequence += 1
 
     astCache[filePath] = entry
     enforceASTCacheLimits()
@@ -291,7 +299,8 @@ final class PerformanceCache {
       buildTime: entry.buildTime,
       createdAt: entry.createdAt,
       accessCount: entry.accessCount + 1,
-      lastAccessed: Date()
+      lastAccessed: Date(),
+      insertionOrder: entry.insertionOrder
     )
     descriptorCache[filePath] = updatedEntry
 
@@ -334,8 +343,10 @@ final class PerformanceCache {
       buildTime: buildTime,
       createdAt: Date(),
       accessCount: 1,
-      lastAccessed: Date()
+      lastAccessed: Date(),
+      insertionOrder: insertionSequence
     )
+    insertionSequence += 1
 
     descriptorCache[filePath] = entry
     enforceDescriptorCacheLimits()
@@ -379,7 +390,8 @@ final class PerformanceCache {
       contentHash: entry.contentHash,
       createdAt: entry.createdAt,
       accessCount: entry.accessCount + 1,
-      lastAccessed: Date()
+      lastAccessed: Date(),
+      insertionOrder: entry.insertionOrder
     )
     dependencyCache[filePath] = updatedEntry
 
@@ -416,8 +428,10 @@ final class PerformanceCache {
       contentHash: contentHash,
       createdAt: Date(),
       accessCount: 1,
-      lastAccessed: Date()
+      lastAccessed: Date(),
+      insertionOrder: insertionSequence
     )
+    insertionSequence += 1
 
     dependencyCache[filePath] = entry
     enforceDependencyCacheLimits()
@@ -473,7 +487,14 @@ final class PerformanceCache {
   }
 
   private func evictLeastRecentlyUsedAST() {
-    guard let oldestKey = astCache.min(by: { $0.value.lastAccessed < $1.value.lastAccessed })?.key else {
+    guard
+      let oldestKey = astCache.min(by: {
+        let lhs = $0.value
+        let rhs = $1.value
+        if lhs.lastAccessed != rhs.lastAccessed { return lhs.lastAccessed < rhs.lastAccessed }
+        return lhs.insertionOrder < rhs.insertionOrder
+      })?.key
+    else {
       return
     }
     astCache.removeValue(forKey: oldestKey)
@@ -481,7 +502,14 @@ final class PerformanceCache {
   }
 
   private func evictLeastRecentlyUsedDescriptor() {
-    guard let oldestKey = descriptorCache.min(by: { $0.value.lastAccessed < $1.value.lastAccessed })?.key else {
+    guard
+      let oldestKey = descriptorCache.min(by: {
+        let lhs = $0.value
+        let rhs = $1.value
+        if lhs.lastAccessed != rhs.lastAccessed { return lhs.lastAccessed < rhs.lastAccessed }
+        return lhs.insertionOrder < rhs.insertionOrder
+      })?.key
+    else {
       return
     }
     descriptorCache.removeValue(forKey: oldestKey)
@@ -489,7 +517,14 @@ final class PerformanceCache {
   }
 
   private func evictLeastRecentlyUsedDependency() {
-    guard let oldestKey = dependencyCache.min(by: { $0.value.lastAccessed < $1.value.lastAccessed })?.key else {
+    guard
+      let oldestKey = dependencyCache.min(by: {
+        let lhs = $0.value
+        let rhs = $1.value
+        if lhs.lastAccessed != rhs.lastAccessed { return lhs.lastAccessed < rhs.lastAccessed }
+        return lhs.insertionOrder < rhs.insertionOrder
+      })?.key
+    else {
       return
     }
     dependencyCache.removeValue(forKey: oldestKey)

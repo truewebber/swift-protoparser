@@ -19,9 +19,11 @@ struct FieldDescriptorBuilder {
     case .optional:
       fieldProto.label = .optional
     case .singular:
-      fieldProto.label = .optional  // Proto3 singular is optional
+      fieldProto.label = .optional  // Proto3 singular maps to LABEL_OPTIONAL in descriptor
     case .repeated:
       fieldProto.label = .repeated
+    case .required:
+      fieldProto.label = .required
     }
 
     // Convert field type

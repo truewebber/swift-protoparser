@@ -17,6 +17,12 @@ struct ParserState {
   /// Whether to collect multiple errors or stop at first error.
   let continueOnError: Bool
 
+  /// The proto syntax version of the file being parsed.
+  ///
+  /// Set after the syntax declaration is parsed (or defaulted to .proto2 when absent).
+  /// Used for cross-syntax validation (e.g. rejecting proto2-only constructs in proto3 files).
+  var protoVersion: ProtoVersion = .default
+
   init(
     tokens: [Token],
     maxErrors: Int = 100,

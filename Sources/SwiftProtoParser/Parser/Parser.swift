@@ -83,6 +83,9 @@ final class Parser {
       syntax = try parseSyntaxDeclaration()
     }
 
+    // Make the resolved version available to all downstream parsing methods.
+    state.protoVersion = syntax
+
     // Parse top-level elements
     while !state.isAtEnd {
       let beforeIndex = state.currentIndex
@@ -441,7 +444,7 @@ final class Parser {
           reservedNumbers.append(contentsOf: numbers)
           reservedNames.append(contentsOf: names)
 
-        case .repeated, .optional:
+        case .repeated, .optional, .required:
           let field = try parseFieldDeclaration()
           fields.append(field)
 
@@ -495,6 +498,21 @@ final class Parser {
     }
     else if state.checkKeyword(.optional) {
       label = .optional
+      state.advance()
+      skipIgnorableTokens()
+    }
+    else if state.checkKeyword(.required) {
+      let position = state.currentPosition
+      if state.protoVersion == .proto3 {
+        state.addError(
+          .invalidSyntax(
+            "Required fields are not allowed in proto3.",
+            line: position.line,
+            column: position.column
+          )
+        )
+      }
+      label = .required
       state.advance()
       skipIgnorableTokens()
     }
@@ -1379,8 +1397,9 @@ final class Parser {
 
     let extendedType = extendedTypeComponents.joined(separator: ".")
 
-    // Validate that this is a valid proto3 extend target
-    if !extendedType.hasPrefix("google.protobuf.") {
+    // In proto3, only google.protobuf.* targets are allowed for custom options.
+    // In proto2, any message type may be extended (no restriction).
+    if state.protoVersion == .proto3 && !extendedType.hasPrefix("google.protobuf.") {
       state.addError(
         .invalidExtendTarget(
           "extend statements in proto3 are only allowed for google.protobuf.* types for custom options, got: \(extendedType)",
@@ -1413,7 +1432,7 @@ final class Parser {
           let option = try parseOptionDeclaration()
           options.append(option)
 
-        case .optional, .repeated:
+        case .optional, .repeated, .required:
           let field = try parseFieldDeclaration()
           fields.append(field)
 
