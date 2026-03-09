@@ -557,8 +557,11 @@ final class UnresolvedTypeValidatorTests: XCTestCase {
     }
 
     let resolvedField = validated.file[0].messageType[0].nestedType[1].field[0]
-    XCTAssertEqual(resolvedField.typeName, ".pkg.Outer.Top",
-      "Must resolve to sibling scope, not fail with undefined type")
+    XCTAssertEqual(
+      resolvedField.typeName,
+      ".pkg.Outer.Top",
+      "Must resolve to sibling scope, not fail with undefined type"
+    )
   }
 
   // MARK: - 3-level nesting: grandparent message scope
@@ -605,8 +608,11 @@ final class UnresolvedTypeValidatorTests: XCTestCase {
       .nestedType[1]  // B
       .nestedType[0]  // C
       .field[0]
-    XCTAssertEqual(resolvedField.typeName, ".pkg.A.D",
-      "Must resolve to grandparent scope .pkg.A.D")
+    XCTAssertEqual(
+      resolvedField.typeName,
+      ".pkg.A.D",
+      "Must resolve to grandparent scope .pkg.A.D"
+    )
   }
 
   // MARK: - Enum nested in parent, referenced from sibling message
@@ -657,6 +663,7 @@ final class UnresolvedTypeValidatorTests: XCTestCase {
   // MARK: - Cross-file qualified reference to nested type
 
   /// From a different file, `Outer.Top` is referenced by the qualified name `Outer.Top`.
+  ///
   /// `FieldDescriptorBuilder` produces `.Outer.Top` (no package prefix for qualified names).
   /// The validator must resolve this to `.pkg.Outer.Top` via scope-walking.
   func test_crossFile_qualifiedNestedTypeRef_resolved() {
