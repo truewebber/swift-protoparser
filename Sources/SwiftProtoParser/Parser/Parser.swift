@@ -187,7 +187,7 @@ final class Parser {
     guard let version = ProtoVersion(rawValue: syntaxString) else {
       state.addError(
         .invalidSyntax(
-          "Unsupported syntax: \(syntaxString)",
+          "Unrecognized syntax identifier \"\(syntaxString)\".  This parser only recognizes \"proto2\" and \"proto3\".",
           line: token.position.line,
           column: token.position.column
         )
@@ -692,14 +692,17 @@ final class Parser {
   private func parseFieldDeclaration() throws -> FieldNode {
     // Parse optional field label
     var label: FieldLabel = .singular
+    var labelParsed = false
 
     if state.checkKeyword(.repeated) {
       label = .repeated
+      labelParsed = true
       state.advance()
       skipIgnorableTokens()
     }
     else if state.checkKeyword(.optional) {
       label = .optional
+      labelParsed = true
       state.advance()
       skipIgnorableTokens()
     }
@@ -715,8 +718,22 @@ final class Parser {
         )
       }
       label = .required
+      labelParsed = true
       state.advance()
       skipIgnorableTokens()
+    }
+
+    // In proto2, every regular field must carry an explicit label.
+    // Map fields are exempt (they use no label in both versions).
+    if !labelParsed && state.protoVersion == .proto2 && !state.checkKeyword(.map) {
+      let position = state.currentPosition
+      state.addError(
+        .missingFieldLabel(
+          "Expected \"required\", \"optional\", or \"repeated\".",
+          line: position.line,
+          column: position.column
+        )
+      )
     }
 
     // Parse field type
@@ -1749,13 +1766,31 @@ final class Parser {
       }
 
       if !fqn.hasPrefix(".google.protobuf.") {
-        state.addError(
-          .invalidExtendTarget(
-            "Extensions in proto3 are only allowed for defining options.",
-            line: position.line,
-            column: position.column
+        // Distinguish two cases:
+        // 1. Simple local name (no dots in original) — the message has no extension
+        //    ranges because proto3 messages cannot declare them.
+        // 2. Qualified name (has dots or leading dot) — likely a proto2 import target
+        //    that may have extension ranges; extending it from proto3 is forbidden.
+        if !extendedType.contains(".") {
+          let pkg = state.currentPackage
+          let displayName = pkg.map { "\($0).\(extendedType)" } ?? extendedType
+          state.addError(
+            .invalidExtendTarget(
+              "\"\(displayName)\" does not declare any extension numbers.",
+              line: position.line,
+              column: position.column
+            )
           )
-        )
+        }
+        else {
+          state.addError(
+            .invalidExtendTarget(
+              "Extensions in proto3 are only allowed for defining options.",
+              line: position.line,
+              column: position.column
+            )
+          )
+        }
       }
     }
 

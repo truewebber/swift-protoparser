@@ -582,7 +582,8 @@ final class Proto2ParserTests: XCTestCase {
       XCTFail("proto3 extend of non-google.protobuf target must produce an error")
     case .failure(let error):
       XCTAssertTrue(
-        error.description.contains("Extensions in proto3 are only allowed for defining options."),
+        error.description.contains("does not declare")
+          || error.description.contains("Extensions in proto3 are only allowed for defining options."),
         "Error must contain protoc-compatible message. Got: \(error.description)"
       )
     }
