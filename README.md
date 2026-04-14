@@ -5,7 +5,7 @@ A Swift library for parsing Protocol Buffers `.proto` files (proto2 & proto3) in
 [![Platform](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Ftruewebber%2Fswift-protoparser%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/truewebber/swift-protoparser)
 [![Swift Package Index](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Ftruewebber%2Fswift-protoparser%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/truewebber/swift-protoparser)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg?style=flat)](LICENSE)
-[![Coverage](https://img.shields.io/badge/Test%20Coverage-96.41%25-green.svg?style=flat)](#testing)
+[![Coverage](https://img.shields.io/badge/Test%20Coverage-96.49%25-green.svg?style=flat)](#testing)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/truewebber/swift-protoparser)
 
 ## Overview
@@ -240,7 +240,7 @@ If your use case requires fully resolved option types, run `protoc` to generate 
 
 ## Testing
 
-The library has comprehensive test coverage with **1674 tests** covering all functionality.
+The library has comprehensive test coverage with **1690 tests** covering all functionality.
 
 ### Reference descriptor generation
 
@@ -263,7 +263,7 @@ make test
 make coverage
 ```
 
-Test coverage: **96.41%** (lines), **93.16%** (functions), **93.99%** (regions)
+Test coverage: **96.49%** (lines), **93.21%** (functions), **94.18%** (regions)
 
 ## Contributing
 
