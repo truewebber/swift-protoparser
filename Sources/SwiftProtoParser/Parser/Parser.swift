@@ -284,76 +284,128 @@ final class Parser {
     _ = state.expectKeyword(.option)
     skipIgnorableTokens()
 
-    // Parse option name (can be custom option in parentheses)
-    let isCustom: Bool
-    let optionName: String
-
-    if state.checkSymbol("(") {
-      isCustom = true
-      state.advance()  // consume "("
-      skipIgnorableTokens()
-
-      guard let firstPart = state.identifierName else {
-        state.addError(
-          .unexpectedToken(
-            state.currentToken ?? Token(type: .eof, position: Token.Position(line: 0, column: 0)),
-            expected: "custom option name"
-          )
-        )
-        return OptionNode(name: "", value: .string(""))
-      }
-
-      state.advance()
-      var nameParts = [firstPart]
-
-      // Parse fullIdent: ident { "." ident }
-      while state.checkSymbol(".") {
-        state.advance()  // consume "."
-        skipIgnorableTokens()
-        guard let nextPart = state.identifierName else {
-          state.addError(
-            .unexpectedToken(
-              state.currentToken ?? Token(type: .eof, position: Token.Position(line: 0, column: 0)),
-              expected: "identifier after '.' in option name"
-            )
-          )
-          return OptionNode(name: "", value: .string(""))
-        }
-        nameParts.append(nextPart)
-        state.advance()
-      }
-
-      optionName = nameParts.joined(separator: ".")
-      skipIgnorableTokens()
-      _ = state.expectSymbol(")")
-    }
-    else {
-      isCustom = false
-      guard let name = state.identifierName else {
-        state.addError(
-          .unexpectedToken(
-            state.currentToken ?? Token(type: .eof, position: Token.Position(line: 0, column: 0)),
-            expected: "option name"
-          )
-        )
-        return OptionNode(name: "", value: .string(""))
-      }
-
-      optionName = name
-      state.advance()
+    guard let parts = parseOptionNameParts() else {
+      return OptionNode(name: "", value: .string(""))
     }
 
     skipIgnorableTokens()
     _ = state.expectSymbol("=")
     skipIgnorableTokens()
 
-    // Parse option value
     let value = try parseOptionValue()
 
     skipIgnorableTokens()
     _ = state.expectSymbol(";")
 
-    return OptionNode(name: optionName, value: value, isCustom: isCustom)
+    return OptionNode(
+      name: parts.name,
+      subFieldPath: parts.subFieldPath,
+      value: value,
+      isCustom: parts.isCustom
+    )
+  }
+
+  /// Parses an option name according to the proto grammar.
+  ///
+  ///   optionName = ( ident | "(" fullIdent ")" ) { "." ident }
+  ///
+  /// Returns `nil` and records an error on failure.
+  private func parseOptionNameParts() -> (name: String, subFieldPath: [String], isCustom: Bool)? {
+    let isCustom: Bool
+    let name: String
+
+    if state.checkSymbol("(") {
+      isCustom = true
+      state.advance()  // consume "("
+      skipIgnorableTokens()
+
+      guard let firstPart = identifierOrKeywordName() else {
+        state.addError(
+          .unexpectedToken(
+            state.currentToken ?? Token(type: .eof, position: Token.Position(line: 0, column: 0)),
+            expected: "custom option name"
+          )
+        )
+        return nil
+      }
+
+      state.advance()
+      var nameParts = [firstPart]
+
+      // Parse fullIdent inside parens: ident { "." ident }
+      while state.checkSymbol(".") {
+        state.advance()  // consume "."
+        skipIgnorableTokens()
+        guard let nextPart = identifierOrKeywordName() else {
+          state.addError(
+            .unexpectedToken(
+              state.currentToken ?? Token(type: .eof, position: Token.Position(line: 0, column: 0)),
+              expected: "identifier after '.' in option name"
+            )
+          )
+          return nil
+        }
+        nameParts.append(nextPart)
+        state.advance()
+      }
+
+      name = nameParts.joined(separator: ".")
+      skipIgnorableTokens()
+      _ = state.expectSymbol(")")
+    }
+    else {
+      isCustom = false
+      guard let ident = state.identifierName else {
+        state.addError(
+          .unexpectedToken(
+            state.currentToken ?? Token(type: .eof, position: Token.Position(line: 0, column: 0)),
+            expected: "option name"
+          )
+        )
+        return nil
+      }
+      name = ident
+      state.advance()
+    }
+
+    // Parse trailing sub-field path: { "." ident }
+    // Only applies after a closing ")" — plain option names do not have sub-fields.
+    var subFieldPath: [String] = []
+    if isCustom {
+      skipIgnorableTokens()
+      while state.checkSymbol(".") {
+        state.advance()  // consume "."
+        skipIgnorableTokens()
+        guard let segment = identifierOrKeywordName() else {
+          state.addError(
+            .unexpectedToken(
+              state.currentToken ?? Token(type: .eof, position: Token.Position(line: 0, column: 0)),
+              expected: "identifier after '.' in sub-field path"
+            )
+          )
+          return (name: name, subFieldPath: subFieldPath, isCustom: isCustom)
+        }
+        subFieldPath.append(segment)
+        state.advance()
+        skipIgnorableTokens()
+      }
+    }
+
+    return (name: name, subFieldPath: subFieldPath, isCustom: isCustom)
+  }
+
+  /// Returns the name of the current token if it is an identifier or a keyword
+  /// used as an identifier (e.g. field names like `string`, `required`, `optional`).
+  private func identifierOrKeywordName() -> String? {
+    guard let token = state.currentToken else { return nil }
+    switch token.type {
+    case .identifier(let name):
+      return name
+    case .keyword(let kw):
+      return kw.rawValue
+    default:
+      return nil
+    }
   }
 
   /// Parses an option value (string, number, boolean, identifier, or message literal).
@@ -387,7 +439,7 @@ final class Parser {
 
     case .symbol("{"):
       // Message literal: { field: value, ... } — consume the whole block.
-      value = .identifier(consumeBalancedBlock(open: "{", close: "}"))
+      value = .messageLiteral(consumeBalancedBlock(open: "{", close: "}"))
       return value
 
     case .symbol("["):
@@ -424,40 +476,48 @@ final class Parser {
     return value
   }
 
-  /// Consumes a balanced block starting with `open` up to the matching `close` and
-  /// returns the raw text content (for message-literal and array-literal option values).
+  /// Consumes a balanced `open`…`close` delimited block and returns its content.
+  ///
+  /// The outermost delimiter pair is stripped; inner pairs are preserved.
+  /// Tokens are joined with a single space, so the result is whitespace-normalised.
+  /// This format matches what `protocompile` emits for `aggregate_value` fields.
   private func consumeBalancedBlock(open: Character, close: Character) -> String {
     var depth = 0
-    var text = ""
+    var parts: [String] = []
+
     while !state.isAtEnd {
       guard let token = state.currentToken else { break }
       if case .symbol(let ch) = token.type {
         if ch == open {
           depth += 1
-          text.append(ch)
+          if depth > 1 {
+            parts.append(String(ch))
+          }
           state.advance()
           continue
         }
         if ch == close {
+          if depth > 1 {
+            parts.append(String(ch))
+          }
           depth -= 1
-          text.append(ch)
           state.advance()
           if depth == 0 { break }
           continue
         }
       }
-      if case .whitespace = token.type {
+      switch token.type {
+      case .whitespace, .newline, .comment:
         state.advance()
-        continue
-      }
-      if case .newline = token.type {
+      default:
+        let raw = token.type.rawText
+        if !raw.isEmpty {
+          parts.append(raw)
+        }
         state.advance()
-        continue
       }
-      text.append(contentsOf: token.type.description)
-      state.advance()
     }
-    return text
+    return parts.joined(separator: " ")
   }
 
   /// Parses a message declaration.
@@ -756,6 +816,7 @@ final class Parser {
     // Parse optional field label
     var label: FieldLabel = .singular
     var labelParsed = false
+    var isProto3Optional = false
 
     if state.checkKeyword(.repeated) {
       label = .repeated
@@ -766,6 +827,11 @@ final class Parser {
     else if state.checkKeyword(.optional) {
       label = .optional
       labelParsed = true
+      // In proto3, `optional` creates a field with explicit field presence (proto3 optional).
+      // protoc implements this by generating a synthetic oneof containing only this field.
+      if state.protoVersion == .proto3 {
+        isProto3Optional = true
+      }
       state.advance()
       skipIgnorableTokens()
     }
@@ -867,7 +933,8 @@ final class Parser {
       type: fieldType,
       number: fieldNumber,
       label: label,
-      options: options
+      options: options,
+      isProto3Optional: isProto3Optional
     )
   }
 
@@ -1019,63 +1086,8 @@ final class Parser {
     repeat {
       skipIgnorableTokens()
 
-      // Parse option name
-      let isCustom: Bool
-      let optionName: String
-
-      if state.checkSymbol("(") {
-        isCustom = true
-        state.advance()  // consume "("
-        skipIgnorableTokens()
-
-        guard let firstPart = state.identifierName else {
-          state.addError(
-            .unexpectedToken(
-              state.currentToken ?? Token(type: .eof, position: Token.Position(line: 0, column: 0)),
-              expected: "custom option name"
-            )
-          )
-          break
-        }
-
-        state.advance()
-        var nameParts = [firstPart]
-
-        // Parse fullIdent: ident { "." ident }
-        while state.checkSymbol(".") {
-          state.advance()  // consume "."
-          skipIgnorableTokens()
-          guard let nextPart = state.identifierName else {
-            state.addError(
-              .unexpectedToken(
-                state.currentToken ?? Token(type: .eof, position: Token.Position(line: 0, column: 0)),
-                expected: "identifier after '.' in option name"
-              )
-            )
-            break
-          }
-          nameParts.append(nextPart)
-          state.advance()
-        }
-
-        optionName = nameParts.joined(separator: ".")
-        skipIgnorableTokens()
-        _ = state.expectSymbol(")")
-      }
-      else {
-        isCustom = false
-        guard let name = state.identifierName else {
-          state.addError(
-            .unexpectedToken(
-              state.currentToken ?? Token(type: .eof, position: Token.Position(line: 0, column: 0)),
-              expected: "option name"
-            )
-          )
-          break
-        }
-
-        optionName = name
-        state.advance()
+      guard let parts = parseOptionNameParts() else {
+        break
       }
 
       skipIgnorableTokens()
@@ -1083,7 +1095,14 @@ final class Parser {
       skipIgnorableTokens()
       let value = try parseOptionValue()
 
-      options.append(OptionNode(name: optionName, value: value, isCustom: isCustom))
+      options.append(
+        OptionNode(
+          name: parts.name,
+          subFieldPath: parts.subFieldPath,
+          value: value,
+          isCustom: parts.isCustom
+        )
+      )
 
       skipIgnorableTokens()
       if state.checkSymbol(",") {
@@ -1613,8 +1632,13 @@ final class Parser {
       skipIgnorableTokens()
 
       guard let key = state.identifierName else {
-        state.advance()
-        continue
+        state.addError(
+          .unexpectedToken(
+            state.currentToken ?? Token(type: .eof, position: Token.Position(line: 0, column: 0)),
+            expected: "option key identifier"
+          )
+        )
+        break
       }
       state.advance()  // consume key
       skipIgnorableTokens()
@@ -1634,6 +1658,13 @@ final class Parser {
           state.advance()
         }
       default:
+        // protoc rejects unknown keys in extension range options blocks.
+        state.addError(
+          .unexpectedToken(
+            state.currentToken ?? Token(type: .eof, position: Token.Position(line: 0, column: 0)),
+            expected: "known extension range option ('declaration' or 'verification')"
+          )
+        )
         skipTextProtoValue()
       }
 

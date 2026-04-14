@@ -1,0 +1,16 @@
+// Minimal stub of google/api/http.proto for SwiftProtoParser integration tests.
+syntax = "proto3";
+
+package google.api;
+
+// HttpRule maps an RPC method to one or more HTTP REST API methods.
+message HttpRule {
+  string get = 2;
+  string put = 3;
+  string post = 4;
+  string delete = 5;
+  string patch = 6;
+  string body = 7;
+  string response_body = 12;
+  repeated HttpRule additional_bindings = 11;
+}

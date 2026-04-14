@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package acme.library.search.v2;
+
+import "pb_catalog/types.proto";
+
+option go_package = "github.com/acme/library/proto/pb_search";
+
+// Request message for Trends call
+message TrendsRequest {
+    // User ID
+    int32 user_id = 1;
+
+    // Collection ID (`{collection}` or `{collection}_{target}` format)
+    string collection_id = 2;
+
+    // Type of items the report is calculated for
+    acme.library.catalog.REPORT_TYPE type = 3;
+
+    // Start date for the analysis period (`YYYYMMDD` format)
+    string date_begin = 4;
+
+    // End date for the analysis period (`YYYYMMDD` format)
+    string date_end = 5;
+
+    // List of competitors to include
+    repeated string competitors = 6;
+
+    // Volume level filter for the report calculation
+    acme.library.catalog.VOLUME_TYPE volume_level = 7;
+
+    // Filter prompts by specific criteria. Format:
+    //  * `^{string}` - begins with
+    //  * `{string}$` - ends with
+    //  * `{string}` - contains
+    string filter_prompt = 8;
+}
+
+// Response message for Trends call
+message TrendsResponse {
+    // List of dates in the trend period
+    repeated string dates = 1;
+
+    // Trend data rows
+    repeated string rows = 2;
+}

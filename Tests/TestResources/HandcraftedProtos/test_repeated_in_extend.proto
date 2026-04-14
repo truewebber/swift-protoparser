@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package test.repeated.extend;
+
+import "google/protobuf/descriptor.proto";
+
+extend google.protobuf.MessageOptions {
+  repeated string tags = 57001;
+}
+
+extend google.protobuf.FieldOptions {
+  string label = 57002;
+}
+
+message RepeatedExtMessage {
+  string name = 1 [(label) = "name_field"];
+  int32 value = 2 [(label) = "value_field"];
+  repeated string items = 3;
+}
+
+message AnotherMessage {
+  string id = 1;
+  bool active = 2 [(label) = "active_flag"];
+}

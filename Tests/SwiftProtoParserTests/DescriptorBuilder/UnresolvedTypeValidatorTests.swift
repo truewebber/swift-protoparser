@@ -718,7 +718,7 @@ final class UnresolvedTypeValidatorTests: XCTestCase {
   func test_endToEnd_siblingNestedTypeInProtoString_parsesSuccessfully() {
     let proto = """
       syntax = "proto3";
-      package semrush.pt;
+      package acme.library.catalog;
 
       message Response {
         message Top {
@@ -768,8 +768,8 @@ final class UnresolvedTypeValidatorTests: XCTestCase {
     XCTAssertNotNil(top3Field, "top3 field must exist")
     XCTAssertEqual(
       top3Field?.typeName,
-      ".semrush.pt.Response.Top",
-      "top3 must resolve to sibling scope .semrush.pt.Response.Top"
+      ".acme.library.catalog.Response.Top",
+      "top3 must resolve to sibling scope .acme.library.catalog.Response.Top"
     )
   }
 

@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+package test.standard;
+
+option java_package = "com.example.test";
+option java_outer_classname = "TestProto";
+option java_multiple_files = true;
+option go_package = "example.com/test;test";
+option optimize_for = SPEED;
+option cc_enable_arenas = true;
+option objc_class_prefix = "TST";
+option csharp_namespace = "Test.Standard";
+option deprecated = false;
+
+enum Status {
+  STATUS_UNSPECIFIED = 0;
+  STATUS_ACTIVE = 1 [deprecated = true];
+  STATUS_INACTIVE = 2;
+}
+
+enum Priority {
+  option allow_alias = true;
+  PRIORITY_UNSPECIFIED = 0;
+  PRIORITY_LOW = 1;
+  PRIORITY_DEFAULT = 1;
+  PRIORITY_HIGH = 2;
+}
+
+message Request {
+  option deprecated = false;
+  option message_set_wire_format = false;
+
+  string name = 1 [
+    deprecated = false,
+    json_name = "fullName"
+  ];
+  repeated int32 values = 2 [packed = true];
+  int64 count = 3 [jstype = JS_STRING];
+  bytes data = 4 [ctype = CORD];
+  Status status = 5;
+
+  oneof kind {
+    string text = 10;
+    int32 number = 11;
+  }
+}
+
+message Response {
+  string result = 1;
+  bool success = 2;
+}
+
+service TestService {
+  option deprecated = false;
+
+  rpc GetData(Request) returns (Response) {
+    option deprecated = false;
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  rpc UpdateData(Request) returns (Response) {
+    option idempotency_level = IDEMPOTENT;
+  }
+}

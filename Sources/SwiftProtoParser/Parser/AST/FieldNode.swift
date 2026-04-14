@@ -17,18 +17,27 @@ struct FieldNode: Equatable {
   /// Field-specific options.
   let options: [OptionNode]
 
+  /// True when this is a proto3 `optional` field.
+  ///
+  /// In proto3 syntax, the `optional` keyword creates a field with explicit field-presence
+  /// tracking. protoc implements this by generating a synthetic "oneof" named `_<fieldName>`
+  /// that contains only this field, and by setting `FieldDescriptorProto.proto3_optional = true`.
+  let isProto3Optional: Bool
+
   init(
     name: String,
     type: FieldType,
     number: Int32,
     label: FieldLabel = .singular,
-    options: [OptionNode] = []
+    options: [OptionNode] = [],
+    isProto3Optional: Bool = false
   ) {
     self.name = name
     self.type = type
     self.number = number
     self.label = label
     self.options = options
+    self.isProto3Optional = isProto3Optional
   }
 
   /// Returns true if this field is repeated.

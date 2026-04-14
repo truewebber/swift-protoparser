@@ -37,14 +37,18 @@ struct ServiceDescriptorBuilder {
     methodProto.inputType = buildFullyQualifiedTypeName(methodNode.inputType, packageName: packageName)
     methodProto.outputType = buildFullyQualifiedTypeName(methodNode.outputType, packageName: packageName)
 
-    // Set streaming flags
-    methodProto.clientStreaming = methodNode.inputStreaming
-    methodProto.serverStreaming = methodNode.outputStreaming
-
-    // Convert method options
-    if !methodNode.options.isEmpty {
-      methodProto.options = try buildMethodOptions(from: methodNode.options)
+    // Only set streaming flags when true; proto2 default is false and
+    // protoc does not serialize the field when it equals the default.
+    if methodNode.inputStreaming {
+      methodProto.clientStreaming = true
     }
+    if methodNode.outputStreaming {
+      methodProto.serverStreaming = true
+    }
+
+    // Always set method options (even when empty): protoc always serializes the options
+    // field on MethodDescriptorProto even when no options are specified.
+    methodProto.options = try buildMethodOptions(from: methodNode.options)
 
     return methodProto
   }
@@ -86,9 +90,7 @@ struct ServiceDescriptorBuilder {
           serviceOptions.deprecated = value
         }
       default:
-        // Custom options - add to uninterpreted_option
-        // This is a simplified implementation
-        break
+        serviceOptions.uninterpretedOption.append(DescriptorBuilder.buildUninterpretedOption(from: option))
       }
     }
 
@@ -117,9 +119,7 @@ struct ServiceDescriptorBuilder {
           }
         }
       default:
-        // Custom options - add to uninterpreted_option
-        // This is a simplified implementation
-        break
+        methodOptions.uninterpretedOption.append(DescriptorBuilder.buildUninterpretedOption(from: option))
       }
     }
 

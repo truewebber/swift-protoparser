@@ -1,0 +1,187 @@
+syntax = "proto3";
+
+package acme.library.catalog;
+
+option go_package = "github.com/acme/library/proto/pb_catalog";
+
+import "google/protobuf/struct.proto";
+
+enum BOOK_FORMAT {
+    UNKNOWN_FORMAT = 0;
+    HARDCOVER = 1;
+    PAPERBACK = 2;
+    EBOOK = 3;
+    AUDIOBOOK = 4;
+}
+
+enum CRAWL_PERIOD {
+    DAILY = 0;
+    WEEKLY = 1;
+    CUSTOM = 2;
+}
+
+enum REPORT_TYPE {
+    CIRCULATION = 0;
+    DIGITAL = 1;
+}
+
+enum DEVICE {
+    DESKTOP = 0;
+    MOBILE = 1;
+    TABLET = 2;
+}
+
+enum ENGINE {
+    GOOGLE = 0;
+    BING = 1;
+    DUCKDUCKGO = 2;
+    BRAVE = 3;
+    KAGI = 4;
+}
+
+enum VOLUME_TYPE {
+    NATIONAL = 0;
+    REGIONAL = 1;
+    LOCAL = 2;
+    DEFAULT_VOLUME_TYPE = 3;
+}
+
+enum LOCATION_TYPE {
+    COUNTRY = 0;    // Country location type
+    CITY = 1;       // City location type
+    REGION = 2;     // Region location type
+    ZIP_CODE = 3;   // ZIP code location type
+}
+
+message Sort {
+    enum DATE {
+        BEGIN = 0;
+        END = 1;
+        DIFFERENCE = 2;
+        DIFFERENCE_ABSOLUTE = 3;
+        PREDICTION_90 = 4;
+        PREDICTION_180 = 5;
+        PREDICTION_270 = 6;
+        PREDICTION_360 = 7;
+    }
+    enum FIELD {
+        TITLE = 0;
+        RANK = 1;
+        VOLUME = 2;
+        RATING = 3;
+        POPULARITY = 4;
+        VISIBILITY = 5;
+        TRAFFIC = 6;
+        REVENUE = 7;
+        MATCH = 8;
+        DEVIATION = 9;
+        AVERAGE_RANK = 10;
+        URL = 11;
+        TOP3 = 12;
+        TOP10 = 13;
+        TOP20 = 14;
+        TOP50 = 15;
+        TOP100 = 16;
+        ITEM_COUNT = 17;
+        TAG = 18;
+        ADDED = 19;
+        DELETED = 20;
+        DATE_TIME = 21;
+    }
+    enum TOPTYPE {
+        ALL = 0;
+        IMPROVED = 2;
+        DECLINED = 3;
+        NEW = 4;
+        LOST = 5;
+    }
+    enum ORDER {
+        ASC = 0;
+        DESC = 1;
+    }
+    DATE date = 1;
+    FIELD field = 2;
+    int32 competitor_index = 3;
+    TOPTYPE toptype = 4;
+    int32 target_index = 5;
+    ORDER order = 6;
+}
+
+message FloatExpr {
+    float value = 1;
+    string expr = 2;
+}
+
+message IntExpr {
+    int32 value = 1;
+    string expr = 2;
+}
+
+message StringExpr {
+    string value = 1;
+    string expr = 2;
+}
+
+message Competitor {
+    string id = 1;
+    string url = 2;
+    BOOK_FORMAT format = 3;
+    string business_name = 4;
+    string domain = 5;
+    string brand = 6;
+}
+
+message Date {
+    int32 year = 1;
+    int32 month = 2;
+    int32 day = 3;
+}
+
+message Interval {
+    Date begin = 1;
+    Date end = 2;
+}
+
+message NullableUint32 {
+    oneof kind {
+        google.protobuf.NullValue null = 1;
+        uint32 value = 2;
+    }
+}
+
+message NullableBool {
+    oneof kind {
+        google.protobuf.NullValue null = 1;
+        bool value = 2;
+    }
+}
+
+message NullableDouble {
+    oneof kind {
+        google.protobuf.NullValue null = 1;
+        double value = 2;
+    }
+}
+
+/*
+enum INTENT {
+    DEFAULT = 0;
+    INFORMATIONAL = 1;
+    NAVIGATIONAL = 2;
+    TRANSACTIONAL = 4;
+    COMMERCIAL = 8;
+}
+
+message IntentSet {
+    repeated INTENT intents = 1;
+}
+*/
+
+message Targeting {
+    string location = 1;
+    string country_code = 2;
+    string device = 3;
+    string language = 4;
+    string search_engine = 5;
+    string engine = 6;
+}

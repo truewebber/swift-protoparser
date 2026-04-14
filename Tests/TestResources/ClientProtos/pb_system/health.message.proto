@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package acme.library.system;
+
+option go_package = "github.com/acme/library/proto/pb_system";
+
+message HealthcheckRequest {
+}
+
+message HealthcheckResponse {
+    string status = 1;
+    int64 timestamp = 2;
+    map<string, string> failures = 3;
+}

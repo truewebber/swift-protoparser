@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package test.number.values;
+
+import "google/protobuf/descriptor.proto";
+
+extend google.protobuf.FieldOptions {
+  int64 positive_opt = 54001;
+  int64 negative_opt = 54002;
+  double float_opt = 54003;
+  bool bool_opt = 54004;
+}
+
+message NumberMessage {
+  int32 a = 1 [(positive_opt) = 42];
+  int32 b = 2 [(positive_opt) = 999999];
+  int32 c = 3 [(negative_opt) = -1];
+  int32 d = 4 [(negative_opt) = -100];
+  double x = 5 [(float_opt) = 3.14];
+  double y = 6 [(float_opt) = -2.718];
+  bool flag = 7 [(bool_opt) = true];
+  bool other = 8 [(bool_opt) = false];
+}

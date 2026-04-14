@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+package acme.library.catalog;
+
+option go_package = "github.com/acme/library/proto/pb_catalog";
+
+enum ITEM_FEATURE {
+    ORG = 0;
+    GEO = 1;
+    TEA = 2;
+    NEW = 3;
+    REL = 4;
+    IMG = 5;
+    ADT = 6;
+    SHP = 7;
+    KNW = 8;
+    TWT = 9;
+    APP = 10;
+    VIB = 11;
+    AMP = 12;
+    REV = 13;
+    VID = 14;
+    FSN = 15;
+    STL = 16;
+    ADB = 17;
+    KNG = 18;
+    HOT = 19;
+    FLG = 20;
+    JOB = 21;
+    IND = 22;
+    CAR = 23;
+    RES = 24;
+    AIM = 25;
+    AIS = 26;
+    AAI = 27;
+    AIC = 28;
+    AIO = 29;
+    RSP = 30;
+    DRP = 31;
+    CTT = 32;
+    MAC = 33;
+    SPB = 34;
+    ASR = 35; // ai search results
+}
+
+enum CATEGORY_ID {
+    DEFAULT = 0;
+    INFORMATIONAL = 1;
+    NAVIGATIONAL = 2;
+    TRANSACTIONAL = 4;
+    COMMERCIAL = 8;
+}
+
+message CategorySet {
+    repeated CATEGORY_ID categories = 1;
+}

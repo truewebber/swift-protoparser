@@ -200,8 +200,9 @@ final class ServiceDescriptorBuilderTests: XCTestCase {
     // Then: Method options are set correctly
     XCTAssertEqual(serviceProto.method.count, 3)
 
-    // First method has no options
-    XCTAssertFalse(serviceProto.method[0].hasOptions)
+    // First method has no explicit options, but protoc always serialises an empty options message.
+    XCTAssertTrue(serviceProto.method[0].hasOptions)
+    XCTAssertFalse(serviceProto.method[0].options.deprecated)
 
     // Second method is deprecated
     XCTAssertTrue(serviceProto.method[1].hasOptions)
@@ -323,11 +324,12 @@ final class ServiceDescriptorBuilderTests: XCTestCase {
     XCTAssertTrue(serviceProto.hasOptions)
     XCTAssertFalse(serviceProto.options.deprecated)
 
-    // Check method 1 (simple)
+    // Check method 1 (simple): no explicit options, but protoc always serialises an empty options message.
     XCTAssertEqual(serviceProto.method[0].name, "SimpleMethod")
     XCTAssertFalse(serviceProto.method[0].clientStreaming)
     XCTAssertFalse(serviceProto.method[0].serverStreaming)
-    XCTAssertFalse(serviceProto.method[0].hasOptions)
+    XCTAssertTrue(serviceProto.method[0].hasOptions)
+    XCTAssertFalse(serviceProto.method[0].options.deprecated)
 
     // Check method 2 (bidirectional streaming with options)
     XCTAssertEqual(serviceProto.method[1].name, "StreamingMethod")

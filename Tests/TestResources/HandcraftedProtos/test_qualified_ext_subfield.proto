@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package test.qualified;
+
+import "google/protobuf/descriptor.proto";
+
+// Extensions defined in this package; accessed via fully-qualified names
+// to test that (pkg.ext_name).subfield is correctly parsed.
+extend google.protobuf.FieldOptions {
+  int32 min_value = 55001;
+  int32 max_value = 55002;
+  string pattern = 55003;
+}
+
+message QualifiedMessage {
+  // Fully-qualified extension references: (test.qualified.min_value).  <no subfield>
+  // and extension name with dots: (test.qualified.min_value) = 0
+  int32 age = 1 [
+    (test.qualified.min_value) = 0,
+    (test.qualified.max_value) = 150
+  ];
+  string code = 2 [(test.qualified.pattern) = "^[A-Z0-9]+$"];
+  int32 score = 3 [(test.qualified.min_value) = 1];
+}

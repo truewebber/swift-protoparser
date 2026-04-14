@@ -96,8 +96,9 @@ case .failure(let error):
 - **Descriptor Building**: Generate `Google_Protobuf_FileDescriptorProto` compatible with SwiftProtobuf
 - **Map Fields**: Full support for map types with automatic synthetic entry message generation (protoc-compatible)
 - **Dependency Resolution**: Handle `import` statements and multi-file dependencies
-- **Extend Statements**: Support for proto3 custom options (`extend google.protobuf.*`)
+- **Custom Options (Extensions)**: Full support for `extend google.protobuf.*` and the `(ext).sub_field` qualified option name syntax
 - **Extension Range Options**: Full support for `extensions N to M [declaration = { … }]` syntax
+- **Proto3 Optional Fields**: `optional` fields in proto3 generate synthetic oneofs and `proto3_optional = true`, matching `protoc` output exactly
 - **Reserved Ranges**: `reserved N to max;` syntax supported in both messages and enums
 - **Scope-Aware Type Resolution**: Strict protobuf scoping rules with sibling nested-type resolution (matches `protoc` behavior)
 - **Qualified Types**: Nested message references and well-known types resolved from disk via `importPaths`
@@ -217,9 +218,41 @@ for regression detection in the development workflow.
 - Dynamic proto file processing without `protoc`
 - Build systems requiring schema introspection
 
+## Known Limitations
+
+### No Type-Linking for Custom Options
+
+SwiftProtoParser parses `.proto` files without performing **type-linking** — the step where a
+compiler resolves custom option names to their extension field types (as `protoc` does). As a
+result, custom options (defined via `extend`) are stored in
+`FieldDescriptorProto.uninterpreted_option` with fully-populated `NamePart` arrays rather than
+as typed extension fields.
+
+This matches the behaviour of [`bufbuild/protocompile`](https://github.com/bufbuild/protocompile)
+when run in unlinked mode, and is sufficient for schema analysis, documentation, and code
+generation use cases that do not require resolved option values at runtime.
+
+Standard built-in options (`deprecated`, `go_package`, `java_package`, etc.) **are** stored in
+their typed fields, exactly as `protoc` would encode them.
+
+If your use case requires fully resolved option types, run `protoc` to generate a
+`FileDescriptorSet` and load that directly.
+
 ## Testing
 
-The library has comprehensive test coverage with 1588 tests covering all functionality:
+The library has comprehensive test coverage with **1674 tests** covering all functionality.
+
+### Reference descriptor generation
+
+```bash
+# Generate well-known type reference descriptors
+Scripts/generate_well_known_descriptors.sh
+
+# Generate handcrafted and client-proto reference descriptors
+Scripts/generate_extension_option_descriptors.sh
+```
+
+### Running tests
 
 ```bash
 # Run all tests

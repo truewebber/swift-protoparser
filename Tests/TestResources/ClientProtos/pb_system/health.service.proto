@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package acme.library.system;
+
+import "pb_system/health.message.proto";
+
+option go_package = "github.com/acme/library/proto/pb_system";
+
+// The LibraryHealthService service definition.
+service LibraryHealthService {
+    rpc Healthcheck (HealthcheckRequest) returns (HealthcheckResponse) {}
+}

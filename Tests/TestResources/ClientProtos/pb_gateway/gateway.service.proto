@@ -1,0 +1,96 @@
+syntax = "proto3";
+
+// web-gw adds - https://pkg.go.dev/google.golang.org/grpc
+
+package acme.library.search.gateway;
+
+option go_package = "github.com/acme/library/proto/pb_gateway";
+
+import "pb_search/available_dates.proto";
+import "pb_search/results.proto";
+import "pb_search/trends.proto";
+import "pb_search/geo_results.proto";
+import "pb_search/filters.proto";
+import "pb_gateway/gateway.message.proto";
+import "google/api/annotations.proto";
+import "google/protobuf/empty.proto";
+
+service LibraryGatewayService {
+    rpc Version(google.protobuf.Empty) returns (VersionResponse) {
+        option (google.api.http) = {
+            get: "/version"
+        };
+    }
+
+    // RPC method to set up a tracked collection
+    // Required header: user_api_key
+    rpc SetupCollection(SetupCollectionRequest) returns (SetupCollectionResponse) {
+        option (google.api.http) = {
+            post: "/setup_collection"
+        };
+    }
+
+    // RPC method to remove a tracked collection
+    // Required header: user_api_key
+    rpc RemoveCollection(RemoveCollectionRequest) returns (google.protobuf.Empty);
+
+    // RPC method to update the state of collection keywords
+    // Required header: user_api_key
+    rpc UpdateCollectionKeywordsState(UpdateKeywordsStateRequest) returns (UpdateKeywordsStateResponse) {}
+
+    // RPC method to set competitors for a collection
+    // Required header: user_api_key
+    // rpc SetCollectionCompetitors(SetCompetitorsRequest) returns (CompetitorsResponse) {}
+
+    // RPC method to get collections by project
+    // Required header: user_api_key
+    rpc GetCollectionsByProject(GetCollectionsRequest) returns (ProjectResponse) {}
+
+    // RPC method to get details of a specific collection
+    // Required header: user_api_key
+    rpc GetCollection(GetCollectionRequest) returns (CollectionResponse) {}
+
+    // RPC method to get keywords of a collection
+    // Required header: user_api_key
+    rpc GetCollectionKeywords(GetKeywordsRequest) returns (KeywordsResponse) {}
+
+    // RPC method to get own user collections
+    // Required header: user_api_key
+    rpc GetOwnCollections(GetOwnCollectionsRequest) returns (GetOwnCollectionsResponse) {}
+
+    // RPC method to get data for shelf hierarchy. By default each shelf is
+    // returned with metrics of the oldest collection in the corresponding shelf.
+    // Required header: user_api_key
+    rpc GetShelvesWithMetrics(GetCollectionsRequest) returns (GetShelvesResponse) {}
+
+    // RPC method to get competitors of a collection
+    // Required header: user_api_key
+    rpc GetCollectionCompetitors(GetCompetitorsRequest) returns (CompetitorsResponse) {
+        option (google.api.http) = {
+            get: "/get_collection_competitors"
+        };
+    }
+
+    rpc SetCollectionCompetitors(SetCompetitorsRequest) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/set_collection_competitors"
+        };
+    }
+
+    // RPC method to find locations based on search criteria
+    rpc FindLocations(FindLocationsRequest) returns (LocationResponse) {}
+
+    // RPC method to retrieve Top-Level Domain (TLD) details for a list of provided URLs
+    // Required header: user_api_key
+    rpc GetTLD(GetTLDRequest) returns (GetTLDResponse) {}
+
+    rpc AvailableDates(v2.AvailableDatesRequest) returns (v2.AvailableDatesResponse) {}
+
+    rpc Results(v2.ResultsRequest) returns (v2.ResultsResponse) {}
+
+    rpc Trends(v2.TrendsRequest) returns (v2.TrendsResponse) {}
+
+    rpc GeoResults(v2.GeoResultsRequest) returns (v2.GeoResultsResponse) {}
+
+    rpc Filters(v2.FiltersRequest) returns (v2.FiltersResponse) {}
+}

@@ -89,9 +89,7 @@ struct EnumDescriptorBuilder {
           enumOptions.deprecated = value
         }
       default:
-        // Custom options - add to uninterpreted_option
-        // This is a simplified implementation
-        break
+        enumOptions.uninterpretedOption.append(DescriptorBuilder.buildUninterpretedOption(from: option))
       }
     }
 
@@ -109,9 +107,7 @@ struct EnumDescriptorBuilder {
           valueOptions.deprecated = value
         }
       default:
-        // Custom options - add to uninterpreted_option
-        // This is a simplified implementation
-        break
+        valueOptions.uninterpretedOption.append(DescriptorBuilder.buildUninterpretedOption(from: option))
       }
     }
 

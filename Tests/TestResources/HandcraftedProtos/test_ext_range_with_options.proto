@@ -1,0 +1,26 @@
+syntax = "proto2";
+
+package test.extrange;
+
+import "google/protobuf/descriptor.proto";
+
+// A proto2 message with extension range options: declaration + verification.
+// Used for end-to-end descriptor comparison against protoc (Tier 1a).
+// Verified: protoc 33.5 accepts this file without errors.
+message Extendable {
+  required int32 id = 1;
+  extensions 100 to 199 [
+    declaration = {
+      number: 100
+      full_name: ".test.extrange.my_field"
+      type: ".test.extrange.MyString"
+      reserved: false
+      repeated: false
+    },
+    verification = DECLARATION
+  ];
+}
+
+message MyString {
+  required string value = 1;
+}

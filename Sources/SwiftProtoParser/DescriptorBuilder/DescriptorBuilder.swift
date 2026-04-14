@@ -14,8 +14,11 @@ struct DescriptorBuilder {
     fileProto.name = fileName
 
     // Set syntax per protoc behaviour:
-    // proto3 → "proto3"; proto2 and no-syntax → "" (empty string).
-    fileProto.syntax = ast.syntax.descriptorSyntaxValue
+    // proto3 → "proto3"; proto2 / no-syntax → field is left unset (protoc omits the field).
+    let syntaxValue = ast.syntax.descriptorSyntaxValue
+    if !syntaxValue.isEmpty {
+      fileProto.syntax = syntaxValue
+    }
 
     // Set package
     if let package = ast.package {
@@ -80,16 +83,21 @@ struct DescriptorBuilder {
     return fileProto
   }
 
-  /// Returns the fully-qualified extendee name, always beginning with `.`.
+  /// Returns the extendee name as a fully-qualified absolute reference (with leading `.`).
   ///
-  /// - If `name` already starts with `.`, it is returned unchanged.
-  /// - Otherwise the package (if any) is prepended: `.<package>.<name>` or `.<name>`.
+  /// - Already-absolute names (starting with `.`): returned unchanged.
+  /// - Qualified names (containing `.`): a leading `.` is prepended to mark them as global.
+  /// - Simple names (no dots): the current package is prepended so that `Base` in package
+  ///   `my.pkg` becomes `.my.pkg.Base`, matching protoc's name resolution behaviour.
   private static func buildFullyQualifiedExtendee(_ name: String, packageName: String?) -> String {
     if name.hasPrefix(".") {
       return name
     }
-    if let package = packageName, !package.isEmpty {
-      return ".\(package).\(name)"
+    if name.contains(".") {
+      return ".\(name)"
+    }
+    if let pkg = packageName, !pkg.isEmpty {
+      return ".\(pkg).\(name)"
     }
     return ".\(name)"
   }
@@ -187,26 +195,7 @@ struct DescriptorBuilder {
           fileOptions.rubyPackage = value
         }
       default:
-        // Custom options - add to uninterpreted_option
-        var uninterpretedOption = Google_Protobuf_UninterpretedOption()
-        var namePart = Google_Protobuf_UninterpretedOption.NamePart()
-        namePart.namePart = option.name
-        namePart.isExtension = option.isCustom
-        uninterpretedOption.name = [namePart]
-
-        // Set value based on option value type
-        switch option.value {
-        case .string(let value):
-          uninterpretedOption.stringValue = Data(value.utf8)
-        case .number(let value):
-          uninterpretedOption.positiveIntValue = UInt64(value)
-        case .boolean(let value):
-          uninterpretedOption.identifierValue = value ? "true" : "false"
-        case .identifier(let value):
-          uninterpretedOption.identifierValue = value
-        }
-
-        fileOptions.uninterpretedOption.append(uninterpretedOption)
+        fileOptions.uninterpretedOption.append(buildUninterpretedOption(from: option))
       }
     }
 

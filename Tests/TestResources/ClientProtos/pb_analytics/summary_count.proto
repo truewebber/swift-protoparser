@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package acme.library.analytics;
+
+option go_package = "github.com/acme/library/proto/pb_analytics";
+
+message SummaryCountRequest {
+    string data_id = 1;
+}
+
+message SummaryCountResponse {
+    uint64 count = 1;
+}

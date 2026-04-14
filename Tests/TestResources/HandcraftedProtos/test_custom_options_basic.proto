@@ -1,0 +1,61 @@
+syntax = "proto3";
+
+package test.custom.basic;
+
+import "google/protobuf/descriptor.proto";
+
+extend google.protobuf.FileOptions {
+  string file_ext = 50001;
+}
+extend google.protobuf.MessageOptions {
+  string msg_ext = 50002;
+}
+extend google.protobuf.FieldOptions {
+  int32 field_ext = 50003;
+}
+extend google.protobuf.OneofOptions {
+  bool oneof_ext = 50004;
+}
+extend google.protobuf.EnumOptions {
+  string enum_ext = 50005;
+}
+extend google.protobuf.EnumValueOptions {
+  int32 enum_val_ext = 50006;
+}
+extend google.protobuf.ServiceOptions {
+  string svc_ext = 50007;
+}
+extend google.protobuf.MethodOptions {
+  bool method_ext = 50008;
+}
+
+option (file_ext) = "file_value";
+
+enum Color {
+  option (enum_ext) = "color_enum";
+  COLOR_UNSPECIFIED = 0 [(enum_val_ext) = 0];
+  COLOR_RED = 1 [(enum_val_ext) = 1];
+  COLOR_GREEN = 2;
+}
+
+message BasicMessage {
+  option (msg_ext) = "basic_msg";
+
+  string name = 1 [(field_ext) = 42];
+  int32 count = 2;
+  Color color = 3 [(field_ext) = 99];
+
+  oneof kind {
+    option (oneof_ext) = true;
+    string text_val = 10;
+    int32 int_val = 11;
+  }
+}
+
+service BasicService {
+  option (svc_ext) = "basic_svc";
+
+  rpc GetData(BasicMessage) returns (BasicMessage) {
+    option (method_ext) = true;
+  }
+}

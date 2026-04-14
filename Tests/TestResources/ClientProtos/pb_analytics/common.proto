@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package acme.library.analytics;
+
+option go_package = "github.com/acme/library/proto/pb_analytics";
+
+import "pb_catalog/types.proto" ;
+
+message Report {
+    string data_id = 1;
+    acme.library.catalog.REPORT_TYPE type = 2;
+    acme.library.catalog.Interval interval = 3;
+}
+
+message LimitOffset {
+    int32 limit = 12;
+    int32 offset = 13;
+}
+
+message TopCounter {
+    uint64 all = 1;
+    uint64 improved = 2;
+    uint64 declined = 3;
+    uint64 unchanged = 4;
+    uint64 entered = 5;
+    uint64 left = 6;
+}
+
+message DifferenceFilter {
+    repeated acme.library.catalog.FloatExpr difference_expression = 1;
+    bool absolute = 2;
+    int32 report_type = 3;
+}

@@ -14,10 +14,11 @@ import XCTest
 ///
 /// Comparison strategy
 /// -------------------
-/// Both descriptors are serialised to JSON using SwiftProtobuf's JSONEncoder and the
-/// strings are compared directly. Before serialising we clear `source_code_info` (only
-/// present when protoc is invoked with `--include_source_info`, which we do not use)
-/// and `edition` (an editions-only field not yet supported by SwiftProtoParser).
+/// Both descriptors are serialised to binary (`serializedBytes()`) and compared byte-for-byte.
+/// If the bytes differ, the test also emits a human-readable JSON diff for diagnostics.
+/// Before serialising we clear `source_code_info` (only present when protoc is invoked with
+/// `--include_source_info`, which we do not use) and `edition` (an editions-only field not
+/// yet supported by SwiftProtoParser).
 final class WellKnownTypesIntegrationTests: XCTestCase {
 
   // MARK: - Well-known proto3 types (no external dependencies)
@@ -188,27 +189,26 @@ final class WellKnownTypesIntegrationTests: XCTestCase {
     let normRef = normalise(referenceProto)
     let normActual = normalise(actualProto)
 
-    // ── 4. Serialise to JSON and compare ─────────────────────────────────────
-    let refJSON: String
-    let actualJSON: String
+    // ── 4. Compare bytes (primary); fall back to JSON diff for diagnostics ───
     do {
-      refJSON = try normRef.jsonString()
-      actualJSON = try normActual.jsonString()
+      let refBytes: [UInt8] = try normRef.serializedBytes()
+      let actualBytes: [UInt8] = try normActual.serializedBytes()
+
+      if refBytes == actualBytes { return }
+
+      let refJSON = (try? normRef.jsonString()) ?? "<json failed>"
+      let actualJSON = (try? normActual.jsonString()) ?? "<json failed>"
+      XCTFail(
+        "Descriptor bytes mismatch for \(protoRelativePath).\n"
+          + "--- expected (protoc) ---\n\(refJSON)\n"
+          + "--- actual (SwiftProtoParser) ---\n\(actualJSON)",
+        file: file,
+        line: line
+      )
     }
     catch {
-      XCTFail("JSON serialisation failed for \(protoRelativePath): \(error)", file: file, line: line)
-      return
+      XCTFail("Serialisation failed for \(protoRelativePath): \(error)", file: file, line: line)
     }
-
-    XCTAssertEqual(
-      actualJSON,
-      refJSON,
-      "Descriptor mismatch for \(protoRelativePath).\n"
-        + "--- expected (protoc) ---\n\(refJSON)\n"
-        + "--- actual (SwiftProtoParser) ---\n\(actualJSON)",
-      file: file,
-      line: line
-    )
   }
 
   // MARK: - Normalisation

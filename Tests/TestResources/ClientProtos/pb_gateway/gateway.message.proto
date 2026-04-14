@@ -1,0 +1,252 @@
+syntax = "proto3";
+
+package acme.library.search.gateway;
+
+option go_package = "github.com/acme/library/proto/pb_gateway";
+
+import "google/protobuf/timestamp.proto";
+import "buf/validate/validate.proto";
+import "pb_catalog/types.proto";
+
+// Message representing a keyword item and its associated tags
+message Keyword {
+    // The keyword text
+    string keyword = 1   [(buf.validate.field).string = { max_len : 1024 }];
+
+    // List of tags to be associated with the keyword
+    repeated string tags = 2;
+}
+
+message VersionResponse {
+    string version = 1;
+}
+
+// Message representing a tracked URL and its type
+message TrackingURL {
+    string url = 1;      // The tracking URL
+    acme.library.catalog.BOOK_FORMAT format = 2;   // The format of the item
+}
+
+message Competitor {
+    string url = 1;                            // the competitor URL
+    acme.library.catalog.BOOK_FORMAT format = 2;  // the competitor format type
+    bool main = 3;                             // this is main competitor
+    string business_name = 4;                  // this is competitor business
+    string brand = 6;                          // this is competitor brand
+}
+
+// Message representing a tracked collection
+message Collection {
+    string id = 1;                                    // aka. collection_id
+    acme.library.catalog.ENGINE engine = 2;           // Search engine to be used
+    acme.library.catalog.DEVICE device = 3;           // Device type to be targeted
+    TrackingURL url = 4;                              // Tracking URL
+    uint64 location_id = 5;                           // Location ID
+    string language = 6;                              // Language to be targeted
+    string business_name = 7;                         // Name of the business
+    repeated Competitor competitors = 8;              // List of competitors
+    uint64 keywords_count = 9;                        // Number of keywords
+    bool weekly_notifications = 10;                    // Flag for weekly notifications
+    uint64 hours_since_last_harvest = 11;             // Hours since last data harvest
+    string brand = 12;                                // Name of the brand
+    google.protobuf.Timestamp created_at = 71;        // Timestamp of creation
+    google.protobuf.Timestamp updated_at = 72;        // Timestamp of last update
+}
+
+// Message representing a library project
+message Project {
+    uint64 id = 1;                            // ID of the project
+    string domain = 2;                        // Domain of the project
+    string name = 3;                          // Name of the project
+    bool is_shared = 4;                       // Flag indicating if the project is shared
+    string permission = 5;                    // Permissions associated with the project
+    repeated Collection collections = 6;      // List of collections within the project
+}
+
+// Request message for setting up a tracked collection
+message SetupCollectionRequest {
+    // User ID
+    int32 user_id = 1 [(buf.validate.field).int32.gt = 0];
+
+    // ID of the project
+    uint64 project_id = 2;
+
+    // Search engine to be used
+    acme.library.catalog.ENGINE engine = 3;
+
+    // Device type to be targeted
+    acme.library.catalog.DEVICE device = 4;
+
+    // Tracking URL
+    string url = 5;
+
+    // Business name for the collection
+    string business_name = 6 [(buf.validate.field).string = {max_len : 1024}];
+
+    // Location ID
+    uint64 location_id = 7 [(buf.validate.field).uint64.gt = 0];
+
+    // Language for the collection
+    string language = 8;
+}
+
+message SetupCollectionResponse {
+    string collection_id = 1;
+    Collection collection = 2;
+}
+
+message RemoveCollectionRequest {
+    int32 user_id = 1 [(buf.validate.field).int32.gt = 0 ];
+
+    // Collection ID in `{collection}` or `{collection}_{target}` format
+    string collection_id = 2  [(buf.validate.field).string.pattern = "^\\d+(_\\d+)?$" ];
+
+    repeated acme.library.catalog.ENGINE include_engine_types = 3;
+
+    int32 project_id = 4 [(buf.validate.field).int32.gt = 0 ];
+}
+
+message ProjectResponse {
+    repeated Collection collections = 1;
+}
+
+message GetCollectionsRequest {
+    uint64 project_id = 1;
+    repeated uint64 project_ids = 2;
+}
+
+// Response with shelf/folder hierarchy — 3 levels of nesting
+message GetShelvesResponse {
+    // Top-level list of shelves
+    repeated Shelf shelves = 1;
+}
+
+message Shelf {
+    uint64 id = 1;
+    string name = 2;
+    string description = 3;
+    bool is_public = 4;
+    ShelfMain main_collection = 5;
+}
+
+message ShelfMain {
+    string collection_id = 1;
+    ShelfMeta meta = 2;
+    ShelfMetrics metrics = 3;
+}
+
+message ShelfMeta {
+    string title = 1;
+    string author = 2;
+    google.protobuf.Timestamp last_updated = 3;
+    optional acme.library.catalog.Date last_crawl_date = 4;
+}
+
+message ShelfMetrics {
+    uint64 total_items = 1;
+    uint64 active_items = 2;
+    double coverage_score = 3;
+}
+
+message GetCollectionRequest {
+    string collection_id = 1;
+}
+
+message CollectionResponse {
+    Collection collection = 1;
+}
+
+message GetKeywordsRequest {
+    int32 user_id = 1 [(buf.validate.field).int32.gt = 0 ];
+
+    string collection_id = 2  [(buf.validate.field).string.pattern = "^\\d+(_\\d+)?$" ];
+
+    optional bool force = 3;
+}
+
+message KeywordsResponse {
+    repeated Keyword keywords = 1;
+}
+
+message TagDiff {
+    repeated string create = 1;
+    repeated string delete = 2;
+}
+
+message GetOwnCollectionsRequest {
+    int32 user_id = 1 [(buf.validate.field).int32.gt = 0 ];
+    string collection_id = 2  [(buf.validate.field).string.pattern = "^\\d+(_\\d+)?$" ];
+}
+
+message GetOwnCollectionsResponse {
+    repeated Collection collections = 1;
+}
+
+message UpdateKeywordsStateRequest {
+    int32 user_id = 1 [(buf.validate.field).int32.gt = 0];
+    string collection_id = 2  [(buf.validate.field).string.pattern = "^\\d+(_\\d+)?$" ];
+    repeated KeywordsStateUpdate update_attributes = 3;
+    repeated string delete = 4;
+    repeated Keyword create = 5;
+}
+
+message KeywordsStateUpdate {
+    string keyword = 1;
+    TagDiff tag_diff = 2;
+}
+
+message UpdateKeywordsStateResponse {
+    uint64 updated = 1;
+    uint64 created = 2;
+    uint64 deleted = 3;
+}
+
+message FindLocationsRequest {
+    string query = 1;
+    string language = 2;
+}
+
+message Location {
+    uint64 id = 1;
+    string name = 2;
+    acme.library.catalog.LOCATION_TYPE type = 3;
+    string country_code = 4;
+}
+
+message GetAvailableEnginesResponse {
+    repeated string available_volume_types = 1;
+    repeated Location locations = 10;
+}
+
+message LocationResponse {
+    repeated Location locations = 1;
+}
+
+message GetTLDRequest {
+    repeated string urls = 1;
+}
+
+message GetTLDResponseItem {
+    string url = 1;
+    string tld = 2;
+    optional string error = 4;
+}
+
+message GetTLDResponse {
+    repeated GetTLDResponseItem tlds = 1;
+}
+
+message GetCompetitorsRequest {
+    uint64 user_id = 1 [(buf.validate.field).uint64.gt = 0];
+    string collection_id = 2 [(buf.validate.field).string.pattern = "^\\d+(_\\d+)?$"];
+}
+
+message SetCompetitorsRequest {
+    uint64 user_id = 1 [(buf.validate.field).uint64.gt = 0];
+    string collection_id = 2 [(buf.validate.field).string.pattern = "^\\d+(_\\d+)?$"];
+    repeated Competitor competitors = 3;
+}
+
+message CompetitorsResponse {
+    repeated Competitor competitors = 1;
+}

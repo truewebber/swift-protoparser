@@ -250,6 +250,24 @@ extension TokenType: CustomStringConvertible {
       return "eof"
     }
   }
+
+  /// The actual source text this token represents.
+  ///
+  /// Used when reconstructing raw source fragments (e.g. aggregate option values).
+  var rawText: String {
+    switch self {
+    case .keyword(let keyword): return keyword.rawValue
+    case .identifier(let id): return id
+    case .stringLiteral(let s): return "\"\(s)\""
+    case .integerLiteral(let i): return i < 0 ? String(i) : String(i)
+    case .floatLiteral(let f):
+      let formatted = f.truncatingRemainder(dividingBy: 1) == 0 ? String(Int64(f)) : String(f)
+      return formatted
+    case .boolLiteral(let b): return b ? "true" : "false"
+    case .symbol(let c): return String(c)
+    case .comment, .whitespace, .newline, .eof: return ""
+    }
+  }
 }
 
 // MARK: - Token + Convenience Properties

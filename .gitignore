@@ -10,3 +10,7 @@ DerivedData/
 .swiftpm/
 .netrc
 Package.resolved
+
+# Compiled Go tool binary (built by Scripts/generate_extension_option_descriptors.sh)
+Scripts/proto-unlinked-gen-bin
+Scripts/proto-unlinked-gen/proto-unlinked-gen

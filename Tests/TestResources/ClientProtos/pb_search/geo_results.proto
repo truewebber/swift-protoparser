@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package acme.library.search.v2;
+
+import "pb_analytics/common.proto";
+import "pb_catalog/public_types.proto";
+import "pb_catalog/types.proto";
+
+option go_package = "github.com/acme/library/proto/pb_search";
+
+// Request message for GeoResults call
+message GeoResultsRequest {
+    // User ID
+    int32 user_id = 1;
+
+    // Collection ID (`{collection}` or `{collection}_{target}` format)
+    string collection_id = 2;
+
+    // Type of items the report is calculated for
+    acme.library.catalog.REPORT_TYPE type = 3;
+
+    // Start date for the analysis period (`YYYYMMDD` format)
+    string date_begin = 4;
+
+    // End date for the analysis period (`YYYYMMDD` format)
+    string date_end = 5;
+
+    // List of competitors to include
+    repeated string competitors = 6;
+
+    // Sorting criteria
+    acme.library.catalog.Sort sort = 7;
+
+    // Pagination parameters
+    acme.library.analytics.LimitOffset limit_offset = 8;
+
+    // Category filter
+    acme.library.catalog.CategorySet category_filter = 9;
+}
+
+// Response message for GeoResults call
+message GeoResultsResponse {
+    // Total number of matching results
+    uint64 total = 1;
+
+    // Result rows as serialized data
+    repeated string rows = 2;
+}

@@ -41,13 +41,23 @@ struct FieldDescriptorBuilder {
       fieldProto.defaultValue = defaultValueString(from: defaultOption.value)
     }
 
-    // Convert remaining field options (default is never forwarded to uninterpreted_option)
-    if !remainingOptions.isEmpty {
-      fieldProto.options = try buildFieldOptions(from: remainingOptions)
+    // Extract an explicit `json_name` option before forwarding the rest.
+    // `json_name` is a built-in pseudo-option that directly overrides the jsonName field
+    // on FieldDescriptorProto; it must NOT appear in uninterpreted_option.
+    let (jsonNameOption, fieldOptions) = partitionJsonNameOption(from: remainingOptions)
+
+    // Convert remaining field options (default and json_name are never forwarded to uninterpreted_option)
+    if !fieldOptions.isEmpty {
+      fieldProto.options = try buildFieldOptions(from: fieldOptions)
     }
 
-    // Set json_name: protoc always sets this to the lowerCamelCase version of the field name.
-    fieldProto.jsonName = jsonName(from: fieldNode.name)
+    // Set json_name: use the explicit proto option if present, otherwise compute from field name.
+    if let jsonNameOption = jsonNameOption, case .string(let explicitName) = jsonNameOption.value {
+      fieldProto.jsonName = explicitName
+    }
+    else {
+      fieldProto.jsonName = jsonName(from: fieldNode.name)
+    }
 
     return fieldProto
   }
@@ -93,6 +103,26 @@ struct FieldDescriptorBuilder {
     return (defaultOption, remaining)
   }
 
+  /// Splits the options array into the `json_name` option (if present) and the rest.
+  ///
+  /// `json_name` is a built-in pseudo-option that must be applied directly to
+  /// `FieldDescriptorProto.jsonName` and must not appear in `uninterpreted_option`.
+  private static func partitionJsonNameOption(
+    from options: [OptionNode]
+  ) -> (jsonNameOption: OptionNode?, remaining: [OptionNode]) {
+    var jsonNameOption: OptionNode?
+    var remaining: [OptionNode] = []
+    for option in options {
+      if !option.isCustom && option.name == "json_name" {
+        jsonNameOption = option
+      }
+      else {
+        remaining.append(option)
+      }
+    }
+    return (jsonNameOption, remaining)
+  }
+
   /// Converts an `OptionValue` to the exact `defaultValue` string format used by protoc.
   private static func defaultValueString(from value: OptionValue) -> String {
     switch value {
@@ -109,6 +139,8 @@ struct FieldDescriptorBuilder {
       return bool ? "true" : "false"
     case .identifier(let id):
       return id
+    case .messageLiteral(let block):
+      return block
     }
   }
 
@@ -240,26 +272,7 @@ struct FieldDescriptorBuilder {
           }
         }
       default:
-        // Custom options - add to uninterpreted_option
-        var uninterpretedOption = Google_Protobuf_UninterpretedOption()
-        var namePart = Google_Protobuf_UninterpretedOption.NamePart()
-        namePart.namePart = option.name
-        namePart.isExtension = option.isCustom
-        uninterpretedOption.name = [namePart]
-
-        // Set value based on option value type
-        switch option.value {
-        case .string(let value):
-          uninterpretedOption.stringValue = Data(value.utf8)
-        case .number(let value):
-          uninterpretedOption.positiveIntValue = UInt64(value)
-        case .boolean(let value):
-          uninterpretedOption.identifierValue = value ? "true" : "false"
-        case .identifier(let value):
-          uninterpretedOption.identifierValue = value
-        }
-
-        fieldOptions.uninterpretedOption.append(uninterpretedOption)
+        fieldOptions.uninterpretedOption.append(DescriptorBuilder.buildUninterpretedOption(from: option))
       }
     }
 

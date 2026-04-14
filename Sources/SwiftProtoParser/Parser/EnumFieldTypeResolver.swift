@@ -262,7 +262,8 @@ struct EnumFieldTypeResolver {
       type: resolvedType,
       number: field.number,
       label: field.label,
-      options: field.options
+      options: field.options,
+      isProto3Optional: field.isProto3Optional
     )
   }
 

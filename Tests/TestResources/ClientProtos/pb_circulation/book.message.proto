@@ -1,0 +1,106 @@
+syntax = "proto3";
+
+package acme.library.circulation;
+
+option go_package = "github.com/acme/library/proto/pb_circulation";
+
+import "google/protobuf/timestamp.proto";
+
+import "pb_catalog/types.proto";
+
+message Date {
+    int32 year = 1;
+    int32 month = 2;
+    int32 day = 3;
+}
+
+message BookMeta {
+    string book_id = 1;
+    string data_id = 2;
+    acme.library.catalog.CRAWL_PERIOD crawl_period = 3;
+    int64 keyword_count = 4;
+    bool featured_flag = 5;
+    acme.library.catalog.VOLUME_TYPE volume_level = 6;
+    Date last_crawl_date = 7;
+    google.protobuf.Timestamp created_at = 8;
+    google.protobuf.Timestamp updated_at = 9;
+    string location_name = 10;
+    string location_type = 11;
+    acme.library.catalog.ENGINE engine = 12;
+    string url = 13;
+    acme.library.catalog.BOOK_FORMAT book_format = 14;
+    string business_name = 15;
+    int64 linkTypeBitMask = 16;
+    bool is_crawled_predictions = 17;
+    string brand_name = 18;
+}
+
+message BookMetaRequest {
+    string book_id = 1;
+}
+
+message BookMetaResponse {
+    BookMeta meta = 1;
+}
+
+message BookMetaByCollectionIdRequest {
+    repeated string collection_id = 1;
+}
+
+message BookMetaByCollectionIdResponse {
+    repeated BookMeta meta = 1;
+}
+
+message BookMetaByBookIdRequest {
+    repeated string book_id = 1;
+}
+
+message BookMetaByBookIdResponse {
+    repeated BookMeta meta = 1;
+}
+
+message TargetInfo {
+    string book_id = 1;
+    string location_name = 2;
+    string language = 3;
+    string language_code = 4;
+    string url = 5;
+    acme.library.catalog.BOOK_FORMAT book_format = 6;
+    acme.library.catalog.DEVICE device = 7;
+    string search_engine = 8;
+    acme.library.catalog.VOLUME_TYPE volume_type = 9;
+    int32 link_type_filter_bm = 10;
+    string country_code = 11;
+    string location_type = 12;
+    string data_id = 13;
+    int64 keyword_count = 14;
+    string business_name = 15;
+    repeated acme.library.catalog.Competitor competitors = 16;
+    google.protobuf.Timestamp created_at = 17;
+    google.protobuf.Timestamp updated_at = 18;
+    Date last_crawl_date = 19;
+    string blacklist = 20;
+    int64 user_id = 21;
+}
+
+message Targeting {
+}
+
+message TargetsListRequest {
+    string collection_id = 1;
+    repeated string book_ids = 2;
+}
+
+message TargetsListResponse {
+    repeated TargetInfo targets = 1;
+}
+
+message Target {
+    string book_id = 1;
+    string data_id = 2;
+    acme.library.catalog.VOLUME_TYPE volume_type = 3;
+    google.protobuf.Timestamp created_at = 4;
+    google.protobuf.Timestamp updated_at = 5;
+    Date last_crawl_date = 6;
+    acme.library.catalog.CRAWL_PERIOD crawling_period = 7;
+}

@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package acme.library.pubsub;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/acme/library/proto/pubsub";
+
+message CatalogChanged {
+    string collection_id = 1;
+    EVENT_TYPE event_type = 2;
+    string changes_info_url = 3;
+    google.protobuf.Timestamp changes_info_valid_until_utc = 4;
+    uint64 actor_id = 5;
+    string client_id = 6;
+}
+
+enum EVENT_TYPE {
+    UNKNOWN = 0;
+    KEYWORDS_UPDATED = 1;
+    TAGS_ADDED = 2;
+    TAGS_DELETED = 3;
+    VOLUMES_UPDATED = 4;
+    COMPETITORS_UPDATED = 5;
+    COLLECTION_CREATED = 6;
+    COLLECTION_DELETED = 7;
+    COLLECTION_MOVED = 8;
+    COLLECTION_DOWNGRADED = 9;
+    COLLECTION_RESTORED = 10;
+    COLLECTION_APPROXIMATED = 11;
+}

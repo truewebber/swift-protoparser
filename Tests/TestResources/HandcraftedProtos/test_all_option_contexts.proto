@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+package test.all.contexts;
+
+import "google/protobuf/descriptor.proto";
+
+extend google.protobuf.FieldOptions {
+  string ctx_field = 53001;
+}
+extend google.protobuf.MessageOptions {
+  string ctx_msg = 53002;
+}
+extend google.protobuf.EnumOptions {
+  string ctx_enum = 53003;
+}
+extend google.protobuf.EnumValueOptions {
+  int32 ctx_enum_val = 53004;
+}
+extend google.protobuf.ServiceOptions {
+  string ctx_svc = 53005;
+}
+extend google.protobuf.MethodOptions {
+  bool ctx_method = 53006;
+}
+
+enum Shape {
+  option (ctx_enum) = "shape_enum";
+  SHAPE_UNSPECIFIED = 0;
+  SHAPE_CIRCLE = 1 [(ctx_enum_val) = 10];
+  SHAPE_SQUARE = 2 [(ctx_enum_val) = 20];
+}
+
+message ContextMessage {
+  option (ctx_msg) = "context_msg";
+
+  string name = 1 [(ctx_field) = "name_field"];
+  int32 size = 2 [(ctx_field) = "size_field"];
+  Shape shape = 3;
+  repeated string tags = 4;
+}
+
+service ContextService {
+  option (ctx_svc) = "context_service";
+
+  rpc Process(ContextMessage) returns (ContextMessage) {
+    option (ctx_method) = true;
+  }
+
+  rpc List(ContextMessage) returns (ContextMessage) {
+    option (ctx_method) = false;
+  }
+}

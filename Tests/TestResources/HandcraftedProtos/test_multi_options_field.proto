@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package test.multi.options;
+
+import "google/protobuf/descriptor.proto";
+
+extend google.protobuf.FieldOptions {
+  int32 min_val = 56001;
+  int32 max_val = 56002;
+  string fmt = 56003;
+  bool required = 56004;
+}
+
+message MultiOptMessage {
+  int32 age = 1 [(min_val) = 0, (max_val) = 120];
+  string name = 2 [(fmt) = "alpha", (required) = true];
+  string code = 3 [(fmt) = "alnum", (min_val) = 0, (max_val) = 50];
+  int32 count = 4 [(min_val) = 1, (max_val) = 1000, (required) = false];
+}

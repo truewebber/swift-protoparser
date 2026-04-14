@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package acme.library.search.v2;
+
+import "pb_catalog/types.proto";
+
+option go_package = "github.com/acme/library/proto/pb_search";
+
+// Request message for AvailableDates call
+message AvailableDatesRequest {
+    // Collection ID (`{collection}` or `{collection}_{target}` format)
+    string collection_id = 1;
+
+    // Interval for the analysis period
+    optional acme.library.catalog.Interval interval = 2;
+}
+
+// Response message for AvailableDates call
+message AvailableDatesResponse {
+    // List of dates in the analysis period
+    repeated acme.library.catalog.Date dates = 1;
+}

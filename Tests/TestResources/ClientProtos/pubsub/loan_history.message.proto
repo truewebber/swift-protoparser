@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package acme.library.pubsub;
+
+option go_package = "github.com/acme/library/proto/pubsub";
+
+import "pb_catalog/public_types.proto";
+
+message RawPosition {
+    string url = 5;
+    uint32 rank = 6;
+    repeated acme.library.catalog.ITEM_FEATURE item_feature = 9;
+}
+
+message RawSERP {
+    uint32 export_id = 1;
+    string collection_id = 2;
+    uint32 date = 3;
+    string keyword = 4;
+    repeated RawPosition positions = 5;
+    uint32 keyword_difficulty = 7;
+    acme.library.catalog.CategorySet category = 8;
+    uint32 national_volume = 10;
+    optional uint32 regional_volume = 11;
+    optional uint32 local_volume = 12;
+    double national_cpc = 13;
+    optional double regional_cpc = 14;
+    optional double local_cpc = 15;
+    string source_id = 16;
+}

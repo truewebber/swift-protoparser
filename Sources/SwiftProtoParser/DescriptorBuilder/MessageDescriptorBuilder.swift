@@ -34,14 +34,20 @@ struct MessageDescriptorBuilder {
       currentTypePath = parentTypePath.isEmpty ? messageNode.name : "\(parentTypePath).\(messageNode.name)"
     }
 
-    // Convert fields
+    // Convert fields. Track proto3 optional fields so synthetic oneofs can be
+    // appended after all explicit oneof declarations (maintaining correct indices).
+    var proto3OptionalFieldPositions: [(arrayIndex: Int, fieldName: String)] = []
     for (index, fieldNode) in messageNode.fields.enumerated() {
-      let fieldProto = try FieldDescriptorBuilder.build(
+      var fieldProto = try FieldDescriptorBuilder.build(
         from: fieldNode,
         index: Int32(index),
         packageName: packageName,
         protoVersion: protoVersion
       )
+      if fieldNode.isProto3Optional {
+        fieldProto.proto3Optional = true
+        proto3OptionalFieldPositions.append((messageProto.field.count, fieldNode.name))
+      }
       messageProto.field.append(fieldProto)
     }
 
@@ -85,6 +91,19 @@ struct MessageDescriptorBuilder {
       }
       let oneofProto = try buildOneof(from: oneofGroup)
       messageProto.oneofDecl.append(oneofProto)
+    }
+
+    // Add synthetic oneofs for proto3 optional fields.
+    // These are appended AFTER all explicit oneofs so that existing oneofIndex values stay valid.
+    // Each synthetic oneof is named `_<fieldName>` per the protobuf spec.
+    if !proto3OptionalFieldPositions.isEmpty {
+      let explicitOneofCount = messageProto.oneofDecl.count
+      for (syntheticIdx, (fieldArrayIndex, fieldName)) in proto3OptionalFieldPositions.enumerated() {
+        messageProto.field[fieldArrayIndex].oneofIndex = Int32(explicitOneofCount + syntheticIdx)
+        var syntheticOneof = Google_Protobuf_OneofDescriptorProto()
+        syntheticOneof.name = "_\(fieldName)"
+        messageProto.oneofDecl.append(syntheticOneof)
+      }
     }
 
     // Convert group fields: each produces a FieldDescriptorProto (TYPE_GROUP) and a synthetic
@@ -305,26 +324,7 @@ struct MessageDescriptorBuilder {
           messageOptions.noStandardDescriptorAccessor = value
         }
       default:
-        // Custom options - add to uninterpreted_option
-        var uninterpretedOption = Google_Protobuf_UninterpretedOption()
-        var namePart = Google_Protobuf_UninterpretedOption.NamePart()
-        namePart.namePart = option.name
-        namePart.isExtension = option.isCustom
-        uninterpretedOption.name = [namePart]
-
-        // Set value based on option value type
-        switch option.value {
-        case .string(let value):
-          uninterpretedOption.stringValue = Data(value.utf8)
-        case .number(let value):
-          uninterpretedOption.positiveIntValue = UInt64(value)
-        case .boolean(let value):
-          uninterpretedOption.identifierValue = value ? "true" : "false"
-        case .identifier(let value):
-          uninterpretedOption.identifierValue = value
-        }
-
-        messageOptions.uninterpretedOption.append(uninterpretedOption)
+        messageOptions.uninterpretedOption.append(DescriptorBuilder.buildUninterpretedOption(from: option))
       }
     }
 
@@ -338,26 +338,7 @@ struct MessageDescriptorBuilder {
     for option in options {
       switch option.name {
       default:
-        // Custom options - add to uninterpreted_option
-        var uninterpretedOption = Google_Protobuf_UninterpretedOption()
-        var namePart = Google_Protobuf_UninterpretedOption.NamePart()
-        namePart.namePart = option.name
-        namePart.isExtension = option.isCustom
-        uninterpretedOption.name = [namePart]
-
-        // Set value based on option value type
-        switch option.value {
-        case .string(let value):
-          uninterpretedOption.stringValue = Data(value.utf8)
-        case .number(let value):
-          uninterpretedOption.positiveIntValue = UInt64(value)
-        case .boolean(let value):
-          uninterpretedOption.identifierValue = value ? "true" : "false"
-        case .identifier(let value):
-          uninterpretedOption.identifierValue = value
-        }
-
-        oneofOptions.uninterpretedOption.append(uninterpretedOption)
+        oneofOptions.uninterpretedOption.append(DescriptorBuilder.buildUninterpretedOption(from: option))
       }
     }
 

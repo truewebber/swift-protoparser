@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package test.message.literal;
+
+import "google/protobuf/descriptor.proto";
+
+extend google.protobuf.FieldOptions {
+  string field_agg = 52001;
+}
+
+extend google.protobuf.MessageOptions {
+  string msg_agg = 52002;
+}
+
+message AggMessage {
+  option (msg_agg) = "top_level";
+
+  string name = 1 [(field_agg) = {max_len: 255}];
+  string code = 2 [(field_agg) = {pattern: "^[A-Z]+$"}];
+  int32 count = 3 [(field_agg) = {min_val: 0, max_val: 100}];
+}
+
+message SimpleAgg {
+  string id = 1 [(field_agg) = {required: true}];
+  string value = 2 [(field_agg) = {max_len: 1024}];
+}

@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package acme.library.circulation;
+
+import "pb_circulation/book.message.proto";
+
+option go_package = "github.com/acme/library/proto/pb_circulation";
+
+// The LibraryCirculationService service definition.
+service LibraryCirculationService {
+    rpc BookMeta (BookMetaRequest) returns (BookMetaResponse) {}
+    rpc GetBookMetaByCollectionId (BookMetaByCollectionIdRequest) returns (BookMetaByCollectionIdResponse) {}
+    rpc GetBookMetaByBookId (BookMetaByBookIdRequest) returns (BookMetaByBookIdResponse) {}
+    rpc TargetsList (TargetsListRequest) returns (TargetsListResponse) {}
+}

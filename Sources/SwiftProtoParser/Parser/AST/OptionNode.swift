@@ -2,8 +2,15 @@ import Foundation
 
 /// Represents a protobuf option declaration.
 struct OptionNode: Equatable {
-  /// The option name (e.g., "java_package", "deprecated").
+  /// The option name (e.g., "java_package", "deprecated", or "buf.validate.field" for custom options).
   let name: String
+
+  /// Sub-field path after the closing parenthesis.
+  ///
+  /// For `(buf.validate.field).int32.gt`, `name` is `"buf.validate.field"` and
+  /// `subFieldPath` is `["int32", "gt"]`.
+  /// For plain options such as `deprecated` or `(my_ext)` this array is empty.
+  let subFieldPath: [String]
 
   /// The option value.
   let value: OptionValue
@@ -11,8 +18,9 @@ struct OptionNode: Equatable {
   /// Whether this is a custom option (starts with parentheses).
   let isCustom: Bool
 
-  init(name: String, value: OptionValue, isCustom: Bool = false) {
+  init(name: String, subFieldPath: [String] = [], value: OptionValue, isCustom: Bool = false) {
     self.name = name
+    self.subFieldPath = subFieldPath
     self.value = value
     self.isCustom = isCustom
   }
@@ -24,6 +32,8 @@ enum OptionValue: Equatable {
   case number(Double)
   case boolean(Bool)
   case identifier(String)
+  /// A message literal value: the raw balanced-block text including braces, e.g. `{ max_len: 1024 }`.
+  case messageLiteral(String)
 
   /// Returns the string representation of the value as it would appear in a .proto file.
   var protoRepresentation: String {
@@ -41,6 +51,8 @@ enum OptionValue: Equatable {
       return bool ? "true" : "false"
     case .identifier(let id):
       return id
+    case .messageLiteral(let block):
+      return block
     }
   }
 }
@@ -48,8 +60,9 @@ enum OptionValue: Equatable {
 // MARK: - CustomStringConvertible
 extension OptionNode: CustomStringConvertible {
   var description: String {
-    let optionName = isCustom ? "(\(name))" : name
-    return "option \(optionName) = \(value.protoRepresentation);"
+    let baseName = isCustom ? "(\(name))" : name
+    let suffix = subFieldPath.isEmpty ? "" : "." + subFieldPath.joined(separator: ".")
+    return "option \(baseName)\(suffix) = \(value.protoRepresentation);"
   }
 }
 
